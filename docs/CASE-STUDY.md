@@ -426,6 +426,135 @@ Stated plainly, because it is the transferable part.
 
 ---
 
+## Part seven — what it cost
+
+Measured from the two session transcripts rather than from an invoice. Claude Code
+writes a `usage` block on every model turn; these are those numbers summed across
+1,583 turns and 3,795 transcript records, then priced at Claude Opus 5 list rates
+— $5/M input, $25/M output, $0.50/M cache read, and $10/M cache write at the
+one-hour cache TTL these sessions used. Both sessions ran on a subscription, so
+**this is an API-equivalent cost and not a bill.** Output includes thinking
+tokens, which the API reports as output. Writing this section is itself adding to
+the totals, so treat them as a snapshot taken at 18:47 UTC on 2 August.
+
+### The two sessions
+
+| | 1–2 Aug | 2 Aug | total |
+|---|---|---|---|
+| elapsed | 11 h 39 m | 4 h 07 m | 15 h 46 m |
+| prompts a human typed | 26 | 19 | **45** |
+| model turns | 755 | 828 | 1,583 |
+| tool calls | 370 | 482 | 852 |
+| output tokens | 1.87 M | 1.11 M | 2.98 M |
+| cache writes | 2.92 M | 2.16 M | 5.08 M |
+| cache reads | 379.0 M | 347.1 M | 726.1 M |
+| uncached input | 1,406 | 1,556 | 2,962 |
+| API-equivalent | $265 | $223 | **$488** |
+
+Of the 15 h 46 m elapsed, the model was generating for 6 h 25 m; the rest was the
+user reading, walking the Library, and — for one 5 h 50 m stretch — asleep.
+
+Fifty messages carry the `user` role, but five are machinery: four skill
+documents the harness injected and one compaction summary. The 45 that remain are
+what a person actually typed, and they come to **1,823 words**, about 11 KB.
+Against that the model emitted 2.98 M output tokens — roughly 1,600 output tokens
+per word typed.
+
+### Where the money went
+
+| | tokens | of all tokens | cost | of all cost |
+|---|---|---|---|---|
+| cache reads | 726.1 M | 98.9% | $363 | 74% |
+| output, incl. thinking | 2.98 M | 0.41% | $74 | 15% |
+| cache writes | 5.08 M | 0.69% | $51 | 10% |
+| uncached input | 2,962 | — | $0.01 | — |
+
+The shape of that is the finding. **Almost nothing was spent writing the Library;
+nearly all of it went on re-reading the conversation about writing it.** Each of
+the 1,583 turns re-read an average of 459,000 tokens of cached context in order to
+emit an average of 1,900. Caching is the only reason that is affordable — at the
+uncached input rate the same traffic would have cost about $3,730, so the cache
+cut the bill 7.6×.
+
+The same arithmetic explains why identical instructions get dearer as a session
+runs. "proceed with fixes" cost **2¢** at 19:15 on the first evening. "go, do
+both together" — four words, the same brevity — cost **$35.04** at 15:35 the next
+afternoon, because by then each turn re-read a large context, and that particular
+instruction bought 174 turns and 107 tool calls. The project's first five prompts
+cost $6 between them; its last five cost $73. The prompting did not change. The
+context did.
+
+### Cost per unit of work
+
+- **$10.85 per prompt** mean, $10.37 median.
+- **5.4¢ per line** across the 9,023 lines of hand-authored tracked text — code,
+  specifications, documentation, skill — in 32 files, excluding generated fixtures
+  and images. About 200 kept lines per prompt.
+- The two most expensive prompts were "go, do both together" ($35.04: the shared
+  core, the `babel://` scheme, the agent skill) and "this is a good place to pause
+  and clean up" ($33.83: the case study, the repository, the licence and privacy
+  audit — and the file corruption plus its recovery).
+- The cheapest useful prompts were the steering ones. "run step 0 first, then
+  report back" cost $1.60 and set the frame for a four-part implementation. The
+  378-word message explaining what the shared core was *for* cost $0.65, because
+  it asked for thinking rather than doing.
+
+### Prompting efficiency, as I'd rate it
+
+| | | evidence |
+|---|---|---|
+| signal per word | excellent | median prompt 24 words; 15 of 45 under 15 words; exactly one over 100 |
+| words spent where they matter | excellent | the single long message is the one that shaped the architecture |
+| bug reports | excellent | named the axis and condition ("off-target as i go to the far left and right"), or the contradiction ("says 200fps but its laggy as hell") |
+| willingness to overturn me | excellent | 11 words killed a wrong diagnosis I had stated as fact |
+| decision throughput | good | five decisions settled in 47 words; others correctly delegated back ("make a recommendation") |
+| mid-flight checkpoints | mixed | one explicit checkpoint, high value; otherwise long autonomous runs |
+| instrument-backed reports | improvable | "laggy as hell" needed a round trip to become 7.7 ms / 11.8 worst |
+| front-loading model-shaping constraints | improvable | the 29-symbol alphabet arrived after the 25-symbol core was built and tested |
+
+Overall: **efficient, and efficient in the way that actually matters** — brevity
+where brevity was enough, length exactly where the design was at stake, and
+corrections delivered early rather than politely deferred. The highest-value
+prompt in the log is "well pointer lock had worked previously so something must
+have happened". Eleven words, $10.69, and it stopped a confident wrong
+explanation from reaching this document.
+
+But the honest accounting is that **prompt phrasing was not the binding
+constraint on cost — context size was, and my own wrong turns were.** Three
+performance hypotheses of mine were wrong, one diagnosis was asserted without a
+probe, one test compared bytes when it should have run code, and I corrupted two
+files with a shell script during cleanup. Reading the per-prompt profile, I'd put
+$50–80 of the $488 on those and their repair. That is an estimate rather than a
+measurement, because the same intervals also contain the work that succeeded.
+
+### What I would change
+
+Mine to fix:
+
+1. **`git init` in the first ten minutes.** The repository was created in the last
+   hour of the second session. Had it existed on day one, the file corruption
+   would have been `git checkout` instead of a recovery scramble through Claude
+   Code's file history. This is the single change with the largest expected saving.
+2. **Offer a checkpoint on any multi-part instruction.** "wwwwall of it" and "go,
+   do both together" were good value, but the mechanism that makes them good —
+   an hour of unsupervised work — is the same one that makes a wrong assumption
+   cost an hour. The one time a checkpoint was requested it paid for itself.
+
+Worth doing from the other side:
+
+3. **Quote the instrument.** The HUD now prints mean and worst frame time; naming
+   those two numbers in the first message about a stutter removes an exchange.
+   This is only fair to say in hindsight — the readout did not exist when the
+   report was made, and building it was the response.
+4. **State the machine once, at the top.** Nine performance exchanges happened
+   without me knowing the GPU or the refresh rate, and I twice concluded nothing
+   was wrong from a clean local profile.
+5. **Give data-model constraints before the data model exists.** Changing the
+   alphabet cost a rebuild of the vectors and the conformance fixtures. It was
+   cheap only because the core was well factored.
+
+---
+
 ## Where it stands, and what is left
 
 Green: 103 core assertions, 41 gates, 484 GPU integers, build current.
