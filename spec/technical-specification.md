@@ -680,12 +680,28 @@ A shelved volume's content is `streamDigit(walkKey(a), …)` — every one of it
 single 32-bit word. So the width of that word, not the number of shelves, was
 the real size of the walkable Library. *[derived]*
 
-| | |
-|---|---|
-| Shelf slots in one period | ~8 × 10²¹ — 2³² cells × ~2³² floors × 537 volumes, 84% galleries |
-| Distinct books those slots could hold | **2³² = 4,294,967,296** |
-| Times each text was repeated | ~2 × 10¹² |
-| First duplicate pair | after ~65,000 slots, about 120 galleries |
+| | one lane (was) | two lanes (is) |
+|---|---|---|
+| Shelf slots in one period | ~8 × 10²¹ — 2³² cells × ~2³² floors × 537 volumes, 84% galleries | unchanged |
+| Distinct books those slots can hold | **2³² = 4,294,967,296** | **2⁶⁴ = 18,446,744,073,709,551,616** |
+| Times each text is repeated | ~2 × 10¹² | ~440 |
+| First duplicate pair | ~93,000 slots — about 173 galleries | ~6.1 × 10⁹ slots — about 11.3 million galleries |
+| Share of the corpus | 10^−1,918,657 | 10^−1,918,647 |
+
+**The share is the number that says what this change is and is not.** It moved by
+9.63 decimal orders against a denominator of 1,918,667 digits. Widening the key
+buys no coverage of the corpus and cannot: naming an arbitrary book takes
+6,373,671 bits — 778 KiB — of coordinate, and a coordinate that large is the book
+(LIB-S-010..012, and §17.7 on why walking and searching are different systems).
+What it buys is that the reachable set no longer repeats itself where a reader can
+see it. A reader who opens a thousand volumes now expects 2.7 × 10⁻¹⁴ duplicate
+pairs; before, an afternoon's exploring could turn one up.
+
+One consequence worth stating plainly: at 2³² the walkable Library was
+*enumerable*. Every distinct book it contained could be listed by a laptop in a
+weekend, and stored — at 778 KiB each — in 3.4 petabytes. That is a catalogue,
+which is the one thing the source insists cannot exist (LIB-S-001..004). At 2⁶⁴ it
+is 14.7 yottabytes and 7.7 × 10¹⁴ years of reading, which is not.
 
 Not theoretical. `floor/0/cell/0,20/wall/4/shelf/3/slot/26` and
 `floor/0/cell/2,32/wall/0/shelf/0/slot/19` were the same book, identical across
@@ -745,7 +761,7 @@ internally, so a text citation made before this change still verifies. What brok
 Nothing in the repository quoted generated text or a spine label, which was
 checked before the change rather than hoped. Widening later would have cost more,
 and never widening would have left a defect that is observable from inside the
-Library by anyone who walked 120 galleries.
+Library by anyone who walked 170 galleries.
 
 ---
 

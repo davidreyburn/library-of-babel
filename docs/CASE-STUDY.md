@@ -330,9 +330,9 @@ that gate. So the walkable Library held at most 2³² distinct texts — about 4
 billion — spread over 8 × 10²¹ slots, each text repeated some 2 × 10¹² times.
 
 That is not a rounding error in a document. It is a defect you can *see from
-inside*: the first pair of shelves holding the identical book turns up after
-about 65,000 slots, which is 120 galleries — a long walk, but not an impossible
-one. And LIB-C-021 says "no two identical books."
+inside*: the expected first pair of shelves holding the identical book sits at
+√(2 × 2³²), about 93,000 slots, which is **170 galleries** — a long walk, but not
+an impossible one. And LIB-C-021 says "no two identical books."
 
 I found the pair:
 
@@ -428,6 +428,50 @@ Search can only ever answer in the second system, and that is arithmetic rather
 than a limitation. A chosen 3,200-symbol page occupies 29^-3200 ≈ 10^-4680 of the
 corpus; the walkable lattice reaches on the order of 10^22 volumes. The gap is
 about 4,700 orders of magnitude.
+
+### How big it actually is, before and after
+
+Three numbers, because two of them are easy to confuse and the third is the one
+that settles the argument.
+
+| | distinct books | share of the corpus |
+|---|---|---|
+| Walkable, one 32-bit lane | 4,294,967,296 — 4.3 **billion** | 10^−1,918,657 |
+| Walkable, two lanes (shipped) | 18,446,744,073,709,551,616 — 18.4 **quintillion** | 10^−1,918,647 |
+| The corpus | 29^1,312,000 — a number **1,918,667 digits** long | 1 |
+
+**4.3 billion is a small number, and that was the whole problem.** It is about
+thirty times every book ever published. Abandon compute-don't-store and write
+them all out at 778 KiB each and the entire walkable Library came to **3.4
+petabytes** — a large but unremarkable data centre. Worse: 2³² is *enumerable*.
+You could iterate every distinct book the Library contained, on a laptop, over a
+weekend. Borges's Library is precisely the thing that cannot be catalogued, and
+that one was a catalogue with a hexagonal front end.
+
+**18.4 quintillion is about two and a half times the grains of sand on Earth.**
+Stored, 14.7 yottabytes — roughly **eighty years of all human data production** at
+current rates. Read at a thousand symbols a second, 7.7 × 10¹⁴ years, some
+**56,000 times the age of the universe**. Nobody enumerates it.
+
+**And the fraction barely moved.** The gain is a factor of 4.3 billion, which is
+9.63 decimal orders against a denominator with 1.9 million digits — removing ten
+zeros from a number that has 1,918,657 of them. Unimaginably small became
+unimaginably small.
+
+That is worth sitting with, because it is the honest shape of the thing. **The
+widening bought no coverage and was never going to.** Any address short enough to
+walk to can only reach a vanishing sliver; to name an arbitrary book you need
+6,373,671 bits of coordinate, which is 778 KiB, which *is the book*. What the
+second lane bought is that the sliver no longer visibly repeats itself:
+
+| | first duplicate expected after |
+|---|---|
+| One lane | ~93,000 shelves — **173 galleries** |
+| Two lanes | ~6.1 billion shelves — **11.3 million galleries**, about ten months of continuous walking |
+
+A reader who opens a thousand books now expects 2.7 × 10⁻¹⁴ duplicate pairs.
+Before, an energetic afternoon could turn one up. The Library is no more complete
+than it was; it has stopped being a four-billion-book loop pretending otherwise.
 
 ### The pane shows the coordinate system
 

@@ -138,8 +138,8 @@ const TEXT_D0 = TEXT_DOMAIN, TEXT_D1 = u32(TEXT_DOMAIN ^ 0xA5A5A5A5);
  * shelves it had -- about 4.3 billion across some 8x10^21 slots, each text
  * repeated on the order of 10^12 times. It was demonstrable, not
  * theoretical: 0,20/wall/4/shelf/3/slot/26 and 2,32/wall/0/shelf/0/slot/19
- * were the same book, and the first such pair turns up after roughly
- * 65,000 slots -- about 120 galleries. That contradicted LIB-C-021.
+ * were the same book, and the expected first pair sits at sqrt(2 * 2^32) --
+ * about 93,000 slots, or 170 galleries. That contradicted LIB-C-021.
  *
  * The lanes must be independent, not derived from one another, or the
  * second adds nothing: two addresses collide only if they collide in both,

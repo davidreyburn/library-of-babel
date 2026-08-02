@@ -534,7 +534,7 @@ section("EMPTY SLOTS -- the gaps the Purifiers left (D-42)");
  * width is a hard ceiling on how many distinct books the whole walkable
  * lattice can hold -- however many shelves it has. One 32-bit lane capped
  * it at 2^32, about 4.3 billion across some 8x10^21 slots, and duplicates
- * turned up after roughly 65,000 slots. Two lanes move that to 2^64.   */
+ * turned up after roughly 93,000 slots. Two lanes move that to 2^64.   */
 section("KEY WIDTH -- two lanes, and what the second one is for");
 {
   /* The pair that used to be one book (§17.12). */
