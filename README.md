@@ -1,0 +1,106 @@
+# The Library of Babel
+
+A deterministic, walkable Library of Babel: **29^1,312,000** volumes, none of them
+stored. Every room and every symbol is a pure function of its address, so the
+renderer, an agent and the tests all see the same Library — and a coordinate in it
+can be cited and checked.
+
+Derived from Borges's story treated as a requirements document. Where the build
+departs from it, §17 of the specification says so, with the measurement that
+justified the departure.
+
+![the reticule on a spine, its name in the panel](docs/images/08-reticule-and-panel.jpg)
+
+## Run it
+
+Node 18+. No dependencies, nothing to install.
+
+```sh
+npm start                 # serves the repo; opens at app/babel-phase1.html
+```
+
+or double-click `app/play.cmd` (Windows) / `app/play.sh` (macOS, Linux).
+
+**WASD** to walk, mouse to look, **E** to read the volume you are facing, **Q** to
+hand the mouse back, **R** if you get stuck. Served at top level like this you get
+real mouse capture; the published artifact cannot have it, because artifact frames
+are sandboxed without `allow-pointer-lock`.
+
+Two addresses open things directly:
+
+```
+app/babel-phase1.html?at=babel://walk/00001594/floor/-2/cell/-3,0
+app/babel-phase1.html?read=babel://walk/00001594/floor/0/cell/15,94/wall/1/shelf/2/slot/17/page/203
+```
+
+## Use it without the renderer
+
+```sh
+node tools/babel.mjs here 15,94                     # the room, and every way out
+node tools/babel.mjs read "babel://walk/00001594/floor/0/cell/15,94/wall/1/shelf/2/slot/17"
+node tools/babel.mjs find "the library is unlimited and cyclical."
+node tools/babel.mjs wander --route 1941 --steps 24
+node tools/babel.mjs seat   --route 1941
+node tools/babel.mjs verify <address> <page> <line> <col> "<quote>"
+```
+
+`--json` on any command for machine-readable output. To import the modules
+instead, see [`core/README.md`](core/README.md).
+
+An agent skill is included at `.claude/skills/library-of-babel/`, which is mostly
+about the discipline the environment rewards: verify every citation before
+reporting it, and say what you went looking for.
+
+## Test it
+
+```sh
+npm test          # 103 core assertions + 41 gates
+npm run check     # non-zero if app/ is stale relative to core/
+npm run harness   # run policies over a corpus of episodes, print the readout
+```
+
+For the GPU half, `npm start` and open `core/conformance.html`: it runs the
+shader's own copy of the lattice against the CPU's and compares 484 integers.
+
+## Layout
+
+```
+app/          the simulator, one self-contained file, generated from core/
+core/         the lattice and the corpus: one implementation, three consumers
+  README.md   the module tour and the babel:// scheme
+  RUN.md      what one agent excursion is, and what number says it went well
+spec/         the technical and design specifications, and the headless-twin pattern
+tools/        a static server and a command-line Library
+docs/         the case study, and screenshots of the build
+notes/        the PDF-to-Markdown converter used on the source text
+```
+
+## Two things worth knowing before reading the code
+
+**A book's address is its content.** That is the story's own constraint and it
+decides everything: nothing is stored, so nothing can be catalogued, since an
+address is exactly as large as the book it names.
+
+**Every symbol is computed from its own position.** `symbolAt(address, p)` is
+O(1), so a page costs its own 3,200 symbols and the last page of a book is no
+dearer than the first. There is no bignum anywhere in the system.
+
+## The source text
+
+Borges's story is **not** in this repository — it is under copyright and not ours
+to redistribute. Nothing here needs it at runtime; the build, the tests and the
+simulator never read it. The specifications cite short fragments for traceability,
+and [`SOURCE.md`](SOURCE.md) explains the arrangement and where to put your own
+copy if you want it beside the notes.
+
+## Licence
+
+MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the story.
+
+## Reading further
+
+- [`docs/CASE-STUDY.md`](docs/CASE-STUDY.md) — how it was built, weighted toward
+  what went wrong
+- [`spec/technical-specification.md`](spec/technical-specification.md) — the
+  requirements, and §17 for every departure
+- [`core/RUN.md`](core/RUN.md) — the agent environment and its four gates

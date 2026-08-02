@@ -1,0 +1,9 @@
+# LF everywhere, deliberately. core/build.mjs writes the generated regions of
+# app/babel-phase1.html with LF and `npm run check` compares that text byte for
+# byte; letting git rewrite line endings on checkout would make a fresh clone
+# report STALE before anyone had touched anything.
+* text=auto eol=lf
+
+*.jpg binary
+*.png binary
+*.pdf binary

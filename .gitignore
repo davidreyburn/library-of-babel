@@ -1,0 +1,21 @@
+# No build output is ignored on purpose: app/babel-phase1.html is generated
+# from core/ but is also the shipped artifact, and `npm run check` is what
+# proves it is current. It is tracked.
+
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# scratch
+tmp/
+*.tmp
+runs.json
+
+# The Borges story is under copyright and is not redistributed here. Keep a
+# local copy at source/ if you want it beside the traceability notes. SOURCE.md
+source/
+
+# Raw session logs: kept locally, not published -- the prior-session transcript
+# embeds tool output containing the full converted story text.
+notes/*.jsonl

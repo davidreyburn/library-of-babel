@@ -1,0 +1,1391 @@
+<title>The Library of Babel - Phase 1</title>
+<style>
+  :root{
+    --pale:#8C9179; --ink:#12140F; --crimson:#9E1B32;
+    --mono:"Cascadia Mono",Consolas,"DejaVu Sans Mono","Liberation Mono",monospace;
+  }
+  html,body{height:100%;}
+  body{margin:0;background:var(--ink);color:var(--pale);font-family:var(--mono);overflow:hidden;}
+  /* nearest-neighbour upscale: the dither must land on whole pixels, or the
+     8x8 pattern beats against the output grid and shimmers on flat walls */
+  canvas{
+    position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+  }
+  /* While looking, the cursor is hidden over the world but not over the panels
+     -- they are separate elements, so their own cursor applies and you can
+     still see what you are reaching for. */
+  canvas.blind{cursor:none;}
+
+  .panel{
+    position:fixed;background:rgba(18,20,15,.90);border:1px solid #2A2E24;
+    padding:.55rem .7rem;font-size:.68rem;line-height:1.55;letter-spacing:.05em;
+  }
+  #addr{top:.7rem;left:.7rem;min-width:16rem;}
+  #addr .k{color:#6E7360;text-transform:uppercase;}
+  #addr .v{color:var(--pale);font-variant-numeric:tabular-nums;}
+  #addr .row{display:flex;justify-content:space-between;gap:1.2rem;}
+  #addr hr{border:0;border-top:1px solid #2A2E24;margin:.4rem 0;}
+  #addr .note{color:#6E7360;font-size:.62rem;letter-spacing:.04em;line-height:1.5;}
+  #addr .cr{color:var(--crimson);}
+  #gaps{display:flex;flex-wrap:wrap;gap:.22rem;margin-top:.15rem;}
+  #gaps span{
+    font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid #34392C;padding:.02rem .28rem;color:#8C9179;
+  }
+  #gaps .st{border-color:#5E6B45;color:#A6B27E;}
+  #gaps .sh{border-color:#6B4A3C;color:#B58A6A;}
+  #gaps .wl{border-color:#2A2E24;color:#5A5F4E;}
+
+  #help{bottom:.7rem;left:.7rem;font-size:.65rem;color:#7C8169;max-width:23rem;}
+  #help b{color:var(--pale);font-weight:400;}
+  #help .t{color:#6E7360;}
+
+  #perf{top:.7rem;right:.7rem;font-size:.65rem;color:#6E7360;text-align:right;max-width:11rem;}
+  #perf #mouse{color:var(--pale);}
+  #perf #mouse.warn{color:#B58A6A;}
+  #perf #mousenote{display:block;font-size:.6rem;color:#6E7360;letter-spacing:.04em;}
+  #perf #mousenote:empty{display:none;}
+  #perf select{
+    font-family:var(--mono);font-size:.65rem;background:#1A1D16;color:var(--pale);
+    border:1px solid #2A2E24;padding:.1rem .2rem;margin-top:.3rem;
+  }
+
+  #veil{
+    position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,12,8,.94);
+    text-align:center;padding:2rem;cursor:pointer;z-index:9;
+  }
+  #veil.gone{display:none;}
+  #veil h1{
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    font-weight:400;font-size:clamp(1.4rem,4vw,2.2rem);margin:0 0 .6rem;color:#A8AD91;
+  }
+  #veil p{font-size:.72rem;color:#7C8169;margin:.2rem 0;letter-spacing:.06em;}
+  #veil .go{
+    margin-top:1.2rem;border:1px solid #6E7360;padding:.5rem 1.4rem;display:inline-block;
+    font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--pale);
+  }
+</style>
+
+<canvas id="gl"></canvas>
+
+<div id="addr" class="panel">
+  <div class="row"><span class="k">Floor</span><span class="v" id="a-floor">+0</span></div>
+  <div class="row"><span class="k">Cell</span><span class="v" id="a-cell">0, 0</span></div>
+  <hr>
+  <div class="row"><span class="k">Shelved</span><span class="v" id="a-shelf">&mdash;</span></div>
+  <div class="row"><span class="k">Volumes here</span><span class="v" id="a-vol">&mdash;</span></div>
+  <div class="k" style="margin-top:.35rem">Through the gaps</div>
+  <div id="gaps"></div>
+  <hr>
+  <div class="note" id="a-note">Every floor is a different network. Shafts and stairwells run through all of them.</div>
+</div>
+
+<div id="perf" class="panel">
+  <div><span id="fps">--</span> fps</div>
+  <div><span id="res">--</span></div>
+  <div id="mouserow" title="True mouse capture needs the Pointer Lock API. The artifact frame is sandboxed as allow-scripts allow-same-origin allow-forms, with no allow-pointer-lock, so it can never be granted there. Serve this file from a local server and open it in a normal tab to get capture.">mouse <span id="mouse">--</span><span id="mousenote"></span></div>
+  <select id="scale">
+    <option value="0" selected>auto</option>
+    <option value="1">1:1</option>
+    <option value="2">1:2</option>
+    <option value="3">1:3</option>
+  </select>
+  <select id="grain">
+    <option value="0">ordered</option>
+    <option value="1" selected>noise</option>
+    <option value="2">fine</option>
+    <option value="3">smooth</option>
+  </select>
+</div>
+
+<div id="help" class="panel">
+  <b>WASD</b> <span class="t">walk</span> &middot; <b>move the mouse</b> <span class="t">to look</span> &middot; <b>arrows</b> <span class="t">too</span>
+  &middot; <b>Q</b> <span class="t">let the mouse go</span> &middot; <b>R</b> <span class="t">if stuck</span><br>
+  <span class="t">Gaps are passages or halls. Through them: another gallery, a stairwell
+  with flights up and down, or a shaft you can look into but not cross.</span>
+</div>
+
+<div id="veil">
+  <div>
+    <h1>The Library of Babel</h1>
+    <p>Phase 1 &mdash; the space</p>
+    <p style="margin-top:.8rem;">A hexagonal network just past its percolation threshold</p>
+    <p>Two lamps per gallery &middot; insufficient, incessant</p>
+    <div class="go">Click to enter</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ *  Deviations from the specs, recorded deliberately:
+ *
+ *  1. Strict "all sides except two" (LIB-A-001) is 2-regular, and every
+ *     component of a 2-regular graph is a cycle -- circuits only, never
+ *     a network. Degree here is variable: junctions and dead ends both.
+ *
+ *  2. Three cell types. A gap is only ever a passage or a hall; what
+ *     varies is what lies through it -- another gallery, a stairwell, or
+ *     a shaft. A stairwell holds one straight flight climbing a storey,
+ *     so it is a vertical link, not a level one: it carries no same-floor
+ *     traffic, which is why the galleries need this much openness.
+ *
+ *  Measured over the lattice: 50% open, 2% shafts, 12% stairwells gives a
+ *  gallery giant component of 0.90, mean shelved walls 3.07 (against 4 in
+ *  the text), a stairwell within 4 rooms at the 90th percentile, and a
+ *  shaft in view from about 1 room in 18.
+ *
+ *  Cell type is floor-independent, so shafts and stairwells are permanent
+ *  vertical cores; gap types are per-floor, so every storey is a new maze.
+ *
+ *  Scale: the room follows from the 35-volume shelf (LIB-A-003). A 52 mm
+ *  spine gives a 1.82 m run of books, a 2.10 m wall and a room 3.64 m
+ *  across. The ceiling stays at 2.10 m, which the text does fix (D-20) --
+ *  the room is meant to read low and broad, so width is the right lever.
+ * ------------------------------------------------------------------ */
+const G = {
+  BOOK_W:    0.052,   // 35 volumes -> a 1.82 m run
+  RUN_HALF:  0.910,
+  UP_C:      0.935,   // bookcase end uprights
+  UP_HW:     0.025,
+  CASE_HALF: 0.960,   // case stops 0.09 short of the wall end, so corners read
+  HALF_WALL: 1.050,
+  APO_ROOM:  1.819,   // gallery: 3.64 m across
+  APO_STAIR: 2.100,   // stairwell: roomier, to take a 3.2 m flight
+  APO_SHAFT: 2.300,
+  R_CELL:    2.793,
+  CENTRE_D:  4.838,
+  HALF_D:    2.419,
+  PASS_HW:   0.52,
+  HALL_HW:   0.80,
+  STAIR_RUN: 2.419,   /* exactly the cell radius: the flight then starts at
+                         floor level on the cell boundary and ends at the next
+                         storey's level on the far one, so both thresholds are
+                         flush. At 3.10 it overhung into the galleries, where
+                         ground-following does not apply, and you met a 0.56 m
+                         step walking in. 4.84 m run for 2.60 m, about 28 deg. */
+  STAIR_HW:  0.62,    // the flight is a 1.24 m corridor cut in rock, not a well
+  STAIR_EXT: 0.75,    /* the corridor runs past the cell boundary to meet the
+                         gallery's doorway. Ending it exactly on the boundary
+                         capped it with a face, so from inside the stair the
+                         entrance rendered as a wall you could still walk
+                         through. The tread is clamped, so the overhang is
+                         flat and level with the floor it opens onto. */
+  H_ROOM:    2.10,
+  H_FLOOR:   2.60,
+  EYE:       1.60,
+  RADIUS:    0.24
+};
+const P_OPEN  = 32768;   // 0.50 * 65536
+const P_SHAFT = 1311;    // 0.02 -- a shaft view in about 1 room in 18
+const P_STAIR = 9175;    // 0.02 + 0.12
+const P_STUDY = 10486;   // + 0.02 -- a reading room, rarely met
+const CRIM = { q: 15, r: 94, floor: 0, wall: 1, shelf: 2, slot: 17 };
+const GAP = { WALL:0, PASSAGE:1, HALL:2, SHAFT:3 };
+const TYPE = { GALLERY:0, SHAFT:1, STAIRWELL:2, STUDY:3 };
+
+const VERT = `#version 300 es
+in vec2 a;
+void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
+
+const FRAG = `#version 300 es
+precision highp float;
+precision highp int;
+out vec4 outColor;
+
+uniform vec2  uRes;
+uniform float uTime;
+uniform vec3  uCam;
+uniform mat3  uView;
+uniform float uMotion;
+uniform ivec3 uCrimCell;
+uniform int   uGrain;   // 0 ordered . 1 noise . 2 fine . 3 off
+
+const float PI = 3.14159265;
+const float R_CELL    = ${G.R_CELL.toFixed(3)};
+const float APO_ROOM  = ${G.APO_ROOM.toFixed(3)};
+const float APO_STAIR = ${G.APO_STAIR.toFixed(3)};
+const float APO_SHAFT = ${G.APO_SHAFT.toFixed(3)};
+const float PASS_HW   = ${G.PASS_HW.toFixed(2)};
+const float HALL_HW   = ${G.HALL_HW.toFixed(2)};
+const float STAIR_RUN = ${G.STAIR_RUN.toFixed(2)};
+const float STAIR_HW  = ${G.STAIR_HW.toFixed(2)};
+const float STAIR_EXT = ${G.STAIR_EXT.toFixed(2)};
+const float H_ROOM    = ${G.H_ROOM.toFixed(2)};
+const float H_FLOOR   = ${G.H_FLOOR.toFixed(2)};
+const float HALF_D    = ${G.HALF_D.toFixed(3)};
+const float SQ3       = 1.7320508;
+const float BOOK_W    = ${G.BOOK_W.toFixed(4)};
+const float RUN_HALF  = ${G.RUN_HALF.toFixed(3)};
+const float UP_C      = ${G.UP_C.toFixed(3)};
+const float UP_HW     = ${G.UP_HW.toFixed(3)};
+const float CASE_HALF = ${G.CASE_HALF.toFixed(3)};
+const float BOOK_D    = 0.20;
+const float CARC_D    = 0.26;
+const float SHELF_P   = 0.40;
+
+/* Verdigris Damp (V-01), roles reassigned per E-01 -- pale is paper,
+   dark is stone, and the floor and casework are a warmer wood.        */
+const vec3 C_PAPER  = vec3(0.549, 0.569, 0.475);
+const vec3 C_PAPER2 = vec3(0.373, 0.400, 0.314);
+const vec3 C_STONE  = vec3(0.150, 0.163, 0.128);
+const vec3 C_INK    = vec3(0.055, 0.062, 0.045);
+const vec3 C_WOOD   = vec3(0.330, 0.256, 0.170);
+const vec3 C_HIDE   = vec3(0.300, 0.212, 0.150);   // upholstery
+const vec3 C_CRIM   = vec3(0.620, 0.106, 0.196);
+const vec3 C_LAMP   = vec3(1.000, 0.769, 0.431);
+
+float gMat;    // 0 stone . 1 volume . 2 crimson . 3 structure . 5 wood
+float gTint;   // per-volume colour draw
+float gSpineY; // 0 at the tail of the spine, 1 at the head
+uint  gKey;    // per-volume hash
+
+uint uhash(uint x){
+  x ^= x >> 16; x *= 0x7feb352du;
+  x ^= x >> 15; x *= 0x846ca68bu;
+  x ^= x >> 16; return x;
+}
+uint cellKey(ivec2 c){ return uhash(uint(c.x + 32768) | (uint(c.y + 32768) << 16)); }
+uint studyKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 2654435761u)); }
+int cellType(ivec2 c){
+  uint h = cellKey(c) >> 16;
+  if (h < ${P_SHAFT}u) return 1;
+  if (h < ${P_STAIR}u) return 2;
+  if (h < ${P_STUDY}u) return 3;      // a reading room: no shelves, some furniture
+  return 0;
+}
+ivec2 dirOf(int i){
+  if (i == 0) return ivec2( 1,  0);
+  if (i == 1) return ivec2( 1, -1);
+  if (i == 2) return ivec2( 0, -1);
+  if (i == 3) return ivec2(-1,  0);
+  if (i == 4) return ivec2(-1,  1);
+  return              ivec2( 0,  1);
+}
+/* Prefer an axis whose both ends are open ground, or the flight arrives at
+   a wall and the stair is a dead end. Both ends must be galleries. */
+int axisOf(ivec2 c){
+  int base = int(uhash(cellKey(c) ^ 0x5bf03635u) % 3u);
+  for (int k = 0; k < 3; k++){
+    int a = (base + k) % 3;
+    int ta = cellType(c + dirOf(a)), tb = cellType(c + dirOf(a + 3));
+    if ((ta == 0 || ta == 3) && (tb == 0 || tb == 3)) return a;
+  }
+  return base;
+}
+float riseOf(ivec2 c){ return (uhash(cellKey(c) ^ 0x27d4eb2du) & 1u) == 0u ? 1.0 : -1.0; }
+
+vec2 dirW(int i){
+  if (i == 0) return vec2( 0.8660254,  0.5);
+  if (i == 1) return vec2( 0.8660254, -0.5);
+  if (i == 2) return vec2( 0.0,       -1.0);
+  if (i == 3) return vec2(-0.8660254, -0.5);
+  if (i == 4) return vec2(-0.8660254,  0.5);
+  return             vec2( 0.0,        1.0);
+}
+uint edgeKey(ivec2 c, int i, int fl){
+  ivec2 n = c + dirOf(i);
+  ivec2 q = c; int j = i;
+  if (n.x < c.x || (n.x == c.x && n.y < c.y)){ q = n; j = (i + 3) % 6; }
+  uint packed = uint(q.x + 32768) | (uint(q.y + 32768) << 16);
+  return uhash(packed ^ (uint(j) * 0x9E3779B9u) ^ (uint(fl + 32768) * 0x85EBCA6Bu));
+}
+/* 0 wall . 1 passage . 2 hall . 3 opens onto a shaft */
+int gapAt(ivec2 c, int i, int fl){
+  ivec2 n = c + dirOf(i);
+  int tc = cellType(c), tn = cellType(n);
+  if (tc == 1 && tn == 1) return 0;                  // two wells
+  if (tc == 2 && tn == 2) return 0;                  // two stairs
+  /* A stairwell opens only on the two walls its flight runs between, and
+     those doorways are structural -- always there, on every storey -- or
+     the stair could climb to a wall.                                    */
+  if (tc == 2 || tn == 2){
+    if (tc == 1 || tn == 1) return 0;
+    ivec2 sc = (tc == 2) ? c : n;
+    return (i % 3 == axisOf(sc)) ? 1 : 0;
+  }
+  uint h = edgeKey(c, i, fl);
+  if ((h & 0xFFFFu) >= ${P_OPEN}u) return 0;
+  if (tc == 1 || tn == 1) return 3;
+  return (((h >> 16) & 3u) == 0u) ? 2 : 1;
+}
+vec2 worldOf(ivec2 a){
+  return vec2(R_CELL * 1.5 * float(a.x),
+              R_CELL * (SQ3 * 0.5 * float(a.x) + SQ3 * float(a.y)));
+}
+ivec2 cellOf(vec2 p){
+  float q = (2.0/3.0) * p.x / R_CELL;
+  float r = (-p.x/3.0 + SQ3/3.0 * p.y) / R_CELL;
+  float x = q;
+  float z = r;
+  float y = -x - z;
+  float rx = floor(x + 0.5), ry = floor(y + 0.5), rz = floor(z + 0.5);
+  float dx = abs(rx - x), dy = abs(ry - y), dz = abs(rz - z);
+  if (dx > dy && dx > dz)      rx = -ry - rz;
+  else if (dy > dz)            ry = -rx - rz;
+  else                         rz = -rx - ry;
+  return ivec2(int(rx), int(rz));
+}
+float sdHexFlat(vec2 p, float apo){
+  p = abs(vec2(p.x * 0.8660254 + p.y * 0.5, -p.x * 0.5 + p.y * 0.8660254));
+  return max(p.x, dot(p, vec2(0.5, 0.8660254))) - apo;
+}
+float sdBox3(vec3 p, vec3 b){
+  vec3 d = abs(p) - b;
+  return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
+}
+
+int gFurnMat;
+/* An intentional break with the text, which gives its librarians nothing but
+   shelves, a latrine and somewhere to sleep standing up.
+   Two rules: a room never holds everything, and nothing stands in the way.
+   The set is drawn from eight plausible arrangements (at most three pieces,
+   and a desk never shares a room with a recliner), and the whole group is
+   anchored to a wall with no doorway in it, out at the room's edge -- so the
+   middle stays clear and any door still reaches any other.               */
+int studyKit(uint key){
+  int i = int(key % 8u);
+  if (i == 0) return 1;                    // recliner
+  if (i == 1) return 3;                    // recliner, end table
+  if (i == 2) return 5;                    // recliner, lamp
+  if (i == 3) return 7;                    // recliner, end table, lamp
+  if (i == 4) return 8;                    // desk and chair
+  if (i == 5) return 12;                   // desk and chair, lamp
+  if (i == 6) return 6;                    // end table, lamp
+  return 4;                                // lamp alone
+}
+/* the first wall with no opening, scanned from a per-room offset */
+int studyAnchor(int desc, uint key){
+  int st = int(key % 6u);
+  for (int k = 0; k < 6; k++){
+    int i = (st + k) % 6;
+    if (((desc >> (i * 2)) & 3) == 0) return i;
+  }
+  return st;
+}
+/* Every doorway axis runs through the middle of the room, so keeping a
+   0.55 m corridor clear along each one guarantees the centre is open and
+   any door reaches any other. A piece that would stand in one is dropped
+   -- anchoring to a blank wall alone still let a recliner reach across a
+   neighbouring doorway.                                                 */
+bool clearOfDoors(vec2 pos, float rad, int desc){
+  for (int i = 0; i < 6; i++){
+    if (((desc >> (i * 2)) & 3) == 0) continue;
+    vec2 dw = dirW(i);
+    if (dot(pos, dw) <= 0.0) continue;
+    if (abs(dot(pos, vec2(-dw.y, dw.x))) < rad + 0.55) return false;
+  }
+  return true;
+}
+/* how many pieces of a kit survive if the group is anchored to wall i */
+int studyFit(int i, int kit, int desc){
+  vec2 ax = dirW(i), pv = vec2(-ax.y, ax.x);
+  int n = 0;
+  if ((kit & 1) != 0 && clearOfDoors(ax * 1.30 + pv * -0.32, 0.44, desc)) n++;
+  if ((kit & 2) != 0 && clearOfDoors(ax * 1.32 + pv *  0.40, 0.26, desc)) n++;
+  if ((kit & 4) != 0 && clearOfDoors(ax * 1.46 + pv *  0.76, 0.21, desc)) n++;
+  if ((kit & 8) != 0 && clearOfDoors(ax * 1.44, 0.60, desc)
+                     && clearOfDoors(ax * 1.06, 0.25, desc)) n++;
+  return n;
+}
+float furniture(vec2 lp, float fy, uint key, int desc){
+  vec2 ax = dirW((desc >> 15) & 7);
+  vec2 pv = vec2(-ax.y, ax.x);
+  vec2 q = vec2(dot(lp, ax), dot(lp, pv));
+  int m = studyKit(key);
+  if (!clearOfDoors(ax * 1.30 + pv * -0.32, 0.44, desc)) m &= ~1;
+  if (!clearOfDoors(ax * 1.32 + pv *  0.40, 0.26, desc)) m &= ~2;
+  if (!clearOfDoors(ax * 1.46 + pv *  0.76, 0.21, desc)) m &= ~4;
+  if (!clearOfDoors(ax * 1.44, 0.60, desc) ||
+      !clearOfDoors(ax * 1.06, 0.25, desc)) m &= ~8;
+  float d = 1e5;
+  gFurnMat = 5;
+
+  if ((m & 1) != 0){                                  // recliner
+    vec2 r = q - vec2(1.30, -0.32);
+    float seat = sdBox3(vec3(r.x, fy - 0.24, r.y), vec3(0.32, 0.13, 0.30));
+    float back = sdBox3(vec3(r.x - 0.26, fy - 0.52, r.y), vec3(0.10, 0.40, 0.30));
+    float arms = sdBox3(vec3(r.x, fy - 0.38, abs(r.y) - 0.30), vec3(0.32, 0.10, 0.07));
+    float up = min(seat, min(back, arms));
+    if (up < d){ d = up; gFurnMat = 6; }
+  }
+  if ((m & 2) != 0){                                  // end table
+    vec2 r = q - vec2(1.32, 0.40);
+    float t = min(sdBox3(vec3(r.x, fy - 0.46, r.y), vec3(0.22, 0.03, 0.22)),
+                  sdBox3(vec3(r.x, fy - 0.22, r.y), vec3(0.05, 0.22, 0.05)));
+    if (t < d){ d = t; gFurnMat = 5; }
+  }
+  if ((m & 4) != 0){                                  // reading lamp
+    vec2 r = q - vec2(1.46, 0.76);
+    float st2 = min(sdBox3(vec3(r.x, fy - 0.70, r.y), vec3(0.025, 0.70, 0.025)),
+                    sdBox3(vec3(r.x, fy - 0.02, r.y), vec3(0.17, 0.02, 0.17)));
+    float shade = sdBox3(vec3(r.x, fy - 1.44, r.y), vec3(0.16, 0.13, 0.16));
+    if (st2 < d){ d = st2; gFurnMat = 5; }
+    if (shade < d){ d = shade; gFurnMat = 7; }
+  }
+  if ((m & 8) != 0){                                  // desk, chair tucked under
+    vec2 r = q - vec2(1.44, 0.00);
+    float top = sdBox3(vec3(r.x, fy - 0.73, r.y), vec3(0.28, 0.035, 0.58));
+    float ped = sdBox3(vec3(r.x, fy - 0.36, abs(r.y) - 0.47), vec3(0.24, 0.36, 0.06));
+    vec2 ch = q - vec2(1.06, 0.00);
+    float cs2 = sdBox3(vec3(ch.x, fy - 0.44, ch.y), vec3(0.19, 0.035, 0.19));
+    float cb = sdBox3(vec3(ch.x + 0.16, fy - 0.68, ch.y), vec3(0.035, 0.28, 0.19));
+    float cp = sdBox3(vec3(ch.x, fy - 0.22, ch.y), vec3(0.05, 0.22, 0.05));
+    float dk = min(min(top, ped), min(cs2, min(cb, cp)));
+    if (dk < d){ d = dk; gFurnMat = 5; }
+  }
+  return d;
+}
+
+float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
+  float fy = p.y - float(fl) * H_FLOOR;
+  vec2 lp = p.xz - worldOf(c);
+
+  float apo = (ctype == 1) ? APO_SHAFT : APO_ROOM;
+  float dv;
+  if (ctype == 2){
+    /* One straight flight cut through solid rock, running the whole width
+       of the cell and climbing exactly one storey: a narrow hallway, not a
+       well. Copies sit every storey, so entering low puts you out one floor
+       up, and entering high puts you out one floor down.                */
+    vec2 ax = dirW((desc >> 12) & 3);
+    float u = dot(lp, ax) * (((desc >> 14) & 1) == 1 ? 1.0 : -1.0);
+    float v = dot(lp, vec2(-ax.y, ax.x));
+    float t = clamp((u + STAIR_RUN) / (2.0 * STAIR_RUN), 0.0, 1.0);
+    float smoothY = t * H_FLOOR;
+    float stepY   = ceil(t * 14.0) * (H_FLOOR / 14.0);
+    dv = 1e5;
+    for (int k = -1; k <= 1; k++){
+      float h = p.y - float(fl + k) * H_FLOOR;
+      dv = min(dv, max(max(abs(u) - (STAIR_RUN + STAIR_EXT), abs(v) - STAIR_HW),
+                       max(stepY - h, h - smoothY - 2.05)));
+    }
+  } else {
+    dv = sdHexFlat(lp, apo);
+    if (ctype != 1) dv = max(dv, max(-fy, fy - H_ROOM));
+  }
+
+  float solidAdd = 1e5;
+  int   solidMat = 3;
+
+  if (ctype != 2) for (int i = 0; i < 6; i++){
+    int g = (desc >> (i * 2)) & 3;
+    if (g == 0) continue;
+    vec2 dir = dirW(i);
+    vec2 rel = lp - dir * HALF_D;
+    float u = dot(rel, dir);
+    float v = dot(rel, vec2(-dir.y, dir.x));
+    if (abs(u) > 1.6 || abs(v) > 1.9) continue;
+
+    if (g == 1)
+      dv = min(dv, sdBox3(vec3(u, fy - 1.02, v), vec3(0.78, 1.02, PASS_HW)));
+    else if (g == 2){
+      dv = min(dv, sdBox3(vec3(u, fy - H_ROOM*0.5, v), vec3(0.78, H_ROOM*0.5, HALL_HW)));
+      dv = min(dv, sdBox3(vec3(u, fy - 0.95, abs(v) - (HALL_HW + 0.30)),
+                          vec3(0.32, 0.95, 0.30)));
+    }
+    else {
+      /* A guardrail at the shaft's own lip. Anchoring it to the ray's cell
+         put it in two different places depending on which side you looked
+         from; the lip is at APO_SHAFT from the shaft's centre, so the offset
+         flips sign according to which of the pair is the well.   D-23     */
+      dv = min(dv, sdBox3(vec3(u, fy - 1.02, v), vec3(0.78, 1.02, 0.62)));
+      float lip = (ctype == 1) ? -(HALF_D - APO_SHAFT) : (HALF_D - APO_SHAFT);
+      float top = sdBox3(vec3(u - lip, fy - 0.46, v), vec3(0.045, 0.045, 0.62));
+      float mid = sdBox3(vec3(u - lip, fy - 0.26, v), vec3(0.030, 0.030, 0.62));
+      float pv  = mod(v + 0.62, 0.2480) - 0.1240;      // six uprights
+      float pst = max(sdBox3(vec3(u - lip, fy - 0.23, pv), vec3(0.038, 0.23, 0.038)),
+                      abs(v) - 0.62);
+      float rail = min(top, min(mid, pst));
+      if (rail < solidAdd){ solidAdd = rail; solidMat = 5; }
+    }
+  }
+
+  float d = -dv;
+  gMat = 0.0;
+
+  if (solidAdd < d){ d = solidAdd; gMat = float(solidMat); }
+  if (ctype == 2){ if (d > 0.0) gMat = 5.0; return d; }   // treads read as wood
+  if (ctype == 1) return d;
+  if (ctype == 3){                                        // a reading room
+    float f = furniture(lp, fy, studyKey(c, fl), desc);
+    if (f < d){ d = f; gMat = float(gFurnMat); }
+    return d;
+  }
+
+  /* ---- shelving ---------------------------------------------------- *
+   * A discrete case per unbroken wall: end uprights, a board under every
+   * row, a plinth, all standing proud of the volumes; and the case stops
+   * short of the wall ends so corners read as two pieces of furniture,
+   * not one continuous band. The two nearest walls are evaluated, or the
+   * further of a pair would render as bare stone.                      */
+  if (fy < -0.05 || fy > H_ROOM + 0.05) return d;
+  float dh = sdHexFlat(lp, APO_ROOM);
+  if (dh < -(CARC_D + 0.12)) return min(d, -dh - CARC_D);
+
+  int w1 = -1, w2 = -1; float p1 = -1e9, p2 = -1e9;
+  for (int i = 0; i < 6; i++){
+    if (((desc >> (i * 2)) & 3) != 0) continue;
+    float pr = dot(lp, dirW(i));
+    if (pr > p1){ p2 = p1; w2 = w1; p1 = pr; w1 = i; }
+    else if (pr > p2){ p2 = pr; w2 = i; }
+  }
+
+  uint ck = cellKey(c);
+  float base = fy - 0.05;
+  float shelfIdx = floor(base / SHELF_P);
+  float ys = mod(base, SHELF_P) - 0.167;
+  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;
+  float cx = APO_ROOM - CARC_D * 0.5;
+
+  for (int i = 0; i < 6; i++){
+    if (i != w1 && i != w2) continue;
+    vec2 dir = dirW(i);
+    vec2 w = vec2(dot(lp, dir), dot(lp, vec2(-dir.y, dir.x)));
+    if (abs(w.y) > CASE_HALF + 0.03) continue;
+
+    float up = sdBox3(vec3(w.x - cx, fy - 1.075, abs(w.y) - UP_C),
+                      vec3(CARC_D*0.5, 1.075, UP_HW));
+    if (up < d){ d = up; gMat = 5.0; }
+    float bd = sdBox3(vec3(w.x - cx, yb, w.y), vec3(CARC_D*0.5, 0.022, CASE_HALF));
+    if (bd < d){ d = bd; gMat = 5.0; }
+    float pl = sdBox3(vec3(w.x - cx, fy - 0.025, w.y), vec3(CARC_D*0.5, 0.025, CASE_HALF));
+    if (pl < d){ d = pl; gMat = 5.0; }
+
+    if (shelfIdx < 0.0 || shelfIdx > 4.0) continue;
+    if (abs(w.y) > RUN_HALF) continue;
+    float bi = floor((w.y + RUN_HALF) / BOOK_W);
+    if (bi < 0.0 || bi > 34.0) continue;
+    uint  bk = uhash(ck ^ uint(i*7919 + int(bi)*31 + int(shelfIdx)*104729));
+    float hh = float(bk & 0xFFFFu) / 65536.0;
+    float ch = float((bk >> 16) & 0xFFFFu) / 65536.0;
+    if (hh < 0.035) continue;                    // a gap the Purifiers left  D-42
+    float depth = BOOK_D * (0.80 + 0.20 * hh);
+    float bc = -RUN_HALF + (bi + 0.5) * BOOK_W;
+    float db = sdBox3(vec3(w.x - (APO_ROOM - depth*0.5), ys, w.y - bc),
+                      vec3(depth*0.5, 0.145, BOOK_W*0.45));
+    if (db < d){
+      d = db; gMat = 1.0; gTint = ch; gKey = bk;
+      gSpineY = clamp((ys + 0.145) / 0.29, 0.0, 1.0);
+      if (c.x == uCrimCell.x && c.y == uCrimCell.y && fl == uCrimCell.z &&
+          i == ${CRIM.wall} && int(shelfIdx) == ${CRIM.shelf} && int(bi) == ${CRIM.slot})
+        gMat = 2.0;                              // the one appearance  V-09 / E-06
+    }
+  }
+  return d;
+}
+
+/* two bits per wall, resolved once per cell the ray enters */
+int cellDesc(ivec2 c, int fl){
+  int packed = 0;
+  for (int i = 0; i < 6; i++) packed |= gapAt(c, i, fl) << (i * 2);
+  int t = cellType(c);
+  if (t == 2){                                 // stash axis and rise, bits 12-14
+    packed |= axisOf(c) << 12;
+    packed |= (riseOf(c) > 0.0 ? 1 : 0) << 14;
+  }
+  if (t == 3){                                 // stash the study anchor, bits 15-17
+    uint key = studyKey(c, fl);
+    int kit = studyKit(key), st0 = int(key % 6u);
+    int best = st0, bestN = -1;
+    for (int k = 0; k < 6; k++){
+      int i = (st0 + k) % 6;
+      if (((packed >> (i * 2)) & 3) != 0) continue;    // only a blank wall
+      int n = studyFit(i, kit, packed);
+      if (n > bestN){ bestN = n; best = i; }
+    }
+    packed |= best << 15;
+  }
+  return packed;
+}
+
+vec3 normalCtx(vec3 p, ivec2 c, int desc, int ct, int fl){
+  vec2 e = vec2(1.0, -1.0) * 0.0016;
+  return normalize(e.xyy * mapAt(p + e.xyy, c, desc, ct, fl) +
+                   e.yyx * mapAt(p + e.yyx, c, desc, ct, fl) +
+                   e.yxy * mapAt(p + e.yxy, c, desc, ct, fl) +
+                   e.xxx * mapAt(p + e.xxx, c, desc, ct, fl));
+}
+float aoCtx(vec3 p, vec3 n, ivec2 c, int desc, int ct, int fl){
+  float s = 0.0, w = 1.0;
+  for (int i = 1; i <= 3; i++){
+    float h = 0.07 * float(i);
+    s += w * (h - mapAt(p + n * h, c, desc, ct, fl));
+    w *= 0.68;
+  }
+  return clamp(1.0 - 3.2 * s, 0.0, 1.0);
+}
+
+/* Two lamps per gallery and per stairwell, transversally placed. Shafts
+   have none of their own -- only what spills in. No shadow term.       */
+vec3 lighting(vec3 p, vec3 n, out float lit){
+  vec3 sum = vec3(0.0);
+  ivec2 c0 = cellOf(p.xz);
+  int fl0 = int(floor(p.y / H_FLOOR));
+  for (int i = -1; i < 6; i++){
+    ivec2 c = (i < 0) ? c0 : c0 + dirOf(i);
+    int ct = cellType(c);
+    if (ct == 1) continue;                       // a shaft has none of its own
+    vec2 wc = worldOf(c);
+
+    if (ct == 2){
+      /* A stairwell's lamps have to climb with the flight. Fixed at a
+         storey height they ended up above the sloping ceiling, outside the
+         corridor, and a downward-facing ceiling then takes dot(n,L) < 0 --
+         which is why the top of a stair went black.                     */
+      vec2 axv = dirW(axisOf(c));
+      float sgn = riseOf(c);
+      for (int m = -1; m <= 1; m += 2){
+        float uu = 1.20 * float(m);
+        float tt = clamp((uu + STAIR_RUN) / (2.0 * STAIR_RUN), 0.0, 1.0);
+        vec2 lxz = wc + axv * (uu * sgn);
+        for (int f = -1; f <= 1; f++){
+          float ly = float(fl0 + f) * H_FLOOR + tt * H_FLOOR + 1.78;
+          vec3 L = vec3(lxz.x, ly, lxz.y) - p;
+          float dl = length(L);
+          if (dl > 11.0) continue;
+          float att = 1.0 / (1.0 + (dl / 1.35) * (dl / 1.35));
+          sum += C_LAMP * att * max(dot(n, L / dl), 0.0);
+        }
+      }
+      continue;
+    }
+
+    if (ct == 3){
+      for (int f = -1; f <= 1; f++){           // the reading lamp is a real source
+        int flf = fl0 + f;
+        uint k = studyKey(c, flf);
+        if ((studyKit(k) & 4) == 0) continue;
+        vec2 ax = dirW(studyAnchor(cellDesc(c, flf), k));
+        vec2 lw = wc + ax * 1.46 + vec2(-ax.y, ax.x) * 0.76;
+        vec3 L = vec3(lw.x, float(flf) * H_FLOOR + 1.40, lw.y) - p;
+        float dl = length(L);
+        if (dl > 7.0) continue;
+        float att = 1.0 / (1.0 + (dl / 0.85) * (dl / 0.85));
+        sum += C_LAMP * att * 0.9 * max(dot(n, L / dl), 0.0);
+      }
+    }
+    float a = float(cellKey(c) & 0xFFFu) / 4096.0 * PI;
+    vec2 off = vec2(cos(a), sin(a)) * 0.95;
+    for (int f = -1; f <= 1; f++){
+      float fy = float(fl0 + f) * H_FLOOR + H_ROOM * 0.86;
+      for (int s = -1; s <= 1; s += 2){
+        vec3 L = vec3(wc.x + off.x * float(s), fy, wc.y + off.y * float(s)) - p;
+        float dl = length(L);
+        if (dl > 11.0) continue;
+        float att = 1.0 / (1.0 + (dl / 1.35) * (dl / 1.35));
+        sum += C_LAMP * att * max(dot(n, L / dl), 0.0);
+      }
+    }
+  }
+  lit = clamp(length(sum) * 0.62, 0.0, 1.0);
+  return sum;
+}
+
+/* Ordered dither to a short tone ramp: an early indexed display. The
+   buffer is an integer fraction of the canvas and upscaled by nearest
+   neighbour, so the pattern stays on whole pixels.                     */
+float bayer8(ivec2 c){
+  int x = c.x & 7, y = c.y & 7, v = 0;
+  for (int i = 0; i < 3; i++){
+    int s = 2 - i;
+    v = (v << 2) | (((y >> s) & 1) << 1) | (((x ^ y) >> s) & 1);
+  }
+  return float(v) / 64.0;
+}
+/* Interleaved gradient noise: three constants, no texture, and it scatters
+   without the visible weave an ordered matrix leaves on a flat wall. */
+float ign(vec2 c){
+  return fract(52.9829189 * fract(dot(c, vec2(0.06711056, 0.00583715))));
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  vec3 rd = normalize(uView * vec3(uv, 0.78));
+  vec3 ro = uCam;
+
+  float t = 0.03, hit = -1.0;
+  ivec2 cc = ivec2(16777216, 16777216);
+  int cfl = 16777216, desc = 0, ct = 0;
+  for (int i = 0; i < 72; i++){
+    vec3 p = ro + rd * t;
+    int fl = int(floor(p.y / H_FLOOR));
+    ivec2 c = cellOf(p.xz);
+    if (any(notEqual(c, cc)) || fl != cfl){
+      cc = c; cfl = fl; ct = cellType(c); desc = cellDesc(c, fl);
+    }
+    float d = mapAt(p, c, desc, ct, fl);
+    if (d < 0.0018 * t + 0.0012){ hit = t; break; }
+    t += d * 0.80;
+    if (t > 70.0) break;
+  }
+
+  vec3 sub = C_INK;
+  float lum = 0.02;
+
+  if (hit >= 0.0){
+    vec3 hp = ro + rd * hit;
+    int fl = int(floor(hp.y / H_FLOOR));
+    ivec2 c = cellOf(hp.xz);
+    int ct2 = cellType(c);
+    int d2  = cellDesc(c, fl);
+
+    mapAt(hp, c, d2, ct2, fl);
+    float mat = gMat, tint0 = gTint, spy = gSpineY;
+    uint  key0 = gKey;
+    /* 35 spines across a 1.82 m wall fall below a pixel at a few metres, and
+       their per-volume colours then beat into moire. Converge the detail on
+       its mean with distance -- the procedural equivalent of a mip level. */
+    float detail = clamp(1.0 - (hit - 2.5) / 7.0, 0.0, 1.0);
+    tint0 = mix(0.5, tint0, detail);
+    vec3 n = normalCtx(hp, c, d2, ct2, fl);
+    float occ = aoCtx(hp, n, c, d2, ct2, fl);
+
+    float lit;
+    vec3 lightSum = lighting(hp, n, lit);
+    /* A shaft has no lamps, only spill -- but it is the one place with
+       sightlines up and down many storeys, so it gathers a little from
+       every opening. Without this the well is unreadably black.        */
+    if (ct2 == 1) lightSum += vec3(0.155, 0.130, 0.092) * (0.40 + 0.60 * max(n.y, 0.0));
+    if (ct2 == 2) lightSum += vec3(0.055, 0.047, 0.033);
+    lit = clamp(length(lightSum) * 0.62, 0.0, 1.0) * occ;
+
+    bool floorish = (mat < 0.5 && n.y > 0.62);
+    vec3 base;
+    if (mat > 1.5 && mat < 2.5) base = C_CRIM;
+    else if (mat > 0.5 && mat < 1.5){
+      /* One flat colour per volume, keyed to the volume. Wear is what a
+         spine really gets: darkening at head and tail, and on some books
+         a paler label band -- no random blotching.                      */
+      vec3 sp = mix(C_PAPER2, C_PAPER, 0.15 + 0.85 * tint0);
+      float drift = tint0 - 0.5;
+      sp *= vec3(1.0 + 0.10 * drift, 1.0 + 0.02 * drift, 1.0 - 0.11 * drift);
+      sp *= mix(1.0, 0.78 + 0.22 * smoothstep(0.0, 0.16, min(spy, 1.0 - spy)), detail);
+      float lab = float((key0 >> 8) & 0xFFu) / 255.0;
+      if (lab > 0.60 && spy > 0.20 && spy < 0.42) sp = mix(sp, C_PAPER * 1.06, 0.5 * detail);
+      base = sp;
+    }
+    else if (floorish){
+      /* Boards, not tiles: seams run one way only, with butt joints
+         staggered board to board and a little tone between them.      */
+      const float PW = 0.19;                          // board width
+      float row  = floor(hp.z / PW);
+      float acr  = fract(hp.z / PW);
+      uint  rk   = uhash(uint(int(row) + 8192));
+      float seam = smoothstep(0.0, 0.055, min(acr, 1.0 - acr));
+      float blen = 1.9 + 1.4 * float(rk & 0xFFu) / 255.0;             // board length
+      float shift = float((rk >> 8) & 0xFFu) / 255.0;                 // stagger
+      float alng = fract((hp.x + shift * blen) / blen);
+      float butt = smoothstep(0.0, 0.010, min(alng, 1.0 - alng));
+      float tone = 0.84 + 0.16 * float((rk >> 16) & 0xFFu) / 255.0;
+      base = C_WOOD * tone * (0.80 + 0.20 * min(seam, butt));
+    }
+    else if (mat > 6.5) base = vec3(0.86, 0.80, 0.62);          // a lit shade
+    else if (mat > 5.5) base = C_HIDE;
+    else if (mat > 4.5) base = C_WOOD * 0.62;
+    else if (mat > 2.5) base = mix(C_INK, C_STONE, 0.85);
+    else                base = mix(C_INK, C_STONE, 0.55 + 0.45 * occ);
+
+    vec3 tint = mix(vec3(0.82, 1.04, 0.78), vec3(1.06, 0.94, 0.78), lit);
+    sub = base * tint;
+
+    vec3 shaded = sub * (0.045 + lightSum * 0.55);
+    lum = clamp(dot(shaded, vec3(0.299, 0.587, 0.114)) * 1.60, 0.0, 1.0);
+
+    float horiz = 1.0 - abs(n.y);
+    if ((mat < 0.5 || mat > 2.5) && horiz > 0.86 && lit > 0.28) lum = min(1.0, lum + 0.30);
+  }
+
+  lum *= 1.0 - 0.42 * length(uv * vec2(0.72, 1.0));
+
+  float L   = (uGrain == 2) ? 10.0 : 6.0;
+  float amp = (uGrain == 2) ? 0.85 : 1.15;
+  float dth = (uGrain == 1 || uGrain == 2) ? ign(gl_FragCoord.xy) - 0.5
+                                           : bayer8(ivec2(gl_FragCoord.xy)) - 0.5;
+  float q = (uGrain == 3) ? lum
+          : clamp(floor(lum * (L - 1.0) + 0.5 + dth * amp) / (L - 1.0), 0.0, 1.0);
+  vec3 final = clamp(sub * (0.050 + 1.35 * q), 0.0, 1.0);
+
+  if (uMotion > 0.5){
+    float tq = floor(uTime * 10.0) / 10.0;
+    for (int i = 0; i < 10; i++){
+      float h1 = float(uhash(uint(i * 977))  & 0xFFFFu) / 65536.0;
+      float h2 = float(uhash(uint(i * 3121)) & 0xFFFFu) / 65536.0;
+      vec2 sp2 = vec2(mod(h1 * uRes.x + tq * (7.0 + 9.0 * h1), uRes.x),
+                      mod(h2 * uRes.y - tq * (3.0 + 5.0 * h2), uRes.y));
+      if (distance(gl_FragCoord.xy, sp2) < 1.2) final += vec3(0.14, 0.13, 0.10);
+    }
+  }
+  outColor = vec4(final, 1.0);
+}`;
+
+/* ------------------------------------------------------------------ */
+const cv = document.getElementById("gl");
+const gl = cv.getContext("webgl2", { antialias:false, powerPreference:"high-performance" });
+if (!gl){
+  document.getElementById("veil").innerHTML =
+    '<div><h1>WebGL2 unavailable</h1><p>This prototype needs a WebGL2 context.</p></div>';
+  throw new Error("no webgl2");
+}
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+    const log = gl.getShaderInfoLog(s);
+    console.error(log);
+    document.getElementById("veil").innerHTML =
+      '<div style="max-width:44rem"><h1>Shader failed to compile</h1><pre style="text-align:left;' +
+      'white-space:pre-wrap;font-size:.7rem;color:#8C9179">' + log + '</pre></div>';
+    throw new Error(log);
+  }
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+const vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const aLoc = gl.getAttribLocation(prog, "a");
+gl.enableVertexAttribArray(aLoc);
+gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+
+const U = {};
+["uRes","uTime","uCam","uView","uMotion","uCrimCell","uGrain"].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+/* ---- hashes: bit-identical mirror of the GLSL --------------------- */
+const u32 = x => x >>> 0;
+function uhash(x){
+  x = u32(x);
+  x = u32(x ^ (x >>> 16)); x = u32(Math.imul(x, 0x7feb352d));
+  x = u32(x ^ (x >>> 15)); x = u32(Math.imul(x, 0x846ca68b));
+  return u32(x ^ (x >>> 16));
+}
+const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+const DIRW = [[0.8660254,0.5],[0.8660254,-0.5],[0,-1],
+              [-0.8660254,-0.5],[-0.8660254,0.5],[0,1]];
+const cellKey = (q,r) => uhash(u32((q + 32768) | ((r + 32768) << 16)));
+function cellType(q,r){
+  const h = cellKey(q,r) >>> 16;
+  if (h < P_SHAFT) return TYPE.SHAFT;
+  if (h < P_STAIR) return TYPE.STAIRWELL;
+  if (h < P_STUDY) return TYPE.STUDY;
+  return TYPE.GALLERY;
+}
+/* Footprints of whatever this reading room holds, so you cannot walk through
+   the furniture. Same kits, same anchor, same order as the shader.       */
+/* stair axis and rise, mirroring the shader */
+function axisOf(q, r){
+  const base = uhash(u32(cellKey(q,r) ^ 0x5bf03635)) % 3;
+  for (let k = 0; k < 3; k++){
+    const a = (base + k) % 3;
+    const ta = cellType(q + DIRS[a][0], r + DIRS[a][1]);
+    const tb = cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]);
+    if ((ta === TYPE.GALLERY || ta === TYPE.STUDY) &&
+        (tb === TYPE.GALLERY || tb === TYPE.STUDY)) return a;
+  }
+  return base;
+}
+const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : -1;
+
+const studyKey = (q,r,fl) => uhash(u32(cellKey(q,r) ^ u32(Math.imul(fl + 32768, 2654435761))));
+function studyKit(key){
+  return [1,3,5,7,8,12,6,4][key % 8];
+}
+function studyFit(q, r, fl, i, kit){
+  const ax = DIRW[i];
+  let n = 0;
+  for (const [bit, lx, lz, rad] of FURN){
+    if (!(kit & bit)) continue;
+    if (clearOfDoors(q, r, fl, lx*ax[0] - lz*ax[1], lx*ax[1] + lz*ax[0], rad)) n++;
+  }
+  return n;
+}
+/* the blank wall that keeps most of the kit, so a room is rarely left bare */
+function studyAnchor(q, r, fl, key){
+  const st = key % 6, kit = studyKit(key);
+  let best = st, bestN = -1;
+  for (let k = 0; k < 6; k++){
+    const i = (st + k) % 6;
+    if (gapAt(q, r, i, fl) !== GAP.WALL) continue;
+    const n = studyFit(q, r, fl, i, kit);
+    if (n > bestN){ bestN = n; best = i; }
+  }
+  return best;
+}
+const FURN = [[1, 1.30,-0.32, 0.44],[2, 1.32, 0.40, 0.26],[4, 1.46, 0.76, 0.21],
+              [8, 1.44, 0.00, 0.60],[8, 1.06, 0.00, 0.25]];
+function clearOfDoors(q, r, fl, px, pz, rad){
+  for (let i = 0; i < 6; i++){
+    if (gapAt(q, r, i, fl) === GAP.WALL) continue;
+    const dw = DIRW[i];
+    if (px*dw[0] + pz*dw[1] <= 0) continue;
+    if (Math.abs(-px*dw[1] + pz*dw[0]) < rad + 0.55) return false;
+  }
+  return true;
+}
+function studyItems(q, r, fl){
+  const key = studyKey(q, r, fl);
+  let m = studyKit(key);
+  const ax = DIRW[studyAnchor(q, r, fl, key)];
+  const place = (lx, lz) => [lx*ax[0] - lz*ax[1], lx*ax[1] + lz*ax[0]];
+  // same culling as the shader, so what you see is what you collide with
+  for (const [bit, lx, lz, rad] of FURN){
+    if (!(m & bit)) continue;
+    const [px, pz] = place(lx, lz);
+    if (!clearOfDoors(q, r, fl, px, pz, rad)) m &= ~bit;
+  }
+  const out = [];
+  for (const [bit, lx, lz, rad] of FURN){
+    if (!(m & bit)) continue;
+    const [px, pz] = place(lx, lz);
+    out.push([px, pz, rad]);
+  }
+  return out;
+}
+function studyVisible(q, r, fl){
+  const key = studyKey(q, r, fl);
+  let m = studyKit(key);
+  const ax = DIRW[studyAnchor(q, r, fl, key)];
+  for (const [bit, lx, lz, rad] of FURN){
+    if (!(m & bit)) continue;
+    const px = lx*ax[0] - lz*ax[1], pz = lx*ax[1] + lz*ax[0];
+    if (!clearOfDoors(q, r, fl, px, pz, rad)) m &= ~bit;
+  }
+  return m;
+}
+
+function edgeKey(cq, cr, i, fl){
+  const nq = cq + DIRS[i][0], nr = cr + DIRS[i][1];
+  let q = cq, r = cr, j = i;
+  if (nq < cq || (nq === cq && nr < cr)){ q = nq; r = nr; j = (i + 3) % 6; }
+  const packed = u32((q + 32768) | ((r + 32768) << 16));
+  return uhash(u32(packed ^ u32(Math.imul(j, 0x9E3779B9))
+                          ^ u32(Math.imul(fl + 32768, 0x85EBCA6B))));
+}
+function gapAt(cq, cr, i, fl){
+  const nq = cq + DIRS[i][0], nr = cr + DIRS[i][1];
+  const tc = cellType(cq,cr), tn = cellType(nq,nr);
+  if (tc === TYPE.SHAFT && tn === TYPE.SHAFT) return GAP.WALL;
+  if (tc === TYPE.STAIRWELL && tn === TYPE.STAIRWELL) return GAP.WALL;
+  // a stairwell opens only on its own axis, and always -- the flight has to
+  // arrive at a doorway on every storey, so these cannot be hashed per floor
+  if (tc === TYPE.STAIRWELL || tn === TYPE.STAIRWELL){
+    if (tc === TYPE.SHAFT || tn === TYPE.SHAFT) return GAP.WALL;
+    const sq = (tc === TYPE.STAIRWELL) ? cq : nq;
+    const sr = (tc === TYPE.STAIRWELL) ? cr : nr;
+    return (i % 3 === axisOf(sq, sr)) ? GAP.PASSAGE : GAP.WALL;
+  }
+  const h = edgeKey(cq, cr, i, fl);
+  if ((h & 0xFFFF) >= P_OPEN) return GAP.WALL;
+  if (tc === TYPE.SHAFT || tn === TYPE.SHAFT) return GAP.SHAFT;
+  return (((h >>> 16) & 3) === 0) ? GAP.HALL : GAP.PASSAGE;
+}
+
+const SQ3 = Math.sqrt(3);
+const worldOf = (q,r) => [G.R_CELL*1.5*q, G.R_CELL*(SQ3*0.5*q + SQ3*r)];
+function cellOf(x, z){
+  const q = (2/3)*x / G.R_CELL;
+  const r = (-x/3 + SQ3/3*z) / G.R_CELL;
+  let X = q, Z = r, Y = -X - Z;
+  let rx = Math.floor(X+0.5), ry = Math.floor(Y+0.5), rz = Math.floor(Z+0.5);
+  const dx = Math.abs(rx-X), dy = Math.abs(ry-Y), dz = Math.abs(rz-Z);
+  if (dx > dy && dx > dz)      rx = -ry - rz;
+  else if (dy > dz)            ry = -rx - rz;
+  else                         rz = -rx - ry;
+  return [rx, rz];
+}
+function sdHexFlat(px, py, apo){
+  const x = Math.abs(px*0.8660254 + py*0.5);
+  const y = Math.abs(-px*0.5 + py*0.8660254);
+  return Math.max(x, x*0.5 + y*0.8660254) - apo;
+}
+const storeyOf = y => Math.floor((y - 0.30) / G.H_FLOOR);
+/* u runs along the flight, positive uphill; v across the corridor */
+function stairUV(lx, lz, cq, cr){
+  const a = axisOf(cq, cr), ax = DIRW[a], sg = riseOf(cq, cr);
+  return [(lx*ax[0] + lz*ax[1]) * sg, -lx*ax[1] + lz*ax[0]];
+}
+function stairTread(u){
+  const t = Math.max(0, Math.min(1, (u + G.STAIR_RUN) / (2 * G.STAIR_RUN)));
+  return Math.ceil(t * 14) * (G.H_FLOOR / 14);
+}
+
+/* ---- where the floor is under a point ------------------------------ */
+function groundY(x, z, curY){
+  const fl = storeyOf(curY);
+  const [cq, cr] = cellOf(x, z);
+  if (cellType(cq, cr) !== TYPE.STAIRWELL) return fl * G.H_FLOOR;
+  const [wx, wz] = worldOf(cq, cr);
+  const [u, v] = stairUV(x - wx, z - wz, cq, cr);
+  if (Math.abs(u) > G.STAIR_RUN || Math.abs(v) > G.STAIR_HW) return fl * G.H_FLOOR;
+  // copies of the flight sit one storey apart; take the tread under the feet
+  const feet = curY - G.EYE;
+  const tr = stairTread(u);
+  let best = fl * G.H_FLOOR + tr, bd = 1e9;
+  for (let k = -1; k <= 1; k++){
+    const h = (fl + k) * G.H_FLOOR + tr;
+    const gap = Math.abs(h - feet);
+    if (gap < bd){ bd = gap; best = h; }
+  }
+  return best;
+}
+
+/* ---- collision, in plan -------------------------------------------- */
+function voidDist2D(x, z, fl){
+  const [cq, cr] = cellOf(x, z);
+  const t = cellType(cq, cr);
+  const [wx, wz] = worldOf(cq, cr);
+  const lx = x - wx, lz = z - wz;
+  let d;
+  // Not walkable -- but return a real outward distance, not a huge number:
+  // resolve() pushes by (d + radius), and 1e5 threw the player kilometres.
+  if (t === TYPE.SHAFT) d = -sdHexFlat(lx, lz, G.APO_SHAFT);
+  else if (t === TYPE.STAIRWELL){
+    // the corridor, plus (below) the doorways -- returning early here left a
+    // blocked sliver right on the threshold, where the flight ends and the
+    // gallery's own opening has not yet begun
+    const [u, v] = stairUV(lx, lz, cq, cr);
+    d = Math.max(Math.abs(u) - (G.STAIR_RUN + G.STAIR_EXT), Math.abs(v) - G.STAIR_HW);
+  }
+  else {
+    d = sdHexFlat(lx, lz, G.APO_ROOM);
+    if (t === TYPE.STUDY)
+      for (const [fx, fz, rad] of studyItems(cq, cr, fl))
+        d = Math.max(d, rad - Math.hypot(lx - fx, lz - fz));
+  }
+
+  for (let i = 0; i < 6; i++){
+    const g = gapAt(cq, cr, i, fl);
+    if (g === GAP.WALL) continue;
+    const dx = DIRW[i][0], dz = DIRW[i][1];
+    const rx = lx - dx*G.HALF_D, rz = lz - dz*G.HALF_D;
+    const u = rx*dx + rz*dz, v = -rx*dz + rz*dx;
+    // Lateral only: the corridor's end caps are not walls, they open into
+    // the cells. The span reaches inside both, so there is no pinch at the
+    // doorway mouth.
+    /* These bounds belong in the distance, not in an `if`. Gating them made
+       the field jump the moment you crossed one, so the gradient spiked and
+       the push-out lurched -- that was the jostle against the guardrail. */
+    if (g === GAP.SHAFT){
+      // measured from the shaft's own centre, so it reads the same from either side
+      const pu = u + G.HALF_D;
+      const fromShaft = (t === TYPE.SHAFT) ? pu : (G.CENTRE_D - pu);
+      const past = (G.APO_SHAFT + 0.03) - fromShaft;      // >0 beyond the rail
+      d = Math.min(d, Math.max(Math.max(Math.abs(v) - 0.62, past), Math.abs(u) - 1.4));
+    } else {
+      const hw = (g === GAP.HALL) ? G.HALL_HW : G.PASS_HW;
+      d = Math.min(d, Math.max(Math.abs(v) - hw, Math.abs(u) - 1.4));
+    }
+  }
+  return d;
+}
+function resolve(x, z, fl){
+  const RR = G.RADIUS;
+  let d = voidDist2D(x, z, fl);
+  if (d < -RR) return [x, z];
+  const e = 0.01;
+  for (let i = 0; i < 8 && d > -RR; i++){
+    const nx = (voidDist2D(x+e,z,fl) - voidDist2D(x-e,z,fl)) / (2*e);
+    const nz = (voidDist2D(x,z+e,fl) - voidDist2D(x,z-e,fl)) / (2*e);
+    const l = Math.hypot(nx, nz) || 1;
+    const push = Math.min(d + RR, 0.5) * 0.85;   // ease out; never lurch far
+    x -= (nx/l)*push; z -= (nz/l)*push;
+    d = voidDist2D(x, z, fl);
+  }
+  return [x, z];
+}
+
+function* hexRing(cq, cr, rad){
+  if (rad === 0){ yield [cq, cr]; return; }
+  let q = cq + DIRS[4][0]*rad, r = cr + DIRS[4][1]*rad;
+  for (let i = 0; i < 6; i++)
+    for (let j = 0; j < rad; j++){ yield [q, r]; q += DIRS[i][0]; r += DIRS[i][1]; }
+}
+function compSize(q, r, fl, cap){
+  if (cellType(q,r) === TYPE.SHAFT) return 0;
+  const seen = new Set(); const stack = [[q, r]];
+  while (stack.length && seen.size < cap){
+    const [a, b] = stack.pop(); const k = a + "," + b;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    for (let i = 0; i < 6; i++){
+      const g = gapAt(a, b, i, fl);
+      if (g === GAP.WALL || g === GAP.SHAFT) continue;
+      stack.push([a + DIRS[i][0], b + DIRS[i][1]]);
+    }
+  }
+  return seen.size;
+}
+function placeInNetwork(fl, fromQ, fromR){
+  for (let rad = 0; rad < 14; rad++){
+    for (const [q, r] of hexRing(fromQ, fromR, rad)){
+      if (cellType(q,r) !== TYPE.GALLERY) continue;
+      const [wx, wz] = worldOf(q, r);
+      if (voidDist2D(wx, wz, fl) >= -G.RADIUS) continue;
+      if (compSize(q, r, fl, 120) >= 100){
+        st.x = wx; st.z = wz; st.y = fl * G.H_FLOOR + G.EYE; return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ---- state --------------------------------------------------------- */
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const st = { x:0, z:0, y:G.EYE, yaw:0, pitch:0, div:2, autoScale:true, emaMs:20, grain:1 };
+const keys = Object.create(null);
+placeInNetwork(0, 0, 0);
+
+/* ---- input ---------------------------------------------------------- */
+/* True mouse capture is the Pointer Lock API, and it cannot be had inside the
+   artifact frame: that frame is sandboxed "allow-scripts allow-same-origin
+   allow-forms" with no allow-pointer-lock, which by spec makes every
+   requestPointerLock fail there no matter how it is asked for. Served from a
+   local server in an ordinary tab it works, and then it is used.
+
+   So looking never depends on it. Once you have entered: plain movement turns
+   the view, drag turns the view, and holding the pointer near the left or
+   right edge keeps it turning, so an uncaptured mouse can still sweep right
+   round instead of stopping dead at the window edge. Which mode you are in is
+   printed in the corner -- this failing silently is what made the whole thing
+   look broken for a session. */
+const veil    = document.getElementById("veil");
+const mouseEl = document.getElementById("mouse");
+const noteEl  = document.getElementById("mousenote");
+const framed  = window.top !== window.self;
+const EDGE_M  = 56;     // px from the left or right edge where turning begins
+const EDGE_R  = 1.9;    // rad/s at the very edge
+let dragging = false, entered = false, lockOK = false;
+let edge = 0, useRaw = true, lockBlocked = false, note = "";
+const locked = () => document.pointerLockElement === cv;
+
+function showMode(){
+  mouseEl.textContent = lockOK ? "captured" : entered ? "free" : "--";
+  noteEl.textContent  = lockOK ? "" : note;
+  mouseEl.classList.toggle("warn", entered && !lockOK);
+}
+function requestLock(){
+  /* Once the frame has refused, keep saying so -- never fall back to a
+     "click to capture" that cannot possibly work. */
+  if (lockBlocked){ note = "no capture in frame"; showMode(); return; }
+  if (!cv.requestPointerLock){ note = "unsupported here"; showMode(); return; }
+  let p = null;
+  try {
+    /* unadjustedMovement gives raw counts, without the OS pointer
+       acceleration curve -- the right feel for mouselook. Not everywhere. */
+    p = useRaw ? cv.requestPointerLock({ unadjustedMovement:true })
+               : cv.requestPointerLock();
+  } catch(_){ p = null; }
+  if (p && p.then){
+    p.then(() => { note = ""; showMode(); })
+     .catch(e => {
+       const name = (e && e.name) || "refused";
+       if (name === "NotSupportedError" && useRaw){ useRaw = false; requestLock(); return; }
+       refuse(name);
+     });
+  } else {
+    /* Older browsers return nothing and report only through the events, so
+       give it a beat and believe what pointerLockElement says. */
+    setTimeout(() => { if (entered && !locked()) refuse("refused"); }, 300);
+  }
+}
+function refuse(name){
+  lockOK = false;
+  if (framed){ lockBlocked = true; note = "no capture in frame"; }
+  else if (name === "SecurityError"){ note = "blocked \u2014 wait, then click"; }
+  else note = name === "refused" ? "click to capture" : name;
+  showMode();
+}
+function look(e){
+  st.yaw  -= e.movementX * 0.0022;
+  st.pitch = Math.max(-1.45, Math.min(1.45, st.pitch - e.movementY * 0.0022));
+}
+function enter(){
+  entered = true;
+  veil.classList.add("gone");
+  cv.classList.add("blind");
+  requestLock();
+  showMode();
+}
+/* Q hands the mouse back deliberately: cursor returns and the view stops
+   following it. Esc, which the browser owns, only drops the lock -- looking
+   carries on, because that is the one thing that must never die silently. */
+function release(){
+  entered = false; dragging = false; edge = 0;
+  cv.classList.remove("blind");
+  if (locked()) document.exitPointerLock();
+  note = "click to look";     // true whether or not capture is available
+  showMode();
+}
+veil.addEventListener("click", enter);
+cv.addEventListener("mousedown", e => {
+  if (!entered){ enter(); return; }
+  if (!locked()){ requestLock(); dragging = true; e.preventDefault(); }
+});
+addEventListener("mouseup",   () => { dragging = false; });
+addEventListener("mouseleave",() => { dragging = false; edge = 0; });
+addEventListener("blur",      () => { dragging = false; edge = 0; });
+document.addEventListener("pointerlockchange", () => {
+  lockOK = locked();
+  if (lockOK){ note = ""; veil.classList.add("gone"); }
+  else if (entered) note = "click to re-capture";
+  showMode();
+});
+document.addEventListener("pointerlockerror", () => refuse("refused"));
+document.addEventListener("mousemove", e => {
+  /* A mouseup released over the browser's own chrome never reaches us, which
+     would leave this stuck in a drag and quietly kill edge turning. */
+  if (dragging && e.buttons === 0) dragging = false;
+  if (locked() || dragging){ edge = 0; look(e); return; }
+  if (!entered) return;
+  const t = e.target;
+  if (t && t.closest && t.closest(".panel")){ edge = 0; return; }  // reaching for a control
+  look(e);
+  /* Signed so that positive keeps turning the way the right edge does. All
+     four panels sit in corners and are skipped above, so approaching one
+     never sets this. */
+  const w = innerWidth;
+  edge = e.clientX < EDGE_M         ? -(EDGE_M - e.clientX) / EDGE_M
+       : e.clientX > w - EDGE_M     ?  (EDGE_M - (w - e.clientX)) / EDGE_M
+       : 0;
+});
+showMode();
+addEventListener("keydown", e => {
+  keys[e.code] = true;
+  const k = 0.05;
+  if (e.code === "ArrowLeft")  st.yaw += k;
+  if (e.code === "ArrowRight") st.yaw -= k;
+  if (e.code === "ArrowUp")    st.pitch = Math.min( 1.45, st.pitch + k);
+  if (e.code === "ArrowDown")  st.pitch = Math.max(-1.45, st.pitch - k);
+  if (e.code === "KeyQ")       release();
+  if (e.code === "KeyR")       placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z));
+  if (e.code.startsWith("Arrow") || ["KeyW","KeyA","KeyS","KeyD"].includes(e.code)) e.preventDefault();
+});
+addEventListener("keyup", e => { keys[e.code] = false; });
+document.getElementById("grain").addEventListener("change", e => {
+  st.grain = parseInt(e.target.value, 10);
+});
+document.getElementById("scale").addEventListener("change", e => {
+  const v = parseInt(e.target.value, 10);
+  st.autoScale = (v === 0);
+  if (!st.autoScale) st.div = v;
+  resize();
+});
+function resize(){
+  const w = Math.max(1, Math.ceil(innerWidth  / st.div));
+  const h = Math.max(1, Math.ceil(innerHeight / st.div));
+  if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+}
+addEventListener("resize", resize);
+resize();
+
+/* ---- HUD ------------------------------------------------------------ */
+const el = {
+  floor: document.getElementById("a-floor"), cell: document.getElementById("a-cell"),
+  shelf: document.getElementById("a-shelf"), vol:  document.getElementById("a-vol"),
+  gaps:  document.getElementById("gaps"),    note: document.getElementById("a-note"),
+  fps:   document.getElementById("fps"),     res:  document.getElementById("res")
+};
+let lastKey = "";
+function hud(){
+  const [q, r] = cellOf(st.x, st.z);
+  const fl = storeyOf(st.y);
+  const key = q + "," + r + "," + fl;
+  if (key === lastKey) return;
+  lastKey = key;
+
+  const t = cellType(q, r);
+  let shelved = 0;
+  const chips = [];
+  for (let i = 0; i < 6; i++){
+    const g = gapAt(q, r, i, fl);
+    if (g === GAP.WALL){ shelved++; continue; }
+    if (g === GAP.SHAFT){ chips.push('<span class="sh">shaft</span>'); continue; }
+    const nt = cellType(q + DIRS[i][0], r + DIRS[i][1]);
+    const via = (g === GAP.HALL) ? "hall" : "passage";
+    chips.push(nt === TYPE.STAIRWELL
+      ? '<span class="st">' + via + ' &rarr; stairs</span>'
+      : '<span>' + via + '</span>');
+  }
+  el.floor.textContent = (fl >= 0 ? "+" : "") + fl;
+  el.cell.textContent  = q + ", " + r;
+  el.shelf.textContent = t === TYPE.GALLERY ? shelved + " walls"
+                       : t === TYPE.STAIRWELL ? "stairwell"
+                       : t === TYPE.STUDY ? "none" : "shaft";
+  el.vol.textContent   = t === TYPE.GALLERY ? (shelved * 5 * 35).toLocaleString() : "0";
+  el.gaps.innerHTML    = chips.length ? chips.join("") : '<span class="wl">none</span>';
+
+  const here = q === CRIM.q && r === CRIM.r && fl === CRIM.floor;
+  el.note.innerHTML =
+      t === TYPE.STUDY     ? ('<span class="cr">A reading room.</span> No shelves at all: '
+                             + ["a recliner","an end table","a lamp","a desk and chair"]
+                               .filter((_,i) => studyVisible(q,r,fl) & (1<<i)).join(", ") + ".")
+    : t === TYPE.SHAFT     ? "A shaft. It runs through every floor and there is no way across."
+    : t === TYPE.STAIRWELL ? "A stair. One flight straight across, one storey up."
+    : here ? '<span class="cr">The crimson volume is in this gallery.</span><br>Wall 1, shelf 2, slot 17. It appears exactly once.'
+    : shelved === 4 ? "Four shelved walls, 700 volumes, as the text requires."
+    : shelved + " shelved walls: this gallery departs from 'all sides except two.'";
+}
+
+/* ---- loop ------------------------------------------------------------ */
+let prev = performance.now(), acc = 0, frames = 0;
+function frame(now){
+  const dt = Math.min(0.25, (now - prev) / 1000); prev = now;
+  acc += dt; frames++;
+  if (acc > 0.5){ el.fps.textContent = Math.round(frames / acc); acc = 0; frames = 0; }
+
+  st.emaMs = st.emaMs * 0.88 + (dt * 1000) * 0.12;
+  if (st.autoScale && frames === 0 && document.visibilityState === "visible"){
+    // integer divisors only, so the dither never lands between pixels
+    if (st.emaMs > 28 && st.div < 3){ st.div++; resize(); }
+    else if (st.emaMs < 11 && st.div > 1){ st.div--; resize(); }
+  }
+  el.res.textContent = "1:" + st.div;
+
+  /* Edge turning, for when the mouse is not captured: the pointer stops at the
+     window edge and no more movement events arrive, so hold it there and the
+     view keeps going. Moving back inwards clears it. */
+  if (edge && !locked()) st.yaw -= edge * EDGE_R * dt;
+
+  let fwd = 0, str = 0;
+  if (keys.KeyW) fwd += 1;
+  if (keys.KeyS) fwd -= 1;
+  if (keys.KeyD) str += 1;
+  if (keys.KeyA) str -= 1;
+  if (fwd || str){
+    const sp = 2.0 * dt, sy = Math.sin(st.yaw), cy = Math.cos(st.yaw);
+    const nx = st.x + (-sy*fwd + cy*str) * sp;
+    const nz = st.z + (-cy*fwd - sy*str) * sp;
+    [st.x, st.z] = resolve(nx, nz, storeyOf(st.y));
+  }
+  const target = groundY(st.x, st.z, st.y) + G.EYE;
+  st.y += (target - st.y) * Math.min(1, dt * 9);
+
+  const cp = Math.cos(st.pitch), sp2 = Math.sin(st.pitch);
+  const sy = Math.sin(st.yaw),   cy = Math.cos(st.yaw);
+  const fx = -sy*cp, fy = sp2, fz = -cy*cp;
+  const rx = cy, ry = 0, rz = -sy;
+  const ux = ry*fz - rz*fy, uy = rz*fx - rx*fz, uz = rx*fy - ry*fx;
+
+  gl.viewport(0, 0, cv.width, cv.height);
+  gl.uniform2f(U.uRes, cv.width, cv.height);
+  gl.uniform1f(U.uTime, now / 1000);
+  gl.uniform3f(U.uCam, st.x, st.y, st.z);
+  gl.uniformMatrix3fv(U.uView, false, [rx,ry,rz, ux,uy,uz, fx,fy,fz]);
+  gl.uniform1f(U.uMotion, reduce ? 0 : 1);
+  gl.uniform3i(U.uCrimCell, CRIM.q, CRIM.r, CRIM.floor);
+  gl.uniform1i(U.uGrain, st.grain);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  hud();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

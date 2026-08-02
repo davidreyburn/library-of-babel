@@ -1,0 +1,19 @@
+{
+  "name": "library-of-babel",
+  "version": "0.4.0",
+  "description": "A deterministic, walkable Library of Babel: a WebGL simulator and an agent-readable core, sharing one implementation of the lattice and the corpus.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node core/test-core.mjs && node core/test-run.mjs",
+    "test:core": "node core/test-core.mjs",
+    "test:gates": "node core/test-run.mjs",
+    "build": "node core/build.mjs",
+    "check": "node core/build.mjs --check",
+    "vectors": "node core/gen-vectors.mjs",
+    "harness": "node core/harness.mjs",
+    "babel": "node tools/babel.mjs"
+  }
+}
