@@ -529,6 +529,171 @@ section("EMPTY SLOTS -- the gaps the Purifiers left (D-42)");
      core.volumePresent(15, 94, 1, 2, 17) === core.volumePresent(15, 94, 1, 2, 17));
 }
 
+/* ---- ROUTING -------------------------------------------------------- *
+ * A route is a promise that a walk exists. These check the promise the
+ * only way that means anything: replay every move and insist the lattice
+ * really allows it, rather than trusting the search that produced it. */
+section("ROUTING -- a route is a promise the lattice has to keep");
+{
+  /* Does the topology permit this exact sequence of moves, starting here? */
+  function replay(from, moves){
+    let at = { q: from.q, r: from.r, floor: from.floor };
+    for (const m of moves){
+      const legal = core.movesFrom(at).find(o =>
+        o.dir === m.dir && core.nodeKey(o.to) === core.nodeKey(m.to));
+      if (!legal) return { ok: false, why: `no ${m.via} in direction ${m.dir} from ${core.nodeKey(at)}` };
+      if (m.via === "stair"){
+        if (!m.through) return { ok: false, why: "a stair move with no stairwell to pass through" };
+        if (core.cellType(m.through.q, m.through.r) !== core.TYPE.STAIRWELL)
+          return { ok: false, why: `${core.nodeKey(m.through)} is not a stairwell` };
+        if (Math.abs(m.to.floor - at.floor) !== 1)
+          return { ok: false, why: "a stair that changed no storey" };
+      } else if (m.to.floor !== at.floor){
+        return { ok: false, why: "changed storey without a stair" };
+      }
+      at = m.to;
+    }
+    return { ok: true, at };
+  }
+
+  /* Every move leads somewhere you can stand; and from a room every move
+     can be walked back. The exception is the rule made visible: starting
+     inside a stairwell, the neighbours cannot come back *to* it, because
+     approaching a stairwell means passing through it to the far side. A
+     stairwell is an edge, not a node, and this is what that costs. */
+  let checked = 0, stairs = 0, unstandable = 0, fromRoom = 0, roomBad = 0, stairBad = 0;
+  for (let k = 0; k < 900; k++){
+    const q = (k * 7) % 60, r = Math.floor(k / 60) - 7, fl = (k % 5) - 2;
+    const t = core.cellType(q, r);
+    if (t === core.TYPE.SHAFT) continue;
+    const inRoom = t === core.TYPE.GALLERY || t === core.TYPE.STUDY;
+    for (const m of core.movesFrom({ q, r, floor: fl })){
+      checked++;
+      if (m.via === "stair") stairs++;
+      if (!core.isStandable(m.to.q, m.to.r, m.to.floor)) unstandable++;
+      const back = core.movesFrom(m.to).some(o => core.nodeKey(o.to) === `${q},${r},${fl}`);
+      if (inRoom){ fromRoom++; if (!back) roomBad++; }
+      else if (back) stairBad++;
+    }
+  }
+  ok("every legal move lands somewhere you can stand",
+     unstandable === 0 && checked > 2000,
+     `${checked} moves, ${stairs} of them through stairwells`);
+  ok("from a room, every move can be walked back",
+     roomBad === 0 && fromRoom > 2000, `${fromRoom} moves out of rooms`);
+  ok("a stairwell is an edge, not a node: nothing steps back into one",
+     stairBad === 0, `${checked - fromRoom} moves out of stairwells, none returnable`);
+
+  /* Which way a flight runs is decided twice -- by riseOf, and by the
+     tread the shader actually builds. They have to agree, or you would be
+     told you had climbed while walking down. Nothing checked this before
+     the router needed to trust it. */
+  let agree = 0, disagree = 0, oneWay = 0, inconsistent = 0;
+  for (let k = 0; k < 4000; k++){
+    const q = k % 60, r = Math.floor(k / 60);
+    if (core.cellType(q, r) !== core.TYPE.STAIRWELL) continue;
+    const a = core.axisOf(q, r);
+    for (const dir of [a, (a + 3) % 6]){
+      const f = core.throughStairwell(q, r, 0, dir);
+      if (!f) continue;
+      const w = core.DIRW[dir], run = core.G.STAIR_RUN;
+      const [uIn]  = core.stairUV(-w[0] * run, -w[1] * run, q, r);
+      const [uOut] = core.stairUV( w[0] * run,  w[1] * run, q, r);
+      if ((core.stairTread(uOut) - core.stairTread(uIn) > 0 ? 1 : -1) === f.climb) agree++;
+      else disagree++;
+      /* a flight open at one end on one storey and walled at the other on
+         the storey it lands you on: legitimate, since every floor has its
+         own doorways -- but it must never be a wrong storey or climb */
+      const b = core.throughStairwell(q, r, f.floor, (dir + 3) % 6);
+      if (!b) oneWay++;
+      else if (b.floor !== 0 || b.climb !== -f.climb) inconsistent++;
+    }
+  }
+  ok("riseOf and the shader's tread agree on which way every flight runs",
+     disagree === 0 && agree > 900, `${agree} flights, ${disagree} disagreeing`);
+  ok("a flight is never reversible into the wrong storey",
+     inconsistent === 0, `${oneWay} of ${agree} are one-way, which the doorway pattern allows`);
+
+  /* routeTo: found, minimal in the moves it returns, and replayable */
+  let found = 0, unreachable = 0, wrong = 0, climbed = 0, longest = 0;
+  for (let seed = 1; seed <= 120; seed++){
+    const from = { q: (seed * 13) % 40, r: (seed * 29) % 40, floor: (seed % 5) - 2 };
+    if (!core.isStandable(from.q, from.r, from.floor)) continue;
+    const pick = core.routeToShelves(from, seed, { minSteps: 4, maxSteps: 14 });
+    if (!pick.found){ unreachable++; continue; }
+    found++;
+    const r = core.routeTo(from, pick.to, { maxSteps: 20 });
+    if (!r.found || r.moves.length !== r.steps) wrong++;
+    const rep = replay(from, r.moves);
+    if (!rep.ok || core.nodeKey(rep.at) !== core.nodeKey(pick.to)) wrong++;
+    if (r.moves.some(m => m.climb !== 0)) climbed++;
+    longest = Math.max(longest, r.steps);
+  }
+  ok("a route to a chosen cell replays legally, move for move",
+     wrong === 0 && found > 100, `${found} routes checked, longest ${longest} rooms, ${unreachable} unreachable`);
+  ok("routes cross storeys, so the stair case is really exercised",
+     climbed > 10, `${climbed} of ${found} routes climbed at least one flight`);
+
+  /* the destination is what it claims to be */
+  let shelved = 0, tooNear = 0, tooFar = 0;
+  for (let seed = 1; seed <= 200; seed++){
+    const p = core.routeToShelves({ q: 0, r: 0, floor: 0 }, seed, { minSteps: 5, maxSteps: 18 });
+    if (!p.found) continue;
+    if (core.galleryCapacity(p.to.q, p.to.r, p.to.floor) > 0) shelved++;
+    if (p.steps < 5) tooNear++;
+    if (p.steps > 18) tooFar++;
+    if (p.moves.length !== p.steps) tooFar++;
+  }
+  ok("every destination has books on its walls, at the distance asked for",
+     shelved === 200 && !tooNear && !tooFar, `${shelved}/200 shelved, ${tooNear} too near, ${tooFar} too far`);
+
+  /* the point of a seed */
+  const a = core.routeToShelves({ q: 0, r: 0, floor: 0 }, 1941);
+  const b = core.routeToShelves({ q: 0, r: 0, floor: 0 }, 1941);
+  eq("the same seed is the same journey", core.nodeKey(a.to), core.nodeKey(b.to));
+  ok("a different seed is a different one",
+     core.nodeKey(core.routeToShelves({ q: 0, r: 0, floor: 0 }, 1942).to) !== core.nodeKey(a.to));
+
+  /* refusals are answers */
+  const nowhere = core.routeTo({ q: 0, r: 0, floor: 0 }, { q: 999, r: 999, floor: 0 }, { maxSteps: 6, cap: 400 });
+  ok("an unreachable cell is refused with a reason, not a guess",
+     nowhere.found === false && typeof nowhere.reason === "string" && nowhere.moves.length === 0,
+     nowhere.reason);
+  const shaft = (() => { for (let q = 0; q < 400; q++) for (let r = 0; r < 40; r++)
+    if (core.cellType(q, r) === core.TYPE.SHAFT) return { q, r, floor: 0 }; })();
+  ok("a shaft is refused as a destination",
+     core.routeTo({ q: 0, r: 0, floor: 0 }, shaft).found === false,
+     `${shaft.q},${shaft.r} is a shaft`);
+  eq("standing still needs no moves",
+     core.routeTo({ q: 0, r: 0, floor: 0 }, { q: 0, r: 0, floor: 0 }).moves.length, 0);
+
+  /* somewhere to stand, anywhere */
+  let stood = 0;
+  for (let seed = 1; seed <= 150; seed++){
+    const s = core.someStanding(seed);
+    if (s.found && core.isStandable(s.cell.q, s.cell.r, s.cell.floor)) stood++;
+  }
+  ok("a seeded probe finds somewhere standable every time", stood === 150, `${stood}/150`);
+  eq("and the same seed finds the same room",
+     core.nodeKey(core.someStanding(7).cell), core.nodeKey(core.someStanding(7).cell));
+
+  /* the volume it decides to take down */
+  let picked = 0, absent = 0, offWall = 0;
+  for (let seed = 1; seed <= 300; seed++){
+    const p = core.routeToShelves({ q: 0, r: 0, floor: 0 }, seed, { minSteps: 3, maxSteps: 12 });
+    if (!p.found) continue;
+    const v = core.pickVolume(p.to.q, p.to.r, p.to.floor, seed);
+    if (!v){ absent++; continue; }
+    picked++;
+    if (!core.volumePresent(v.q, v.r, v.wall, v.shelf, v.slot)) absent++;
+    if (!core.shelvedWalls(v.q, v.r, v.floor).includes(v.wall)) offWall++;
+    if (v.height <= 0 || Math.abs(v.along) > core.G.RUN_HALF) offWall++;
+  }
+  ok("the volume it reaches for is on a shelved wall and is really there",
+     picked > 250 && absent === 0 && offWall === 0,
+     `${picked} picked, ${absent} absent, ${offWall} off the wall`);
+}
+
 /* ---- report -------------------------------------------------------- */
 console.log(results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);

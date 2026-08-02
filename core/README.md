@@ -91,6 +91,33 @@ stand; a **volume** (`.../wall/1/shelf/2/slot/17`) names something to read. Read
 rooms and shafts have no shelved wall, so only the room scope can name them, and
 asking a room address for a page is an error rather than a guess.
 
+## Going somewhere in particular
+
+A wander samples the lattice; a route searches it. Both ask the topology the same
+question — which moves are legal from here — so `movesFrom` answers it once and
+both use that.
+
+```js
+import { movesFrom, routeTo, routeToShelves, someStanding,
+         pickVolume, isStandable } from "./core/babel-core.mjs";
+
+routeTo({ q: 0, r: 0, floor: 0 }, { q: 4, r: -2, floor: 1 });  // moves, or a reason
+routeToShelves({ q: 0, r: 0, floor: 0 }, 1941);                // somewhere with books, 5-18 rooms off
+someStanding(1941);                                            // anywhere you could stand
+pickVolume(15, 94, 0, 1941);                                   // a volume really on a shelf, and how to aim at it
+```
+
+**Rooms are the nodes; stairwells are the edges.** You do not stand in a stairwell
+and choose again — you enter it in some direction and come out in the cell beyond,
+one storey up or down. So a route's moves carry a `through` cell when they cross a
+flight, and a walker has to be steered *into* the flight rather than past it.
+
+A refusal is an answer: an unreachable cell, a shaft, or a gallery with nothing
+shelved within range each come back with a reason rather than a guess. The picks
+take a seed rather than calling `Math.random`, because `LIB-G-021` keeps the core
+free of clocks and random sources — which is also what makes a journey citable.
+The prototype's **X** key is these four functions plus a walker.
+
 ## Reading a volume
 
 In the prototype: face a wall of books and press **E**. The wall, shelf and slot come

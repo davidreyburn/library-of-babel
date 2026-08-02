@@ -58,6 +58,42 @@
     border:1px solid #2A2E24;padding:.1rem .2rem;margin-top:.3rem;
   }
 
+  /* ---- going somewhere in particular (Z), being taken there (X) ------ *
+     Both are addressed panels: a coordinate goes in and a citable address
+     comes out, so a jump is repeatable rather than a one-off. */
+  #jump{bottom:.7rem;right:.7rem;min-width:13rem;}
+  #jump[hidden], #auto[hidden]{display:none;}
+  #jump .k, #auto .k{color:#6E7360;text-transform:uppercase;font-size:.6rem;letter-spacing:.09em;}
+  #jump label{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-top:.3rem;}
+  #jump input{
+    font-family:var(--mono);font-size:.65rem;background:#1A1D16;color:var(--pale);
+    border:1px solid #2A2E24;padding:.12rem .3rem;width:6.4rem;
+  }
+  #jump input:focus{outline:1px solid #5E6B45;}
+  #jump .btns{display:flex;gap:.3rem;margin-top:.45rem;}
+  #jump button, #auto button{
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;background:#1A1D16;
+    color:var(--pale);border:1px solid #34392C;padding:.16rem .45rem;cursor:pointer;
+  }
+  #jump button:hover, #auto button:hover{border-color:#5E6B45;color:#D8DCC0;}
+  #jump .warn{display:block;margin-top:.35rem;font-size:.58rem;color:#B58A6A;line-height:1.45;}
+  #jump .warn:empty{display:none;}
+  #jump .uri{
+    display:block;margin-top:.3rem;font-size:.55rem;letter-spacing:.02em;color:#6E7360;
+    word-break:break-all;user-select:all;cursor:text;line-height:1.4;
+  }
+  #jump .uri:empty{display:none;}
+
+  /* Bottom centre: it is a transient state, so it sits where the eye goes
+     when the view is moving on its own and nowhere near the other panels. */
+  #auto{
+    bottom:.7rem;left:50%;transform:translateX(-50%);text-align:center;min-width:15rem;
+  }
+  #auto .dest{color:var(--pale);font-size:.58rem;word-break:break-all;line-height:1.4;}
+  #auto .left{color:#A6B27E;font-size:.65rem;letter-spacing:.07em;margin-top:.15rem;}
+  #auto .hint{color:#6E7360;font-size:.56rem;letter-spacing:.05em;margin-top:.2rem;}
+  #auto.stopped .left{color:#B58A6A;}
+
   /* ---- the reticule ------------------------------------------------- *
      With the cursor hidden this is the only thing telling you what you are
      pointing at, so it does two jobs: it marks the centre, and it changes
@@ -274,8 +310,30 @@
   <b>WASD</b> <span class="t">walk</span> &middot; <b>move the mouse</b> <span class="t">to look</span> &middot; <b>arrows</b> <span class="t">too</span>
   &middot; <b>E</b> <span class="t">read the volume you face</span>
   &middot; <b>Q</b> <span class="t">let the mouse go</span> &middot; <b>R</b> <span class="t">if stuck</span><br>
+  <b>Z</b> <span class="t">go to a floor and cell</span> &middot;
+  <b>X</b> <span class="t">be walked to a shelf and handed a book &mdash; X again to stop</span><br>
   <span class="t">Gaps are passages or halls. Through them: another gallery, a stairwell
   with flights up and down, or a shaft you can look into but not cross.</span>
+</div>
+
+<div id="jump" class="panel" hidden>
+  <div class="k">Go to</div>
+  <label>floor <input id="j-floor" type="text" inputmode="numeric" value="0" spellcheck="false"></label>
+  <label>cell <input id="j-cell" type="text" value="0,0" placeholder="q,r" spellcheck="false"></label>
+  <div class="btns">
+    <button id="j-random" title="A seeded probe of the lattice for somewhere you can stand -- mostly galleries, sometimes a stairwell or one of the rare reading rooms.">Random</button>
+    <button id="j-go" title="Only somewhere you could actually stand. A shaft or a sealed cell is refused with the reason, rather than quietly putting you somewhere else.">Go</button>
+    <button id="j-close">close</button>
+  </div>
+  <span class="warn" id="j-warn"></span>
+  <span class="uri" id="j-uri" title="Click to select, then copy."></span>
+</div>
+
+<div id="auto" class="panel" hidden>
+  <div class="k">Walking to</div>
+  <div class="dest" id="w-dest"></div>
+  <div class="left" id="w-left"></div>
+  <div class="hint" id="w-hint">X to stop &middot; WASD takes over</div>
 </div>
 
 <div id="book">
@@ -814,6 +872,155 @@ function findSeat({ q = 0, r = 0, floor = 0, seed = 1, maxSteps = 400 } = {}){
     room: i < 0 ? null : { q: trail[i].q, r: trail[i].r, floor: trail[i].floor,
                            pieces: studyPieces(trail[i].q, trail[i].r, trail[i].floor) }
   };
+}
+
+/* ---- getting from here to a named there ---------------------------- *
+ * A wander asks the topology "where could I go next?" and answers at
+ * random. A route asks the same question and searches. So the question
+ * is asked in one place: movesFrom().
+ *
+ * The important thing it encodes is that a stairwell is not a place but
+ * a move. You do not stand in one and choose again; you enter it in some
+ * direction and come out in the cell beyond, one storey up or down
+ * (throughStairwell). Rooms are therefore the nodes and stairwells are
+ * edges, which is why a route's waypoints include the stairwell it
+ * passes through -- a walker has to be steered into the flight, not
+ * teleported past it.                                                  */
+function movesFrom(at){
+  const out = [];
+  for (const e of exitsFrom(at.q, at.r, at.floor)){
+    if (!e.crossable) continue;                 // a shaft: you may look, not cross
+    if (e.type === "stairwell"){
+      const o = throughStairwell(e.to.q, e.to.r, e.to.floor, e.dir);
+      if (!o) continue;                         // walled on the far side; a dead end
+      out.push({ dir: e.dir, via: "stair", climb: o.climb,
+                 through: { q: e.to.q, r: e.to.r, floor: at.floor },
+                 to: { q: o.q, r: o.r, floor: o.floor } });
+    } else {
+      out.push({ dir: e.dir, via: e.via, climb: 0, through: null, to: e.to });
+    }
+  }
+  return out;
+}
+
+const nodeKey = c => c.q + "," + c.r + "," + c.floor;
+/* Somewhere a person can be: a gallery, a reading room, or a flight of
+   stairs. Not a shaft, and not a sealed cell with no way out of it. */
+function isStandable(q, r, fl){
+  const t = cellType(q, r);
+  if (t === TYPE.SHAFT) return false;
+  return movesFrom({ q, r, floor: fl }).length > 0;
+}
+
+/* Breadth-first over legal moves. `cap` bounds the work, because the
+   lattice is unbounded and a caller in a keypress handler cannot afford
+   to find that out the hard way; `maxSteps` bounds how far afield a
+   destination may be. Returns the search itself -- every room reached,
+   with the move that reached it -- so one search can answer both "how do
+   I get to this cell" and "pick me somewhere worth walking to". */
+function walkGraph(from, { maxSteps = 24, cap = 4000, goal = null } = {}){
+  const start = { q: from.q, r: from.r, floor: from.floor };
+  const seen = new Map([[nodeKey(start), { cell: start, steps: 0, move: null, prev: null }]]);
+  const want = goal ? nodeKey(goal) : null;
+  const queue = [start];
+  for (let head = 0; head < queue.length && seen.size < cap; head++){
+    const at = queue[head], here = seen.get(nodeKey(at));
+    if (here.steps >= maxSteps) continue;
+    for (const m of movesFrom(at)){
+      const k = nodeKey(m.to);
+      if (seen.has(k)) continue;
+      seen.set(k, { cell: m.to, steps: here.steps + 1, move: m, prev: nodeKey(at) });
+      if (k === want) return seen;
+      queue.push(m.to);
+    }
+  }
+  return seen;
+}
+function movesTo(graph, to){
+  const out = [];
+  for (let k = nodeKey(to); graph.has(k); ){
+    const n = graph.get(k);
+    if (!n.move) break;
+    out.push(n.move);
+    k = n.prev;
+  }
+  return out.reverse();
+}
+
+/* The route to a particular cell, or an honest refusal. Unreachable and
+   too-far-to-search are different answers and are reported as such. */
+function routeTo(from, to, { maxSteps = 24, cap = 4000 } = {}){
+  if (nodeKey(from) === nodeKey(to)) return { found: true, from, to, moves: [], steps: 0 };
+  if (!isStandable(to.q, to.r, to.floor))
+    return { found: false, reason: "nothing to stand on there", moves: [] };
+  const g = walkGraph(from, { maxSteps, cap, goal: to });
+  const k = nodeKey(to);
+  if (!g.has(k))
+    return { found: false, moves: [],
+             reason: g.size >= cap ? `no route inside ${cap} rooms searched`
+                                   : `no route within ${maxSteps} rooms` };
+  return { found: true, from, to, moves: movesTo(g, to), steps: g.get(k).steps };
+}
+
+/* Somewhere with books on the walls, far enough away to be a journey, and
+   reachable -- the pool is the breadth-first frontier itself, so "walk
+   there" cannot be a promise the lattice will not keep.
+   The choice is a hash of the seed rather than Math.random, because
+   LIB-G-021 keeps the core free of clocks and random sources. That is
+   also what makes the journey worth citing: the same seed from the same
+   room is the same destination, for anyone, for ever. */
+function routeToShelves(from, seed, { minSteps = 5, maxSteps = 18, cap = 4000 } = {}){
+  const g = walkGraph(from, { maxSteps, cap });
+  const pool = [];
+  for (const n of g.values()){
+    if (n.steps < minSteps) continue;
+    if (cellType(n.cell.q, n.cell.r) !== TYPE.GALLERY) continue;
+    if (!galleryCapacity(n.cell.q, n.cell.r, n.cell.floor)) continue;
+    pool.push(n.cell);
+  }
+  if (!pool.length)
+    return { found: false, moves: [],
+             reason: `no shelved gallery between ${minSteps} and ${maxSteps} rooms away` };
+  /* sorted, so the seed means the same thing whatever order the search
+     happened to reach them in */
+  pool.sort((a, b) => a.floor - b.floor || a.q - b.q || a.r - b.r);
+  const to = pool[stepHash(seed, 0) % pool.length];
+  return { found: true, from, to, moves: movesTo(g, to),
+           steps: g.get(nodeKey(to)).steps, considered: pool.length };
+}
+
+/* A seeded probe for somewhere to stand, anywhere in the lattice. Bounded
+   in tries as well as in extent: the answer "I looked 200 times and found
+   nowhere" is better than a loop that never returns. */
+function someStanding(seed, { span = 500, floors = 9, tries = 200 } = {}){
+  for (let n = 0; n < tries; n++){
+    const q  = (stepHash(seed, n * 3)     % (2 * span   + 1)) - span;
+    const r  = (stepHash(seed, n * 3 + 1) % (2 * span   + 1)) - span;
+    const fl = (stepHash(seed, n * 3 + 2) % (2 * floors + 1)) - floors;
+    if (isStandable(q, r, fl)) return { found: true, cell: { q, r, floor: fl }, tries: n + 1 };
+  }
+  return { found: false, tries, reason: `nowhere standable in ${tries} tries` };
+}
+
+/* Which volume to take down, given a seed: a real one, not one of the
+   slots the Purifiers emptied. Returns the slot and everything needed to
+   look straight at its spine -- the face stands proud of the case by its
+   own depth, and aiming at the case back instead is the error that had
+   the reticule off by six books at a glancing angle. */
+function pickVolume(q, r, fl, seed){
+  const walls = shelvedWalls(q, r, fl);
+  if (!walls.length) return null;
+  for (let n = 0; n < 64; n++){
+    const wall  = walls[stepHash(seed, n * 3) % walls.length];
+    const shelf = stepHash(seed, n * 3 + 1) % SHELVES_PER_WALL;
+    const slot  = stepHash(seed, n * 3 + 2) % BOOKS_PER_SHELF;
+    if (!volumePresent(q, r, wall, shelf, slot)) continue;
+    return { q, r, floor: fl, wall, shelf, slot,
+             depth: volumeDepth(q, r, wall, shelf, slot),
+             height: SHELF_BASE + shelf * SHELF_PITCH + 0.167,
+             along: -G.RUN_HALF + (slot + 0.5) * G.BOOK_W };
+  }
+  return null;                                  // 29^-1 odds per try; 64 tries
 }
 /* @core:end */
 /* @text:begin */
@@ -2001,6 +2208,17 @@ gl.uniform3i(U.uTgtSlot, -1, -1, -1);   // GLSL ints start at 0, which is a real
    core/babel-core.mjs and core/babel-text.mjs -- edit there, not here. */
 
 /* ---- where the floor is under a point ------------------------------ */
+/* One tick of the body: the feet follow the ground, and which storey you
+   are on follows from the feet. It is a named step rather than two lines
+   inside the frame loop so that a walk driven headlessly steps exactly
+   what a frame steps. Leaving it out of a test harness made the stairs
+   look broken -- feet pinned at zero, so the storey never changed and
+   every route across a flight died one room later. The stairs were fine;
+   the test was walking on air. */
+function stepBody(dt){
+  const target = groundY(st.x, st.z, st.y) + G.EYE;
+  st.y += (target - st.y) * Math.min(1, dt * 9);
+}
 function groundY(x, z, curY){
   const fl = storeyOf(curY);
   const [cq, cr] = cellOf(x, z);
@@ -2140,10 +2358,7 @@ function goTo(uri){
   /* Nobody stands in a shaft. Put them in the nearest real room instead of
      dropping them down the well. */
   if (cellType(a.q, a.r) === TYPE.SHAFT) return placeInNetwork(a.floor, a.q, a.r);
-  const [wx, wz] = worldOf(a.q, a.r);
-  st.x = wx; st.z = wz;
-  st.y = a.floor * G.H_FLOOR + G.EYE;
-  return true;
+  return standAt(a.q, a.r, a.floor);          // hoisted; see "standing somewhere on purpose"
 }
 /* Called at the foot of this script, not here: openBook() reaches into the
    input section's consts, and running before those are initialised threw a
@@ -2413,6 +2628,295 @@ bk.goto.addEventListener("keydown", e => {
 /* ?at= puts you in a room and ?read= opens a volume -- see arriveFromURL(),
    which runs at the foot of this script. */
 
+/* ---- standing somewhere on purpose (Z) ------------------------------- *
+ * Arriving is not just setting x and z: mid-flight the floor under you is
+ * a tread rather than the storey, and dropping in at storey height puts
+ * your feet half a storey below the step and you sink onto the flight
+ * below. So ask the same stair geometry the renderer asks.              */
+function standAt(q, r, fl){
+  const [wx, wz] = worldOf(q, r);
+  const lift = cellType(q, r) === TYPE.STAIRWELL ? stairTread(0) : 0;
+  [st.x, st.z] = resolve(wx, wz, fl);
+  st.y = fl * G.H_FLOOR + lift + G.EYE;
+  return true;
+}
+const jp = {
+  panel:  document.getElementById("jump"),   floor: document.getElementById("j-floor"),
+  cell:   document.getElementById("j-cell"), warn:  document.getElementById("j-warn"),
+  uri:    document.getElementById("j-uri")
+};
+/* Why you cannot be there, in the terms the lattice uses. "Invalid" on its
+   own is no use: a shaft and a sealed cell are different problems. */
+function whyNotStandable(q, r, fl){
+  const t = cellType(q, r);
+  if (t === TYPE.SHAFT) return `${q},${r} is a shaft -- it runs through every floor and there is no floor in it`;
+  return `${q},${r} on floor ${fl} is sealed: every side is wall`;
+}
+function jumpTo(q, r, fl){
+  if (!Number.isFinite(q) || !Number.isFinite(r) || !Number.isFinite(fl)){
+    jp.warn.textContent = "floor and cell must be whole numbers";
+    return false;
+  }
+  if (!isStandable(q, r, fl)){ jp.warn.textContent = whyNotStandable(q, r, fl); return false; }
+  stopAuto();
+  if (reading) closeBook();
+  standAt(q, r, fl);
+  jp.warn.textContent = "";
+  jp.uri.textContent = cellAddress(q, r, fl);
+  aim();
+  return true;
+}
+/* The cell field takes "q,r" or a pasted babel:// address, because by this
+   point in a session half the coordinates on screen are addresses. */
+function readJumpFields(){
+  const raw = jp.cell.value.trim();
+  if (raw.startsWith("babel://")){
+    try {
+      const a = parseAddress(raw);
+      jp.floor.value = a.floor; jp.cell.value = a.q + "," + a.r;
+      return { q: a.q, r: a.r, floor: a.floor };
+    } catch (e){ return { why: e.message.slice(0, 80) }; }
+  }
+  const m = raw.match(/^(-?\d+)\s*[, ]\s*(-?\d+)$/);
+  if (!m) return { why: `"${raw}" is not a cell -- write it as q,r` };
+  return { q: +m[1], r: +m[2], floor: parseInt(jp.floor.value.trim(), 10) };
+}
+function jumpGo(){
+  const f = readJumpFields();
+  if (f.why){ jp.warn.textContent = f.why; return; }
+  jumpTo(f.q, f.r, f.floor);
+}
+function jumpRandom(){
+  /* The seed is drawn here and not in the core: LIB-G-021 keeps the core
+     free of random sources, which is what makes the destination citable --
+     the address in the panel is the whole answer, repeatable by anyone. */
+  const s = someStanding((Math.random() * 0xFFFFFFFF) >>> 0);
+  if (!s.found){ jp.warn.textContent = s.reason; return; }
+  jp.floor.value = s.cell.floor;
+  jp.cell.value  = s.cell.q + "," + s.cell.r;
+  jumpTo(s.cell.q, s.cell.r, s.cell.floor);
+}
+function toggleJump(show){
+  const open = show === undefined ? jp.panel.hidden : show;
+  jp.panel.hidden = !open;
+  if (!open){ jp.warn.textContent = ""; return; }
+  const [q, r] = cellOf(st.x, st.z);
+  jp.floor.value = storeyOf(st.y);
+  jp.cell.value  = q + "," + r;
+  jp.uri.textContent = "";
+  jp.floor.focus(); jp.floor.select();
+}
+document.getElementById("j-go").addEventListener("click", jumpGo);
+document.getElementById("j-random").addEventListener("click", jumpRandom);
+document.getElementById("j-close").addEventListener("click", () => toggleJump(false));
+for (const f of [jp.floor, jp.cell])
+  f.addEventListener("keydown", e => {
+    if (e.code === "Enter"){ e.preventDefault(); jumpGo(); }
+    if (e.code === "Escape"){ e.preventDefault(); toggleJump(false); cv.focus(); }
+    e.stopPropagation();                    // the field keeps its own keys
+  });
+
+/* ---- being walked there (X) ------------------------------------------ *
+ * The route comes from the core, so it is the same lattice an agent walks
+ * and every waypoint has an address. The walking is steering: turn towards
+ * the next waypoint, then move through the same resolve() a hand on the
+ * keys moves through. That is the point -- the walker can no more pass
+ * through a wall than you can, so a route that is not walkable fails
+ * where you can see it rather than gliding through the rock.
+ *
+ * Which is also why it watches for getting stuck. Shuffling against a
+ * doorway for ever is the silent failure; saying "could not get past
+ * 4,-2" is the loud one.                                                */
+const AUTO_SPEED = 2.0, AUTO_TURN = 3.0, AUTO_NEAR = 0.55, AUTO_DOOR = 0.30,
+      AUTO_STUCK = 2.5, AUTO_CAP = 300;
+const aw = {
+  panel: document.getElementById("auto"), dest: document.getElementById("w-dest"),
+  left:  document.getElementById("w-left"), hint: document.getElementById("w-hint")
+};
+let auto = null, autoHide = 0;
+function autoSays(msg, stopped){
+  aw.panel.hidden = false;
+  aw.panel.classList.toggle("stopped", !!stopped);
+  aw.left.textContent = msg;
+  aw.hint.textContent = stopped ? "X to set off again" : "X to stop · WASD takes over";
+  if (stopped){ autoHide = performance.now() + 6000; }
+}
+function stopAuto(msg){
+  if (!auto) return;
+  auto = null;
+  if (msg) autoSays(msg, true); else aw.panel.hidden = true;
+}
+/* Cell centres alone are not a walkable line. Rooms are 3.64 m across but
+   their centres are 4.84 m apart, so adjacent galleries do not touch --
+   they are joined by a corridor barely a metre wide. Aim from wherever you
+   are straight at the next centre and the moment you are off-centre that
+   line misses the corridor: it clips the wall, or worse, threads the wrong
+   doorway and lands you in a room the route never mentioned, one wall away
+   from a waypoint you can no longer reach. Measured: 32 of 40 walks died
+   that way.
+   So every opening is a waypoint of its own. The doorway sits exactly
+   halfway between the two centres, and centre -> doorway -> centre is
+   always inside the walkable space. */
+function legsFor(from, moves){
+  const mid = (a, b) => {
+    const [ax, az] = worldOf(a.q, a.r), [bx, bz] = worldOf(b.q, b.r);
+    return [(ax + bx) / 2, (az + bz) / 2];
+  };
+  const legs = [];
+  let at = from;
+  for (const m of moves){
+    const hops = m.through ? [m.through, m.to] : [m.to];
+    for (const next of hops){
+      legs.push({ p: mid(at, next), door: true,  cell: next, from: at });
+      legs.push({ p: worldOf(next.q, next.r), door: false, cell: next, from: at,
+                  stair: cellType(next.q, next.r) === TYPE.STAIRWELL });
+      at = next;
+    }
+  }
+  return legs;
+}
+/* Steering through a one-metre corridor is approximate, and now and then the
+   walker fetches up in a room the route never mentioned -- from where the
+   next waypoint is behind a solid wall and no amount of pushing will do.
+   So ask the lattice again from where it actually is. Re-planning is the
+   same breadth-first search and costs a fraction of a millisecond; it turns
+   a walk that would have failed into a slightly longer one. Bounded, so a
+   walker that cannot stop straying still gives up and says so. */
+function replan(){
+  if ((auto.replans || 0) >= 4) return false;
+  const [q, r] = cellOf(st.x, st.z), fl = storeyOf(st.y);
+  const again = routeTo({ q, r, floor: fl }, auto.dest, { maxSteps: 30 });
+  if (!again.found) return false;
+  auto.legs = legsFor({ q, r, floor: fl }, again.moves);
+  auto.i = 0;
+  auto.replans = (auto.replans || 0) + 1;
+  auto.mark = { x: st.x, z: st.z, y: st.y, t: 0 };
+  aimLeg();
+  return true;
+}
+function startAuto(seed = (Math.random() * 0xFFFFFFFF) >>> 0){
+  const [q, r] = cellOf(st.x, st.z), fl = storeyOf(st.y);
+  /* Far enough to be a journey: six to fifteen rooms, and a room's centre
+     is 4.84 m from the next, so most of these are half a minute of walking
+     and most cross a storey or three on the way. */
+  const pick = routeToShelves({ q, r, floor: fl }, seed, { minSteps: 6, maxSteps: 15 });
+  if (!pick.found){
+    aw.dest.textContent = cellAddress(q, r, fl);
+    autoSays(pick.reason, true);
+    return;
+  }
+  if (reading) closeBook();
+  auto = {
+    seed, legs: legsFor({ q, r, floor: fl }, pick.moves), i: 0, rooms: pick.steps,
+    dest: pick.to, elapsed: 0,
+    volume: pickVolume(pick.to.q, pick.to.r, pick.to.floor, seed),
+    mark: { x: st.x, z: st.z, y: st.y, t: 0 }
+  };
+  aimLeg();
+  aw.dest.textContent = cellAddress(pick.to.q, pick.to.r, pick.to.floor);
+  showAuto();
+}
+/* The direction the current waypoint was approached from, so that passing
+   it counts as reaching it. Without this an overshoot turns into a circle
+   round a doorway that never quite closes. */
+function aimLeg(){
+  const wp = auto.legs[auto.i];
+  const dx = wp.p[0] - st.x, dz = wp.p[1] - st.z, d = Math.hypot(dx, dz) || 1;
+  auto.entry = [dx / d, dz / d];
+}
+function showAuto(){
+  const left = auto.legs.slice(auto.i).filter(l => !l.door);
+  const rooms = left.filter(l => !l.stair).length, flights = left.filter(l => l.stair).length;
+  autoSays(rooms + (rooms === 1 ? " room" : " rooms") +
+           (flights ? ", " + flights + (flights === 1 ? " flight" : " flights") : "") + " to go", false);
+}
+/* Look straight at one spine. Its face stands proud of the case by its own
+   depth and the shelf has a height, so both go in -- aiming at the case
+   back instead is off along the wall by 0.18*tan(angle), which is six
+   books at a glancing angle. */
+function faceVolume(v){
+  const n = DIRW[v.wall], [wx, wz] = worldOf(v.q, v.r);
+  const d = G.APO_ROOM - v.depth;
+  const px = wx + n[0] * d - n[1] * v.along - st.x;
+  const pz = wz + n[1] * d + n[0] * v.along - st.z;
+  const py = v.floor * G.H_FLOOR + v.height - st.y;
+  st.yaw   = Math.atan2(-px, -pz);
+  st.pitch = Math.max(-1.45, Math.min(1.45, Math.atan2(py, Math.hypot(px, pz))));
+}
+function autoArrive(){
+  const { dest, volume, seed } = auto;
+  auto = null;
+  const fl = storeyOf(st.y);
+  if (fl !== dest.floor){
+    /* the one failure the route itself cannot rule out: a flight that did
+       not take, leaving the right cell on the wrong storey */
+    autoSays(`arrived at ${dest.q},${dest.r} but on floor ${fl}, not ${dest.floor}`, true);
+    return;
+  }
+  if (!volume){ autoSays("arrived, but every slot in this gallery stands empty", true); return; }
+  faceVolume(volume);
+  aim();
+  /* The reticule and the pane must name the same slot. They are computed
+     two different ways -- one by aiming, one by choosing -- so check. */
+  const seen = volumeInFront();
+  if (seen.wall !== volume.wall || seen.shelf !== volume.shelf || seen.slot !== volume.slot)
+    console.warn("auto-walk aimed at wall %d shelf %d slot %d but the reticule reads %o",
+                 volume.wall, volume.shelf, volume.slot, seen);
+  aw.panel.hidden = true;
+  openBook(walkAddress({ floor: volume.floor, q: volume.q, r: volume.r,
+                         wall: volume.wall, shelf: volume.shelf, slot: volume.slot }),
+           stepHash(seed, 99) % PAGES);
+}
+function autoStep(dt){
+  auto.elapsed += dt;
+  if (auto.elapsed > AUTO_CAP) return stopAuto("stopped: that walk was taking too long");
+  const wp = auto.legs[auto.i];
+  const dx = wp.p[0] - st.x, dz = wp.p[1] - st.z;
+  const dist = Math.hypot(dx, dz);
+  /* Reached, or gone past: a doorway is narrow, so it gets a tighter radius
+     than a room, and either way crossing the line through it counts.
+     The last waypoint is stricter and does not take the shortcut: stopping
+     half a metre off the middle of the room aims the reticule from the
+     wrong place, and then the spine that lights up is not the spine that
+     opens. Once in 196 walks, measured -- rare enough to have shipped. */
+  const last = auto.i === auto.legs.length - 1;
+  const near = last ? 0.20 : wp.door ? AUTO_DOOR : AUTO_NEAR;
+  const past = (st.x - wp.p[0]) * auto.entry[0] + (st.z - wp.p[1]) * auto.entry[1];
+  if (dist < near || (!last && past > 0 && dist < 1.2)){
+    if (++auto.i >= auto.legs.length) return autoArrive();
+    aimLeg();
+    return showAuto();
+  }
+  /* Turn towards it rather than snapping, so it reads as walking -- but do
+     not walk while badly aimed, or the curve of the turn is what goes
+     through the wall. */
+  const err = Math.atan2(Math.sin(Math.atan2(-dx, -dz) - st.yaw),
+                         Math.cos(Math.atan2(-dx, -dz) - st.yaw));
+  st.yaw += Math.sign(err) * Math.min(Math.abs(err), AUTO_TURN * dt);
+  const sp = AUTO_SPEED * dt * Math.max(0, 1 - Math.abs(err) / 0.7);
+  if (sp > 0){
+    const sy = Math.sin(st.yaw), cy = Math.cos(st.yaw);
+    [st.x, st.z] = resolve(st.x - sy * sp, st.z - cy * sp, storeyOf(st.y));
+  }
+  /* A waypoint is only reachable from the two rooms its doorway joins. Being
+     anywhere else means we have strayed, and the sooner that is noticed the
+     shorter the detour. */
+  const [cq, cr] = cellOf(st.x, st.z);
+  if ((cq !== wp.cell.q || cr !== wp.cell.r) && (cq !== wp.from.q || cr !== wp.from.r)){
+    if (!replan()) return stopAuto(`stopped: lost the way at ${cq},${cr}`);
+    return showAuto();
+  }
+  const m = auto.mark;
+  m.t += dt;
+  if (m.t > AUTO_STUCK){
+    if (Math.hypot(st.x - m.x, st.z - m.z, st.y - m.y) < 0.35){
+      if (replan()) return showAuto();
+      return stopAuto(`stopped: could not get past ${wp.cell.q},${wp.cell.r}`);
+    }
+    m.x = st.x; m.z = st.z; m.y = st.y; m.t = 0;
+  }
+}
+
 /* ---- input ---------------------------------------------------------- */
 /* True mouse capture is the Pointer Lock API, and it cannot be had inside the
    artifact frame: that frame is sandboxed "allow-scripts allow-same-origin
@@ -2540,6 +3044,9 @@ addEventListener("keydown", e => {
     if (e.code === "BracketRight" || e.code === "ArrowRight") turnPage(1);
     if (e.code === "Home") turnPage(-PAGES);
     if (e.code === "End")  turnPage(PAGES);
+    /* X out of an open volume sets off for the next one, so a tour is one
+       key held down to nothing in particular. */
+    if (e.code === "KeyX" && entered){ closeBook(); startAuto(); }
     e.preventDefault();
     return;
   }
@@ -2551,7 +3058,11 @@ addEventListener("keydown", e => {
   if (e.code === "ArrowDown")  st.pitch = Math.max(-1.45, st.pitch - k);
   if (e.code === "KeyE" && entered) pullVolume();
   if (e.code === "KeyQ")       release();
-  if (e.code === "KeyR")       placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z));
+  if (e.code === "KeyR"){      stopAuto(); placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z)); }
+  /* preventDefault, or the z that opened the panel is typed into the field
+     it just focused and "floor z" is the first thing you see */
+  if (e.code === "KeyZ"){      e.preventDefault(); toggleJump(); }
+  if (e.code === "KeyX" && entered){ if (auto) stopAuto("stopped"); else startAuto(); }
   if (e.code.startsWith("Arrow") || ["KeyW","KeyA","KeyS","KeyD"].includes(e.code)) e.preventDefault();
 });
 addEventListener("keyup", e => { keys[e.code] = false; });
@@ -2652,6 +3163,14 @@ function frame(now){
      view keeps going. Moving back inwards clears it. */
   if (edge && !locked() && !reading) st.yaw -= edge * EDGE_R * dt;
 
+  /* Being walked somewhere. A hand on the keys always wins: taking over is
+     how you stop trusting it, and it should not have to be a decision. */
+  if (auto){
+    if (keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD) stopAuto("stopped -- you took over");
+    else if (!reading) autoStep(dt);
+  }
+  if (autoHide && !auto && performance.now() > autoHide){ aw.panel.hidden = true; autoHide = 0; }
+
   let fwd = 0, str = 0;
   if (!reading){
     if (keys.KeyW) fwd += 1;
@@ -2665,8 +3184,7 @@ function frame(now){
     const nz = st.z + (-cy*fwd - sy*str) * sp;
     [st.x, st.z] = resolve(nx, nz, storeyOf(st.y));
   }
-  const target = groundY(st.x, st.z, st.y) + G.EYE;
-  st.y += (target - st.y) * Math.min(1, dt * 9);
+  stepBody(dt);
   /* Only re-aim when the view actually moved. Standing still costs nothing,
      which is most of the time you are reading a spine. */
   const pose = st.x + st.z + st.y + st.yaw * 31 + st.pitch * 57;

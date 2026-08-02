@@ -47,6 +47,12 @@ hand the mouse back, **R** if you get stuck. Served at top level like this you g
 real mouse capture; the published artifact cannot have it, because artifact frames
 are sandboxed without `allow-pointer-lock`.
 
+**Z** opens a floor-and-cell box with a **Random** button — it refuses anywhere you
+could not stand and says why. **X** picks a shelved gallery six to fifteen rooms
+off, walks you there through the doorways and up or down the stairs, and hands you
+a volume open at a page; X again stops it, and so does touching WASD. Destination,
+volume and page all come from one seed, so a journey is repeatable and citable.
+
 Two addresses open things directly:
 
 ```

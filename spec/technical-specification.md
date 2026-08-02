@@ -610,6 +610,67 @@ entangled with the SDF to extract as it stands, so `volumePresent()` in
 broken mirror rather than a subtly different one. Extract it the next time
 `mapAt` is opened.
 
+### 17.11 Two Navigation Affordances the Text Does Not Have
+
+Borges's narrator walks. He has no way to name a room and be in it, and nothing
+carries him anywhere. Both of the following are frank conveniences for a
+visitor, added because a lattice this size is otherwise only navigable by
+patience. *[derived]*
+
+**Z — go to a floor and cell.** A panel taking a floor and a `q,r` cell, or a
+pasted `babel://` address, plus a **Random** button. It refuses anything you
+could not stand in, and says which: a shaft has no floor in it, a sealed cell
+has no way in. It does **not** quietly relocate you to the nearest real room,
+which is what `?at=` does for a shaft — a request to stand somewhere
+impossible is answered, not silently corrected. Random is a seeded probe
+(`someStanding`), so what it finds is an address like any other and can be
+pasted back or handed to an agent.
+
+**X — be walked to a shelf and handed a book.** Picks a shelved gallery six to
+fifteen rooms away, walks there through doorways and up or down stairs, turns
+to face one volume, and opens it at a page. X again stops it; so does touching
+WASD. The destination, the volume and the page all come from one seed, so a
+journey is repeatable and citable rather than a one-off.
+
+Routing lives in `core/` (`movesFrom`, `walkGraph`, `routeTo`,
+`routeToShelves`, `pickVolume`) rather than the renderer, because it is the
+same question the wanderer asks — *which moves are legal from here* — and
+asking it twice is how the GLSL/JS twins drifted (§17.10). The model it
+encodes: **rooms are nodes and stairwells are edges.** You do not stand in a
+stairwell and choose again; you enter it in some direction and come out in the
+cell beyond, one storey up or down.
+
+**Measured, because none of the following was obvious:**
+
+| | |
+|---|---|
+| Journeys completed | **395 of 400 (98.8%)**, 370 of them crossing at least one flight |
+| Duration | 25.6 s at the 10th percentile, 40 s median, 50.3 s at the 90th, 87.4 s worst |
+| Reticule agreed with the volume opened | 400 of 400 |
+| Failures | 2 stuck, 1 arrived on the wrong storey, 2 found nothing shelved in range — every one of them reported with its reason |
+| Added cost per frame | 0.0067 ms; the route search is a one-off 8 ms when you press X |
+
+Three things had to be fixed to get there, and each was found by measurement
+rather than by reading the code:
+
+1. **Cell centres are not a walkable line.** Galleries are 3.64 m across but
+   their centres are 4.84 m apart, so adjacent rooms do not touch — they are
+   joined by a corridor about a metre wide. Steering from wherever you are
+   straight at the next centre threads the wrong doorway and lands you in a
+   room the route never mentioned, one wall away from a waypoint you can no
+   longer reach. **32 of 40 walks died that way.** Every opening is now a
+   waypoint of its own.
+2. **Straying has to be expected, not prevented.** Steering through a
+   one-metre gap is approximate. Rather than tune it, the walker notices it is
+   in a room the route does not mention and asks the lattice again from where
+   it actually is. 17 of 400 journeys re-planned once and arrived anyway.
+3. **A test that leaves out the vertical concludes the stairs are broken.**
+   The feet-follow-the-ground step lived inside the frame loop, so a walk
+   driven headlessly never climbed: the storey never changed, and every route
+   across a flight died one room later. It is now a named function
+   (`stepBody`) that the frame loop and the harness both call. The stairs were
+   never at fault; the harness was walking on air.
+
 ---
 
 ## 18. Reproducing the Layout Elsewhere

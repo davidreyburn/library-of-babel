@@ -469,6 +469,155 @@ function findSeat({ q = 0, r = 0, floor = 0, seed = 1, maxSteps = 400 } = {}){
   };
 }
 
+/* ---- getting from here to a named there ---------------------------- *
+ * A wander asks the topology "where could I go next?" and answers at
+ * random. A route asks the same question and searches. So the question
+ * is asked in one place: movesFrom().
+ *
+ * The important thing it encodes is that a stairwell is not a place but
+ * a move. You do not stand in one and choose again; you enter it in some
+ * direction and come out in the cell beyond, one storey up or down
+ * (throughStairwell). Rooms are therefore the nodes and stairwells are
+ * edges, which is why a route's waypoints include the stairwell it
+ * passes through -- a walker has to be steered into the flight, not
+ * teleported past it.                                                  */
+function movesFrom(at){
+  const out = [];
+  for (const e of exitsFrom(at.q, at.r, at.floor)){
+    if (!e.crossable) continue;                 // a shaft: you may look, not cross
+    if (e.type === "stairwell"){
+      const o = throughStairwell(e.to.q, e.to.r, e.to.floor, e.dir);
+      if (!o) continue;                         // walled on the far side; a dead end
+      out.push({ dir: e.dir, via: "stair", climb: o.climb,
+                 through: { q: e.to.q, r: e.to.r, floor: at.floor },
+                 to: { q: o.q, r: o.r, floor: o.floor } });
+    } else {
+      out.push({ dir: e.dir, via: e.via, climb: 0, through: null, to: e.to });
+    }
+  }
+  return out;
+}
+
+const nodeKey = c => c.q + "," + c.r + "," + c.floor;
+/* Somewhere a person can be: a gallery, a reading room, or a flight of
+   stairs. Not a shaft, and not a sealed cell with no way out of it. */
+function isStandable(q, r, fl){
+  const t = cellType(q, r);
+  if (t === TYPE.SHAFT) return false;
+  return movesFrom({ q, r, floor: fl }).length > 0;
+}
+
+/* Breadth-first over legal moves. `cap` bounds the work, because the
+   lattice is unbounded and a caller in a keypress handler cannot afford
+   to find that out the hard way; `maxSteps` bounds how far afield a
+   destination may be. Returns the search itself -- every room reached,
+   with the move that reached it -- so one search can answer both "how do
+   I get to this cell" and "pick me somewhere worth walking to". */
+function walkGraph(from, { maxSteps = 24, cap = 4000, goal = null } = {}){
+  const start = { q: from.q, r: from.r, floor: from.floor };
+  const seen = new Map([[nodeKey(start), { cell: start, steps: 0, move: null, prev: null }]]);
+  const want = goal ? nodeKey(goal) : null;
+  const queue = [start];
+  for (let head = 0; head < queue.length && seen.size < cap; head++){
+    const at = queue[head], here = seen.get(nodeKey(at));
+    if (here.steps >= maxSteps) continue;
+    for (const m of movesFrom(at)){
+      const k = nodeKey(m.to);
+      if (seen.has(k)) continue;
+      seen.set(k, { cell: m.to, steps: here.steps + 1, move: m, prev: nodeKey(at) });
+      if (k === want) return seen;
+      queue.push(m.to);
+    }
+  }
+  return seen;
+}
+function movesTo(graph, to){
+  const out = [];
+  for (let k = nodeKey(to); graph.has(k); ){
+    const n = graph.get(k);
+    if (!n.move) break;
+    out.push(n.move);
+    k = n.prev;
+  }
+  return out.reverse();
+}
+
+/* The route to a particular cell, or an honest refusal. Unreachable and
+   too-far-to-search are different answers and are reported as such. */
+function routeTo(from, to, { maxSteps = 24, cap = 4000 } = {}){
+  if (nodeKey(from) === nodeKey(to)) return { found: true, from, to, moves: [], steps: 0 };
+  if (!isStandable(to.q, to.r, to.floor))
+    return { found: false, reason: "nothing to stand on there", moves: [] };
+  const g = walkGraph(from, { maxSteps, cap, goal: to });
+  const k = nodeKey(to);
+  if (!g.has(k))
+    return { found: false, moves: [],
+             reason: g.size >= cap ? `no route inside ${cap} rooms searched`
+                                   : `no route within ${maxSteps} rooms` };
+  return { found: true, from, to, moves: movesTo(g, to), steps: g.get(k).steps };
+}
+
+/* Somewhere with books on the walls, far enough away to be a journey, and
+   reachable -- the pool is the breadth-first frontier itself, so "walk
+   there" cannot be a promise the lattice will not keep.
+   The choice is a hash of the seed rather than Math.random, because
+   LIB-G-021 keeps the core free of clocks and random sources. That is
+   also what makes the journey worth citing: the same seed from the same
+   room is the same destination, for anyone, for ever. */
+function routeToShelves(from, seed, { minSteps = 5, maxSteps = 18, cap = 4000 } = {}){
+  const g = walkGraph(from, { maxSteps, cap });
+  const pool = [];
+  for (const n of g.values()){
+    if (n.steps < minSteps) continue;
+    if (cellType(n.cell.q, n.cell.r) !== TYPE.GALLERY) continue;
+    if (!galleryCapacity(n.cell.q, n.cell.r, n.cell.floor)) continue;
+    pool.push(n.cell);
+  }
+  if (!pool.length)
+    return { found: false, moves: [],
+             reason: `no shelved gallery between ${minSteps} and ${maxSteps} rooms away` };
+  /* sorted, so the seed means the same thing whatever order the search
+     happened to reach them in */
+  pool.sort((a, b) => a.floor - b.floor || a.q - b.q || a.r - b.r);
+  const to = pool[stepHash(seed, 0) % pool.length];
+  return { found: true, from, to, moves: movesTo(g, to),
+           steps: g.get(nodeKey(to)).steps, considered: pool.length };
+}
+
+/* A seeded probe for somewhere to stand, anywhere in the lattice. Bounded
+   in tries as well as in extent: the answer "I looked 200 times and found
+   nowhere" is better than a loop that never returns. */
+function someStanding(seed, { span = 500, floors = 9, tries = 200 } = {}){
+  for (let n = 0; n < tries; n++){
+    const q  = (stepHash(seed, n * 3)     % (2 * span   + 1)) - span;
+    const r  = (stepHash(seed, n * 3 + 1) % (2 * span   + 1)) - span;
+    const fl = (stepHash(seed, n * 3 + 2) % (2 * floors + 1)) - floors;
+    if (isStandable(q, r, fl)) return { found: true, cell: { q, r, floor: fl }, tries: n + 1 };
+  }
+  return { found: false, tries, reason: `nowhere standable in ${tries} tries` };
+}
+
+/* Which volume to take down, given a seed: a real one, not one of the
+   slots the Purifiers emptied. Returns the slot and everything needed to
+   look straight at its spine -- the face stands proud of the case by its
+   own depth, and aiming at the case back instead is the error that had
+   the reticule off by six books at a glancing angle. */
+function pickVolume(q, r, fl, seed){
+  const walls = shelvedWalls(q, r, fl);
+  if (!walls.length) return null;
+  for (let n = 0; n < 64; n++){
+    const wall  = walls[stepHash(seed, n * 3) % walls.length];
+    const shelf = stepHash(seed, n * 3 + 1) % SHELVES_PER_WALL;
+    const slot  = stepHash(seed, n * 3 + 2) % BOOKS_PER_SHELF;
+    if (!volumePresent(q, r, wall, shelf, slot)) continue;
+    return { q, r, floor: fl, wall, shelf, slot,
+             depth: volumeDepth(q, r, wall, shelf, slot),
+             height: SHELF_BASE + shelf * SHELF_PITCH + 0.167,
+             along: -G.RUN_HALF + (slot + 0.5) * G.BOOK_W };
+  }
+  return null;                                  // 29^-1 odds per try; 64 tries
+}
+
 export {
   /* constants */
   CORE_VERSION,
@@ -487,5 +636,8 @@ export {
   /* geometry */
   worldOf, cellOf, sdHexFlat, storeyOf, stairUV, stairTread,
   /* the agent surface */
-  shelvedWalls, galleryCapacity, exitsFrom, describeCell
+  shelvedWalls, galleryCapacity, exitsFrom, describeCell,
+  /* routing: the same topology, searched instead of sampled */
+  movesFrom, isStandable, walkGraph, routeTo, routeToShelves,
+  someStanding, pickVolume, nodeKey
 };
