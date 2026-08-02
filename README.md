@@ -81,7 +81,7 @@ reporting it, and say what you went looking for.
 ## Test it
 
 ```sh
-npm test          # 103 core assertions + 41 gates
+npm test          # 119 core assertions + 41 gates
 npm run check     # non-zero if app/ is stale relative to core/
 npm run harness   # run policies over a corpus of episodes, print the readout
 ```

@@ -97,7 +97,7 @@ being an accident.
 
 ---
 
-## Part three — six bugs, and how each was actually found
+## Part three — eight bugs, and how each was actually found
 
 This is the useful part of the record. In every case the method that found it was
 the same: **measure the thing, or probe the thing, rather than reason about it.**
@@ -246,6 +246,75 @@ one under the crosshair. **49 / 49 on target**, and the old ray disagreed with t
 new one at 24 of 44 of those angles.
 
 ![on target at a grazing angle](images/10-on-target-grazing.jpg)
+
+### 7. A walker that could not walk — 32 of 40 journeys dead, and the reason was geometry
+
+The user asked for an auto-walk: pick a shelved gallery some rooms off, walk
+there through the doorways and up the stairs, and open a book on arrival. The
+routing was straightforward and its tests passed — every route replayed legally,
+move for move, against the lattice.
+
+Then I drove 40 complete journeys headlessly and **4 arrived.** Thirty-two got
+stuck, and every one of them had the same signature: standing in a gallery,
+pressed against a wall with exactly `−RADIUS` of clearance, 3.26 m from its next
+waypoint, and the wall between it and that waypoint had no doorway in it.
+
+The walker was in the wrong room. The cause is a number that had been in the
+constants the whole time and that I had never put together: a gallery is 3.64 m
+across, but cell centres are **4.84 m** apart. **Adjacent rooms do not touch.**
+They are joined by a corridor about a metre wide. Steering from wherever you
+happen to be straight at the next centre therefore does not go through the
+doorway — it clips the wall, or threads a *different* doorway and strands you one
+wall away from a waypoint you can no longer reach.
+
+Every opening is now a waypoint of its own, which took arrivals to 23%. The rest
+came from giving up on precision entirely: steering through a one-metre gap is
+approximate, so instead of tuning it, the walker notices it is in a room its
+route never mentioned and asks the lattice for a new one from where it actually
+is. 17 of 400 journeys re-plan once and arrive anyway.
+
+### 8. The stairs were fine; the harness was walking on air
+
+Between those two fixes I spent a long time on the wrong thing, and it is the
+most useful bug in this document.
+
+Journeys kept dying one room after a flight of stairs. The trace was damning:
+the walker entered the stairwell, crossed it, emerged in the far gallery — and
+its floor was still 0 when the route said 1. So the next room's doorways did not
+exist and it pushed at a wall. I measured the flight itself: on-axis, rise +1,
+the tread ramping cleanly 0 → 2.6 m along a path with clearance to spare. The
+geometry was perfect and the walker still would not climb.
+
+Then I looked at what the log said rather than what I expected it to say. `feet`
+was **exactly 0.00** for the entire traversal, while `groundY` reported the
+correct tread beneath them at every step. Nothing was applying it.
+
+The line that makes the feet follow the ground lived inside the frame loop. My
+harness called `autoStep()` in a loop and never called `frame()`, so the walker
+slid through the world at a fixed height, its storey never changed, and every
+route across a flight failed one room later. **The stairs had never been
+broken.** I had built an instrument that omitted a part of the state and then
+believed it about the part it omitted.
+
+It is now `stepBody()`, a named function the frame loop and the harness both
+call. One extraction, and arrivals went from 23% to **98%** — 246 of 250, then
+395 of 400 on a fresh seed family, 370 of them crossing at least one flight.
+
+The measured result, once it worked:
+
+| | |
+|---|---|
+| Journeys completed | 395 of 400 (98.8%) |
+| Duration | 25.6 s at p10, 40 s median, 50.3 s at p90, 87.4 s worst |
+| Reticule agreed with the volume that opened | 400 of 400 |
+| Failures | 2 stuck, 1 wrong storey, 2 nothing shelved in range — every one reported with its reason |
+| Cost | 0.0067 ms per frame; a one-off 8 ms on the keypress |
+
+The last row of that table cost one more fix. At 196 arrivals the reticule
+disagreed with the opened book *once* — the walker was stopping up to 0.55 m off
+the middle of the room, and from there the aim line could catch a neighbouring
+spine. Tightening the final waypoint to 0.20 m closed it: 400 for 400. A
+one-in-two-hundred defect is exactly the kind that ships.
 
 ---
 
@@ -410,6 +479,17 @@ Stated plainly, because it is the transferable part.
    change the alphabet in one session without breaking anything.
 8. **Never state a diagnosis as fact without the probe.** The one time I did, the
    user caught it, and he was right to.
+9. **When the harness and the thing disagree, suspect the harness first.** A test
+   that leaves out part of the state will confidently indict the part it left
+   out. Mine drove the walker without the step that makes feet follow the
+   ground, and then reported that the stairs were broken — which sent me
+   measuring flights that were fine. The tell was in the log the whole time: a
+   number that never changed at all. **A quantity that is *exactly* constant
+   through a test is usually not being computed, not being conserved.**
+10. **A feature is not finished when it runs, it is finished when it is
+   measured.** The auto-walk worked the first time I tried it by hand. Driven
+   400 times it arrived 10% of the time. One trial tells you a thing is
+   possible; a distribution tells you whether it works.
 
 ### Where I was wrong, listed
 
@@ -423,6 +503,15 @@ Stated plainly, because it is the transferable part.
   replacements. Recovered both intact from Claude Code's file history, and the
   drift test then proved the recovery byte-exact. The lesson is the same one as
   everywhere else: use the precise tool, not the clever script.
+- Spent a long stretch measuring stair geometry that was correct, because my own
+  harness omitted the step that makes feet follow the ground. Two wrong
+  hypotheses along the way — that stairwells were being entered off-axis (they
+  never are, 0 of 234 sampled), and that a per-floor doorway pattern was closing
+  behind the walker. Both plausible, both measured, both wrong. The evidence
+  that mattered was a value sitting at exactly 0.00 in my own log.
+- Built the auto-walk on cell centres without noticing that adjacent galleries
+  are 4.84 m apart and only 3.64 m wide, so they do not touch. The number was in
+  `G` the whole time.
 
 ---
 
@@ -557,7 +646,8 @@ Worth doing from the other side:
 
 ## Where it stands, and what is left
 
-Green: 103 core assertions, 41 gates, 484 GPU integers, build current.
+Green: 119 core assertions, 41 gates, 484 GPU integers, build current. Walking
+somewhere on purpose works 98.8% of the time and says why when it does not.
 
 Open, in rough order of value:
 

@@ -10,7 +10,7 @@ babel-text.mjs      the corpus: addresses, content, spine labels, search
 babel-glsl.mjs      the shader's port of the lattice, for the renderer
 babel-run.mjs       the decision environment: one seam, five policies, the oracle
 build.mjs           inlines the modules into app/babel-phase1.html
-test-core.mjs       103 assertions: drift, vectors, cost, meaning
+test-core.mjs       119 assertions: drift, vectors, cost, meaning, routing
 test-run.mjs        41 assertions: the four gates (fuzz, coverage, replay, metric)
 harness.mjs         run policies over a corpus and print the readout
 conformance.html    runs the GLSL on the GPU against the CPU, 484 integers
