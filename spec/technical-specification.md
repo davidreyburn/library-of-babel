@@ -671,6 +671,82 @@ rather than by reading the code:
    (`stepBody`) that the frame loop and the harness both call. The stairs were
    never at fault; the harness was walking on air.
 
+### 17.12 The Content Key Was 32 Bits Wide, and That Was a Ceiling on the Library
+
+**This section records a defect, its measurement, and a breaking change.**
+
+A shelved volume's content is `streamDigit(walkKey(a), …)` — every one of its
+1,312,000 symbols derives from that key and nothing else. `walkKey` returned a
+single 32-bit word. So the width of that word, not the number of shelves, was
+the real size of the walkable Library. *[derived]*
+
+| | |
+|---|---|
+| Shelf slots in one period | ~8 × 10²¹ — 2³² cells × ~2³² floors × 537 volumes, 84% galleries |
+| Distinct books those slots could hold | **2³² = 4,294,967,296** |
+| Times each text was repeated | ~2 × 10¹² |
+| First duplicate pair | after ~65,000 slots, about 120 galleries |
+
+Not theoretical. `floor/0/cell/0,20/wall/4/shelf/3/slot/26` and
+`floor/0/cell/2,32/wall/0/shelf/0/slot/19` were the same book, identical across
+every symbol compared and carrying the same spine label. Twenty such pairs
+appeared in a 500,000-slot scan, matching the birthday prediction for a 32-bit
+space to within noise (implied key space 6.3 × 10⁹ ≈ 2^32.5). **This contradicted
+LIB-C-021, "no two identical books"** — the corpus has no duplicates by
+construction, but the *shelving* had them in quantity, and nothing said so.
+
+**`walkKey` now returns two independent 32-bit lanes.** Independent is the
+operative word: two addresses collide only if they collide in *both*, so the
+lanes use different multipliers at every stage rather than deriving one from the
+other. Measured after the change: in 500,500 addresses, 20 pairs still share
+lane 0 — exactly as a 32-bit lane must — and **none of them share lane 1**. A
+scan of 3,000,000 shelf slots found **zero** identical books where a single lane
+would have produced about 1,048. The first duplicate now sits near 2^32.5 slots,
+some 8 million galleries.
+
+**It cost nothing per symbol, and in fact reads got faster.** `mix(a, b, c)` has
+two inputs that are constant for a whole book and one that varies with position,
+so two `mix` calls absorb four constant words — 128 bits — at no per-symbol cost,
+provided they are derived once rather than per symbol. Measured with hoisting held
+constant so width was the only variable:
+
+| key width | ns/symbol | vs 32-bit |
+|---|---|---|
+| 32 bits | 38.8 | 1.00× |
+| **64 bits (shipped)** | 38.6 | **0.995×** |
+| 128 bits | 39.6 | 1.02× |
+| 192 bits (a third `mix`) | 70.2 | 1.81× |
+
+64 bits was chosen over the equally free 128 because reaching 128 requires
+folding key lanes into the domain word, which slightly blurs the separation
+between the WALK, TEXT and LABL streams for no observable gain.
+
+The old code also recomputed two XOR constants *and the whole of `walkKey`*
+inside every symbol — 9,600 redundant hashes per 3,200-symbol page. `pageOf`,
+`lineOf` and `sliceOf` now derive the stream once: **0.301 → 0.203 ms per page,
+33% faster.** `digitAt(a, p)` on its own is unchanged, and remains O(1).
+
+**The renderer is untouched.** `streamDigit`, `reduceRadix` and `walkKey` appear
+nowhere in the GLSL — the shader hashes topology and spine geometry, never text —
+so frame time cannot move. Verified by search, in the module and in the inlined
+copy.
+
+**Breaking change, and the one cost that is real.** Every walk address now names
+a different book than it did. Text addresses are byte-for-byte unchanged: the
+second lane for a text stream is the constant the old single-lane code derived
+internally, so a text citation made before this change still verifies. What broke:
+
+- every `babel://walk/...` citation, including the crimson volume's contents
+  (its *location* is unchanged);
+- every walk spine label — the crimson volume's went from `aknvr` to
+  `omzpawrdrcabtjknbrgligcqdak`;
+- the `content` block of `core/vectors.json`, regenerated.
+
+Nothing in the repository quoted generated text or a spine label, which was
+checked before the change rather than hoped. Widening later would have cost more,
+and never widening would have left a defect that is observable from inside the
+Library by anyone who walked 120 galleries.
+
 ---
 
 ## 18. Reproducing the Layout Elsewhere

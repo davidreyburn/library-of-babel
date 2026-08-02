@@ -3889,59 +3889,59 @@
  "content": [
   {
    "uri": "babel://walk/00001594/floor/0/cell/15,94/wall/1/shelf/2/slot/17",
-   "spine": "aknvr",
+   "spine": "omzpawrdrcabtjknbrgligcqdak",
    "symbols": [
     {
      "p": 0,
-     "s": "z"
+     "s": "s"
     },
     {
      "p": 1,
+     "s": "u"
+    },
+    {
+     "p": 79,
+     "s": "g"
+    },
+    {
+     "p": 80,
      "s": "c"
     },
     {
-     "p": 79,
-     "s": "k"
-    },
-    {
-     "p": 80,
-     "s": "q"
-    },
-    {
      "p": 3199,
-     "s": "n"
+     "s": "d"
     },
     {
      "p": 3200,
-     "s": "k"
+     "s": "c"
     },
     {
      "p": 655999,
-     "s": "w"
+     "s": "u"
     },
     {
      "p": 1311999,
-     "s": "b"
+     "s": "h"
     }
    ],
-   "page0Line0": "zcw..qfscggquepx.mv.vccngcezniufolmktetludzdo.dglaithcgqznavidrhiahwpwakzghp.bjk",
-   "page409Line39": "tnmawjkacxjfvjtbibmnhf wjjdzdxynsaurnbclypmjjqr.o.txvsmqctqwqbpjux ydv.ayqvyigbb"
+   "page0Line0": "su qstrfk.vibifwgqhegxkpafjzn gj,kllovevbppgquzbxegdiruykjneisve pxsmwrr   umzsg",
+   "page409Line39": "ceygusn,cyuqzuumxhtpvx ptawelx,,ga,,bm,npkrtde,pj,.uzpgqt plevmiei ckdr.latfxjgh"
   },
   {
    "uri": "babel://walk/00001594/floor/0/cell/0,0/wall/0/shelf/0/slot/0",
-   "spine": "vhoaqsmsfjj",
+   "spine": "apckvvvbacffucbakpytofdbcdk",
    "symbols": [
     {
      "p": 0,
-     "s": "z"
+     "s": "e"
     },
     {
      "p": 1,
-     "s": " "
+     "s": "a"
     },
     {
      "p": 79,
-     "s": "x"
+     "s": "m"
     },
     {
      "p": 80,
@@ -3949,47 +3949,7 @@
     },
     {
      "p": 3199,
-     "s": "n"
-    },
-    {
-     "p": 3200,
-     "s": "."
-    },
-    {
-     "p": 655999,
-     "s": "h"
-    },
-    {
-     "p": 1311999,
-     "s": "l"
-    }
-   ],
-   "page0Line0": "z cmhldtcb,rnrexvis urkopcdqwyp,z.ypxikn..fgdt vnuaaaakkflouhdpoqx,qwu,.minugmzx",
-   "page409Line39": "qunha,ivyxgumf p, llwkqt jpkxf.b,lszqdvwq.zwrrkk,vdii.plkvca,gqzukhwimeqyvpu gel"
-  },
-  {
-   "uri": "babel://walk/00001594/floor/0/cell/0,0/wall/0/shelf/0/slot/1",
-   "spine": "idabwu",
-   "symbols": [
-    {
-     "p": 0,
-     "s": "."
-    },
-    {
-     "p": 1,
-     "s": "r"
-    },
-    {
-     "p": 79,
-     "s": "k"
-    },
-    {
-     "p": 80,
-     "s": "."
-    },
-    {
-     "p": 3199,
-     "s": "n"
+     "s": "q"
     },
     {
      "p": 3200,
@@ -3997,27 +3957,67 @@
     },
     {
      "p": 655999,
-     "s": "q"
+     "s": "m"
     },
     {
      "p": 1311999,
-     "s": "r"
+     "s": "y"
     }
    ],
-   "page0Line0": ".rkgtkmiq,hnnuptgz ie.,titgjx,mehri,sdntszoatquynlfklvcficsxizdxklrshnl sadfp.lk",
-   "page409Line39": "jfulo,jmzqn,jkqqrrch yd.kypu.qjkyul,vedwraqrjkd mmgjfsvaffujerq io.ocx,ptxpvtfmr"
+   "page0Line0": "eaxdanvvvm.fvxmzpyfevhszfggrrslfziadsgpxxlvuqlvvepzxdeeawrcguutyab,,dmhum ,mgn m",
+   "page409Line39": "lsb.mpz.pkb fdqxp.zawahkngqpzbioxywxaroyv yrjuw ylol,aqwgtapbraxklgvyqnwwf,aiu y"
   },
   {
-   "uri": "babel://walk/00001594/floor/-2/cell/-7,12/wall/3/shelf/4/slot/34",
-   "spine": "wshvkrrlzizsgtnikfm",
+   "uri": "babel://walk/00001594/floor/0/cell/0,0/wall/0/shelf/0/slot/1",
+   "spine": "abpwuqcunqvibwjcocaqckluqlpf",
    "symbols": [
     {
      "p": 0,
-     "s": "l"
+     "s": "w"
     },
     {
      "p": 1,
+     "s": "d"
+    },
+    {
+     "p": 79,
+     "s": "x"
+    },
+    {
+     "p": 80,
      "s": "e"
+    },
+    {
+     "p": 3199,
+     "s": " "
+    },
+    {
+     "p": 3200,
+     "s": " "
+    },
+    {
+     "p": 655999,
+     "s": "k"
+    },
+    {
+     "p": 1311999,
+     "s": "c"
+    }
+   ],
+   "page0Line0": "wdbynuiegkttv,zcr,tqysjzhitlzkjlls,qwykbuqugoyxzmdmsruqxriogielqr y.kvqijcqfrtcx",
+   "page409Line39": "gmamrmgjktaob.x.ajhwyp tufullewkbtfhpfibcmh.udqzm kqrkhlzgpry.kjapwjdorlklnoz,rc"
+  },
+  {
+   "uri": "babel://walk/00001594/floor/-2/cell/-7,12/wall/3/shelf/4/slot/34",
+   "spine": "nbkxmukwcprfgcc",
+   "symbols": [
+    {
+     "p": 0,
+     "s": "o"
+    },
+    {
+     "p": 1,
+     "s": "s"
     },
     {
      "p": 79,
@@ -4025,27 +4025,27 @@
     },
     {
      "p": 80,
-     "s": "u"
+     "s": "q"
     },
     {
      "p": 3199,
-     "s": "w"
+     "s": "t"
     },
     {
      "p": 3200,
-     "s": "k"
+     "s": "a"
     },
     {
      "p": 655999,
-     "s": "l"
+     "s": "n"
     },
     {
      "p": 1311999,
-     "s": "h"
+     "s": "a"
     }
    ],
-   "page0Line0": "leqkrmxfzbjodzrenithjpqfaypyij imqlxs.me.xt.uk.wuahhufzfbmqfeaagxiwzyvzsbxzxlpoy",
-   "page409Line39": "up.hluesqswa,b,uajqls.dhctv, jcmrru zcbhw,.cbujafwrzvbo.lydhvojdvxogxtzc,wwjpqyh"
+   "page0Line0": "osghtsymqqi,ihzqf, r,orghtgreaxaoovlisiaexvhmve.vfibmknurbo tbubopxzfyhpewt.kpjy",
+   "page409Line39": "dwy fptymljwoauyvwutkpmvhkplmwkqsomvcethnory.dllq,umtpvzy. sxhhrj,ltekktbz,eouda"
   },
   {
    "uri": "babel://text/00001594/at/0/axaxaxas%20mlo",

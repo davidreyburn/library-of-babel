@@ -97,7 +97,7 @@ being an accident.
 
 ---
 
-## Part three — eight bugs, and how each was actually found
+## Part three — nine bugs, and how each was actually found
 
 This is the useful part of the record. In every case the method that found it was
 the same: **measure the thing, or probe the thing, rather than reason about it.**
@@ -315,6 +315,70 @@ disagreed with the opened book *once* — the walker was stopping up to 0.55 m o
 the middle of the room, and from there the aim line could catch a neighbouring
 spine. Tightening the final waypoint to 0.20 m closed it: 400 for 400. A
 one-in-two-hundred defect is exactly the kind that ships.
+
+### 9. The Library was 32 bits wide — found by being asked a question
+
+The user asked what looked like a reading-comprehension question: why isn't the
+walkable lattice the whole corpus, how much do we have, and could it all be made
+traversible? The first two thirds of the answer were already written down. The
+last third wasn't true.
+
+The documented figure was ~10²² volumes, and it is correct — as a count of
+*shelves*. But a shelved volume's content is `streamDigit(walkKey(a), …)`, and
+`walkKey` returned **one 32-bit word**. Every symbol of every book came through
+that gate. So the walkable Library held at most 2³² distinct texts — about 4.3
+billion — spread over 8 × 10²¹ slots, each text repeated some 2 × 10¹² times.
+
+That is not a rounding error in a document. It is a defect you can *see from
+inside*: the first pair of shelves holding the identical book turns up after
+about 65,000 slots, which is 120 galleries — a long walk, but not an impossible
+one. And LIB-C-021 says "no two identical books."
+
+I found the pair:
+
+```
+babel://walk/00001594/floor/0/cell/0,20/wall/4/shelf/3/slot/26
+babel://walk/00001594/floor/0/cell/2,32/wall/0/shelf/0/slot/19
+```
+
+Same text, same spine `rcaabbbozxnfedhgxqws`. Twenty such pairs in a 500,000-slot
+scan, implying a key space of 6.3 × 10⁹ — the birthday curve for 2³², to within
+noise.
+
+The fix is two independent lanes instead of one, and the interesting part is that
+it was **free**. `mix(a, b, c)` has two inputs constant across a whole book and
+one that varies with position, so two `mix` calls can carry four constant words —
+128 bits of key — without a single extra per-symbol operation. Measured at
+0.995× for 64 bits and 1.02× for 128; a third `mix` would have cost 81%. I took
+64, because reaching 128 means folding lanes into the domain word and blurring
+the separation between streams for no gain anyone could observe.
+
+Two things fell out of looking properly. The old code recomputed two XOR
+constants **and the entire `walkKey`** inside every symbol — 9,600 redundant
+hashes per page — so hoisting made reads **33% faster** while the key got twice
+as wide. And the renderer turned out to be entirely uninvolved: `streamDigit`
+appears nowhere in the GLSL, so frame time could not move, which is the first
+thing worth checking when someone asks whether a change will be expensive.
+
+The proof that the second lane earns its place is the assertion I'd keep if I
+could keep only one: in 500,500 addresses, twenty pairs still collide in lane 0 —
+as a 32-bit lane must — and **none of them collide in lane 1**. If a future edit
+ever derives the second lane from the first, that test fails immediately. Three
+million slots now scan clean where one lane would have produced a thousand
+duplicates.
+
+Every walk citation in existence changed as a result, including the crimson
+volume's spine (`aknvr` → `omzpawrdrcabtjknbrgligcqdak`). Text citations did not:
+the second text lane is the constant the old code derived internally, so those
+verify exactly as before. I checked that nothing in the repository quoted a
+generated passage or spine label *before* making the change, rather than
+discovering it afterwards.
+
+**The lesson is not about hashing.** Two sessions of tests, four gates, a GPU
+conformance harness and 119 assertions all passed while the Library was a
+four-billionth of the size it claimed. Every one of them checked that the thing
+was *self-consistent*. None asked how big it was. The question came from outside,
+and the honest answer required arithmetic nobody had done.
 
 ---
 
@@ -646,7 +710,7 @@ Worth doing from the other side:
 
 ## Where it stands, and what is left
 
-Green: 119 core assertions, 41 gates, 484 GPU integers, build current. Walking
+Green: 124 core assertions, 41 gates, 484 GPU integers, build current. Walking
 somewhere on purpose works 98.8% of the time and says why when it does not.
 
 Open, in rough order of value:

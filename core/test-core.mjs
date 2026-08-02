@@ -529,6 +529,83 @@ section("EMPTY SLOTS -- the gaps the Purifiers left (D-42)");
      core.volumePresent(15, 94, 1, 2, 17) === core.volumePresent(15, 94, 1, 2, 17));
 }
 
+/* ---- KEY WIDTH ------------------------------------------------------ *
+ * A shelved volume's content is a function of its key alone, so the key's
+ * width is a hard ceiling on how many distinct books the whole walkable
+ * lattice can hold -- however many shelves it has. One 32-bit lane capped
+ * it at 2^32, about 4.3 billion across some 8x10^21 slots, and duplicates
+ * turned up after roughly 65,000 slots. Two lanes move that to 2^64.   */
+section("KEY WIDTH -- two lanes, and what the second one is for");
+{
+  /* The pair that used to be one book (§17.12). */
+  const A = text.walkAddress({ q: 0, r: 20, floor: 0, wall: 4, shelf: 3, slot: 26 });
+  const B = text.walkAddress({ q: 2, r: 32, floor: 0, wall: 0, shelf: 0, slot: 19 });
+  ok("the pair that was once a single book now differs immediately",
+     text.digitAt(A, 0) !== text.digitAt(B, 0) && text.spineLabel(A) !== text.spineLabel(B),
+     `${text.spineLabel(A)} vs ${text.spineLabel(B)}`);
+
+  /* The sharp one: lane 0 still collides on the 32-bit schedule, and the
+     second lane has to rescue every one of those. If a future edit derived
+     lane 1 from lane 0, this is the assertion that would fail. */
+  const byLane0 = new Map();
+  let n = 0, shareLane0 = 0, shareBoth = 0;
+  for (let q = 0; q < 200000 && n < 500000; q++){
+    for (let r = 0; r < 40 && n < 500000; r++){
+      if (core.cellType(q, r) !== core.TYPE.GALLERY) continue;
+      for (const wall of core.shelvedWalls(q, r, 0))
+        for (let shelf = 0; shelf < 5; shelf++)
+          for (let slot = 0; slot < 35; slot++){
+            const [k0, k1] = text.addressKey(text.walkAddress({ q, r, floor: 0, wall, shelf, slot }));
+            n++;
+            if (!byLane0.has(k0)) byLane0.set(k0, k1);
+            else { shareLane0++; if (byLane0.get(k0) === k1) shareBoth++; }
+          }
+    }
+  }
+  ok("lane 0 alone still collides, as a 32-bit lane must",
+     shareLane0 > 5, `${shareLane0} pairs share lane 0 in ${n.toLocaleString()} addresses`);
+  ok("and the second lane is independent, so it rescues all of them",
+     shareBoth === 0, `${shareBoth} pairs share both lanes`);
+
+  /* And the consequence, measured on content rather than on keys. */
+  const seen = new Set();
+  let m = 0, dup = 0;
+  for (let q = 0; q < 200000 && m < 400000; q++){
+    for (let r = 0; r < 40 && m < 400000; r++){
+      if (core.cellType(q, r) !== core.TYPE.GALLERY) continue;
+      for (const wall of core.shelvedWalls(q, r, 0))
+        for (let shelf = 0; shelf < 5; shelf++)
+          for (let slot = 0; slot < 35; slot++){
+            const probe = text.sliceOf(text.walkAddress({ q, r, floor: 0, wall, shelf, slot }), 0, 16);
+            m++;
+            if (seen.has(probe)) dup++; else seen.add(probe);
+          }
+    }
+  }
+  ok("no two shelves hold the same book (LIB-C-021)", dup === 0,
+     `0 of ${m.toLocaleString()} slots; a single 32-bit lane would give about ` +
+     `${(m * m / 2 / 2 ** 32).toFixed(0)}`);
+
+  /* Two reading paths exist now -- one that derives the stream per symbol
+     and one that hoists it. They must not drift apart. */
+  const a = text.walkAddress({ q: 15, r: 94, wall: 1, shelf: 2, slot: 17 });
+  const t2 = text.parseAddress("babel://text/00001594/at/1234/axaxaxas%20mlo");
+  let mismatch = 0;
+  for (const addr of [a, t2]){
+    const page = 3, rows = text.pageOf(addr, page);
+    for (let l = 0; l < 40; l++){
+      if (rows.lines[l] !== text.lineOf(addr, page, l)) mismatch++;
+      for (let c = 0; c < 80; c += 7){
+        const p = page * 3200 + l * 80 + c;
+        if (rows.lines[l][c] !== text.symbolAt(addr, p)) mismatch++;
+      }
+    }
+    if (text.sliceOf(addr, page * 3200, 80) !== rows.lines[0]) mismatch++;
+  }
+  ok("pageOf, lineOf, sliceOf and symbolAt agree symbol for symbol",
+     mismatch === 0, `${mismatch} disagreements across a walk page and a text page`);
+}
+
 /* ---- ROUTING -------------------------------------------------------- *
  * A route is a promise that a walk exists. These check the promise the
  * only way that means anything: replay every move and insist the lattice
