@@ -19,13 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This licence covers the work in this repository: the code, the specifications,
-the case study and the documentation.
-
-It does not and cannot cover Jorge Luis Borges's "The Library of Babel" (1941),
-which remains under copyright and is **not included here**. See SOURCE.md. The
-specifications cite short fragments of the story for traceability, as any
-analysis would; they do not reproduce it.

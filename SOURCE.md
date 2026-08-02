@@ -1,5 +1,9 @@
 # The source text is not in this repository
 
+> **On the licence.** `LICENSE` (MIT) covers the work in this repository: the
+> code, the specifications, the case study, the documentation. It does not and
+> cannot cover Borges's story, which is not included here.
+
 Everything here is derived from Jorge Luis Borges's **"The Library of Babel"**
 (*La biblioteca de Babel*, 1941), read as a requirements document. The story
 itself is deliberately absent: it remains under copyright — Borges died in 1986,
