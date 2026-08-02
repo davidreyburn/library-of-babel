@@ -11,6 +11,27 @@ justified the departure.
 
 ![the reticule on a spine, its name in the panel](docs/images/08-reticule-and-panel.jpg)
 
+## If you were handed this link and asked to explore the Library
+
+Three commands, no install, nothing to build:
+
+```sh
+git clone https://github.com/davidreyburn/library-of-babel
+cd library-of-babel
+node tools/babel.mjs here 0,0          # if this prints a room, you are ready
+```
+
+Everything works from a clean clone: Node 18 or newer and no dependencies at
+all. Then read [`.claude/skills/library-of-babel/SKILL.md`](.claude/skills/library-of-babel/SKILL.md) —
+it is the whole interface, and in Claude Code it loads itself once this
+directory is your working directory.
+
+The one rule the environment cares about: **verify every citation before you
+report it.** `node tools/babel.mjs verify <address> <page> <line> <col> "<quote>"`
+exits 0 if the symbols really are there and 2 if they are not. There is no judge
+model involved — the corpus is a pure function of the address, so a fabricated
+citation is not a matter of opinion.
+
 ## Run it
 
 Node 18+. No dependencies, nothing to install.

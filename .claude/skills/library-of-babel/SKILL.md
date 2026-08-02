@@ -9,7 +9,24 @@ A deterministic Library: 29^1,312,000 volumes, no storage, every symbol a pure
 function of its own position. You can walk it, read it, and — the part that
 matters — **cite it**, because a coordinate here is checkable.
 
-Work from the repository root. No dependencies; Node only.
+## Before anything else
+
+Work from the repository root — every command below is relative to it. If you
+were given a link rather than a checkout:
+
+```sh
+git clone https://github.com/davidreyburn/library-of-babel
+cd library-of-babel
+node tools/babel.mjs here 0,0
+```
+
+That last line is the readiness check: if it prints a room and its exits, you are
+ready. Node 18 or newer, no dependencies, nothing to build. If it fails, nothing
+else here will work and the problem is Node, not the Library.
+
+**Quote your arguments.** A phrase or a quote containing spaces must be quoted,
+or the shell splits it and you will get a confident answer to a different
+question.
 
 ## Three ways in
 

@@ -93,7 +93,10 @@ case "spine": {
 }
 
 case "find": {
-  const phrase = positional[0] || die("find what?");
+  /* Join the words rather than taking the first: an unquoted
+     `find the library is unlimited` used to answer about "the", quietly and
+     wrongly, which is the worst way for a tool to be wrong. */
+  const phrase = positional.join(" ") || die("find what?");
   let f;
   try { f = text.findPhrase(phrase, { offset: Number(flag("at", 0)) }); } catch (e) { die(e.message); }
   if (JSONOUT) return out(f);
@@ -127,7 +130,7 @@ case "wander": {
     out(`${String(s.step).padStart(3)}  ${s.type.padEnd(9)} ${(s.cell.q + "," + s.cell.r).padEnd(9)} ` +
         `fl ${String(s.cell.floor).padStart(3)}  ${String(s.volumes).padStart(4)} vols` +
         `${s.seats.length ? "  [" + s.seats.join(",") + "]" : "        "}  ${took}`);
-    for (const b of s.shelves) out(`                                     ${b.spine.padEnd(12)} ${b.uri}`);
+    for (const b of s.shelves) out(`       ${b.uri}\n         spine ${b.spine}`);
   }
   break;
 }
