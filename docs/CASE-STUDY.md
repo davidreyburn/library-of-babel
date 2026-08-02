@@ -426,8 +426,10 @@ is no dearer than the first.
 
 Search can only ever answer in the second system, and that is arithmetic rather
 than a limitation. A chosen 3,200-symbol page occupies 29^-3200 ≈ 10^-4680 of the
-corpus; the walkable lattice reaches on the order of 10^22 volumes. The gap is
-about 4,700 orders of magnitude.
+corpus; walking reaches about 1.8 × 10¹⁹ distinct volumes. The gap is some 4,660
+orders of magnitude. Count distinct texts rather than the ~8 × 10²¹ shelves —
+every copy of a text either has the phrase or none of them does, so duplicates are
+not extra chances.
 
 ### How big it actually is, before and after
 
@@ -627,51 +629,52 @@ Stated plainly, because it is the transferable part.
 
 Measured from the two session transcripts rather than from an invoice. Claude Code
 writes a `usage` block on every model turn; these are those numbers summed across
-1,583 turns and 3,795 transcript records, then priced at Claude Opus 5 list rates
-— $5/M input, $25/M output, $0.50/M cache read, and $10/M cache write at the
-one-hour cache TTL these sessions used. Both sessions ran on a subscription, so
-**this is an API-equivalent cost and not a bill.** Output includes thinking
-tokens, which the API reports as output. Writing this section is itself adding to
-the totals, so treat them as a snapshot taken at 18:47 UTC on 2 August.
+1,977 turns, then priced at Claude Opus 5 list rates — $5/M input, $25/M output,
+$0.50/M cache read, and $10/M cache write at the one-hour cache TTL these sessions
+used. Both sessions ran on a subscription, so **this is an API-equivalent cost and
+not a bill.** Output includes thinking tokens, which the API reports as output.
+Writing this section is itself adding to the totals, so treat them as a snapshot
+taken at 21:40 UTC on 2 August.
 
 ### The two sessions
 
 | | 1–2 Aug | 2 Aug | total |
 |---|---|---|---|
-| elapsed | 11 h 39 m | 4 h 07 m | 15 h 46 m |
-| prompts a human typed | 26 | 19 | **45** |
-| model turns | 755 | 828 | 1,583 |
-| tool calls | 370 | 482 | 852 |
-| output tokens | 1.87 M | 1.11 M | 2.98 M |
-| cache writes | 2.92 M | 2.16 M | 5.08 M |
-| cache reads | 379.0 M | 347.1 M | 726.1 M |
-| uncached input | 1,406 | 1,556 | 2,962 |
-| API-equivalent | $265 | $223 | **$488** |
+| elapsed | 11 h 39 m | 6 h 55 m | 18 h 34 m |
+| prompts a human typed | 26 | 29 | **55** |
+| model turns | 755 | 1,222 | 1,977 |
+| tool calls | 370 | 700 | 1,070 |
+| output tokens | 1.87 M | 1.70 M | 3.56 M |
+| cache writes | 2.92 M | 3.82 M | 6.74 M |
+| cache reads | 379.0 M | 545.7 M | 924.7 M |
+| uncached input | 1,406 | 2,288 | 3,694 |
+| API-equivalent | $265 | $353 | **$619** |
 
-Of the 15 h 46 m elapsed, the model was generating for 6 h 25 m; the rest was the
+Of the 18 h 34 m elapsed, the model was generating for 7 h 53 m; the rest was the
 user reading, walking the Library, and — for one 5 h 50 m stretch — asleep.
 
-Fifty messages carry the `user` role, but five are machinery: four skill
-documents the harness injected and one compaction summary. The 45 that remain are
-what a person actually typed, and they come to **1,823 words**, about 11 KB.
-Against that the model emitted 2.98 M output tokens — roughly 1,600 output tokens
-per word typed.
+Sixty messages carry the `user` role, but five are machinery: four skill documents
+the harness injected and one compaction summary. The 55 that remain are what a
+person actually typed, and they come to **2,062 words**, about 12 KB. Against that
+the model emitted 3.56 M output tokens — roughly **1,700 output tokens per word
+typed**.
 
 ### Where the money went
 
 | | tokens | of all tokens | cost | of all cost |
 |---|---|---|---|---|
-| cache reads | 726.1 M | 98.9% | $363 | 74% |
-| output, incl. thinking | 2.98 M | 0.41% | $74 | 15% |
-| cache writes | 5.08 M | 0.69% | $51 | 10% |
-| uncached input | 2,962 | — | $0.01 | — |
+| cache reads | 924.7 M | 98.9% | $462 | 75% |
+| output, incl. thinking | 3.56 M | 0.38% | $89 | 14% |
+| cache writes | 6.74 M | 0.72% | $67 | 11% |
+| uncached input | 3,694 | — | $0.02 | — |
 
-The shape of that is the finding. **Almost nothing was spent writing the Library;
-nearly all of it went on re-reading the conversation about writing it.** Each of
-the 1,583 turns re-read an average of 459,000 tokens of cached context in order to
-emit an average of 1,900. Caching is the only reason that is affordable — at the
-uncached input rate the same traffic would have cost about $3,730, so the cache
-cut the bill 7.6×.
+The shape of that is the finding, and it held steady as the project tripled in
+length. **Almost nothing was spent writing the Library; nearly all of it went on
+re-reading the conversation about writing it.** Each of the 1,977 turns re-read an
+average of **468,000 tokens** of cached context in order to emit an average of
+**1,800**. Caching is the only reason that is affordable — at the uncached input
+rate the same traffic would have cost about $4,750, so the cache cut the bill
+**7.7×**.
 
 The same arithmetic explains why identical instructions get dearer as a session
 runs. "proceed with fixes" cost **2¢** at 19:15 on the first evening. "go, do
@@ -683,10 +686,10 @@ context did.
 
 ### Cost per unit of work
 
-- **$10.85 per prompt** mean, $10.37 median.
-- **5.4¢ per line** across the 9,023 lines of hand-authored tracked text — code,
+- **$11.25 per prompt** mean, $10.37 median.
+- **5.8¢ per line** across the 10,632 lines of hand-authored tracked text — code,
   specifications, documentation, skill — in 32 files, excluding generated fixtures
-  and images. About 200 kept lines per prompt.
+  and images. About 190 kept lines per prompt.
 - The two most expensive prompts were "go, do both together" ($35.04: the shared
   core, the `babel://` scheme, the agent skill) and "this is a good place to pause
   and clean up" ($33.83: the case study, the repository, the licence and privacy
@@ -700,7 +703,7 @@ context did.
 
 | | | evidence |
 |---|---|---|
-| signal per word | excellent | median prompt 24 words; 15 of 45 under 15 words; exactly one over 100 |
+| signal per word | excellent | median prompt 23 words; 19 of 55 under 15 words; exactly one over 100 |
 | words spent where they matter | excellent | the single long message is the one that shaped the architecture |
 | bug reports | excellent | named the axis and condition ("off-target as i go to the far left and right"), or the contradiction ("says 200fps but its laggy as hell") |
 | willingness to overturn me | excellent | 11 words killed a wrong diagnosis I had stated as fact |
@@ -721,7 +724,7 @@ constraint on cost — context size was, and my own wrong turns were.** Three
 performance hypotheses of mine were wrong, one diagnosis was asserted without a
 probe, one test compared bytes when it should have run code, and I corrupted two
 files with a shell script during cleanup. Reading the per-prompt profile, I'd put
-$50–80 of the $488 on those and their repair. That is an estimate rather than a
+$60–100 of the $619 on those and their repair. That is an estimate rather than a
 measurement, because the same intervals also contain the work that succeeded.
 
 ### What I would change

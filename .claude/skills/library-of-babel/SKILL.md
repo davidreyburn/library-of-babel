@@ -5,9 +5,13 @@ description: Walk and read Borges's Library of Babel as a deterministic environm
 
 # The Library of Babel
 
-A deterministic Library: 29^1,312,000 volumes, no storage, every symbol a pure
-function of its own position. You can walk it, read it, and — the part that
-matters — **cite it**, because a coordinate here is checkable.
+A deterministic Library: a corpus of 29^1,312,000 volumes, no storage, every
+symbol a pure function of its own position. You can walk it, read it, and — the
+part that matters — **cite it**, because a coordinate here is checkable.
+
+Walking reaches about 1.8 × 10^19 distinct volumes of that corpus; a text address
+reaches any of them. Both are citations, and the difference matters when you
+report — see "Do not claim a walkable shelf holds a chosen phrase" below.
 
 ## Before anything else
 
@@ -83,9 +87,12 @@ something striking, say how likely that was — `find` prints the corpus share f
 a phrase, and a page holds 3,200 symbols.
 
 **Do not claim a walkable shelf holds a chosen phrase.** A given page occupies
-29^-3200 of the corpus and the walkable lattice reaches ~10^22 volumes; the gap
-is about 4,700 orders of magnitude. Searching returns *text* addresses; walking
-returns *walk* addresses. Both are citations; they are not interchangeable.
+29^-3200 ≈ 10^-4680 of the corpus, and walking reaches about 1.8 × 10^19 distinct
+volumes — so the gap is some **4,660 orders of magnitude**. Count distinct texts
+rather than the ~8 × 10^21 shelves: every copy of a text either contains the
+phrase or none of them do, so duplicate shelves buy you nothing. Searching returns
+*text* addresses; walking returns *walk* addresses. Both are citations; they are
+not interchangeable.
 
 **Coordinates a human can open.** Any address works in the simulator:
 

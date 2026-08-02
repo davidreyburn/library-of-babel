@@ -451,10 +451,14 @@ by writing its address down.
 
 **Search can only ever answer in the second system, and this is arithmetic
 rather than a limitation.** A chosen 3,200-symbol page occupies a fraction
-29^-3200 ≈ 10^-4680 of the corpus. The walkable lattice reaches on the order
-of 10^22 volumes. Expecting a chosen page to sit on a walkable shelf is short
-by some 4,700 orders of magnitude. So: walking yields walk addresses, search
-yields text addresses, and both are verifiable by any holder of the core.
+29^-3200 ≈ 10^-4680 of the corpus. Walking reaches about 1.8 × 10¹⁹ **distinct**
+volumes (2⁶⁴ — see §17.12), on some 8 × 10²¹ shelves. Expecting a chosen page to
+sit on a walkable shelf is therefore short by some **4,660 orders of magnitude**.
+
+Count distinct texts and not shelves for this argument: every copy of a text
+either contains the phrase or none of them does, so repeated shelves are not
+repeated chances. So: walking yields walk addresses, search yields text
+addresses, and both are verifiable by any holder of the core.
 
 Consequently LIB-A-024's bijection is stated over the corpus rather than over
 the lattice: the walkable lattice is a keyed *window* onto the corpus, not an

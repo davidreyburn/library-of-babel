@@ -1,9 +1,16 @@
 # The Library of Babel
 
-A deterministic, walkable Library of Babel: **29^1,312,000** volumes, none of them
-stored. Every room and every symbol is a pure function of its address, so the
-renderer, an agent and the tests all see the same Library — and a coordinate in it
-can be cited and checked.
+A deterministic, walkable Library of Babel. The corpus is **29^1,312,000** volumes
+and none of them is stored: every room and every symbol is a pure function of its
+address, so the renderer, an agent and the tests all see the same Library — and a
+coordinate in it can be cited and checked.
+
+Walking reaches about **1.8 × 10¹⁹** distinct volumes of that corpus, on some
+8 × 10²¹ shelves. Reaching an *arbitrary* one instead takes a text address, and
+that is not a shortcoming but arithmetic: a coordinate able to name any book is
+778 KiB long, at which size the address **is** the book. §17.12 of the
+specification has the numbers, and how a 32-bit key once capped the walkable part
+at 4.3 billion.
 
 Derived from Borges's story treated as a requirements document. Where the build
 departs from it, §17 of the specification says so, with the measurement that

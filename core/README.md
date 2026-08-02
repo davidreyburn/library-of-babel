@@ -56,17 +56,19 @@ first shelved wall of that gallery, and `book` is accepted for `slot` — so a c
 can be typed by hand. `formatAddress` always emits the explicit form.
 
 **Search can only answer in the text system, and that is arithmetic, not a
-shortcoming.** A chosen page occupies 29^-3200 ≈ 10^-4680 of the corpus; the walkable
-lattice reaches ~10^22 volumes. Walking yields walk addresses; search yields text
-addresses.
+shortcoming.** A chosen page occupies 29^-3200 ≈ 10^-4680 of the corpus; walking
+reaches about 1.8 × 10¹⁹ distinct volumes, so the gap is some 4,660 orders of
+magnitude. Walking yields walk addresses; search yields text addresses.
 
 Two different counts hide in "how big is the walkable Library", and it is worth
 keeping them apart. **Shelves:** ~8 × 10²¹ — the cell hash packs `q` and `r` into
 16 bits each, so the layout repeats every 65,536 × 65,536 cells, times ~2³² floors
 times 537 volumes a gallery. **Distinct texts:** bounded by the width of
 `walkKey`, because a volume's content is a function of that key alone. It returns
-two 32-bit lanes, so 2⁶⁴ — see §17.12 of the spec, which records what happened
-when it returned one.
+two 32-bit lanes, so 2⁶⁴ ≈ 1.8 × 10¹⁹ — see §17.12 of the spec, which records what
+happened when it returned one. Count distinct texts whenever the question is
+"could this phrase be here": duplicate shelves hold the same book, so they are not
+extra chances.
 
 ## Being turned loose
 
