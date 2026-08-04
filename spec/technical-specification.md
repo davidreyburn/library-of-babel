@@ -334,10 +334,10 @@ its layout — see §18.
 | T-6 | The hallway is a cell too, and it does not contain the stairway | Same reason as T-4: the closets and the mirror need floor area a wall gap does not have. The flight is often at the end of one instead — see §17.13. |
 
 **Measured lattice parameters.** Openness 0.50, shafts 0.02, stairwells 0.12,
-reading rooms 0.02, corridors 0.05. Over a 91×91 sample: giant component
-**0.96** of standable cells, mean shelved walls **3.14** (against 4 in the
+reading rooms 0.02, corridors 0.10. Over a 91×91 sample: giant component
+**0.96** of standable cells, mean shelved walls **3.15** (against 4 in the
 text), a shaft in view from about **1 room in 17**, a reading room about **1
-cell in 48**, a corridor about **1 cell in 22**.
+cell in 48**, a corridor about **1 cell in 11**.
 
 Openness is forced upward by T-4: a stairwell is a *vertical* link and
 carries no same-floor traffic, so the galleries must percolate on their own.
@@ -811,7 +811,8 @@ corridor is simply another node, which is why `movesFrom`, `walkGraph`,
 | Corridor | 1.24 m wide, ceiling at 2.10 m as everywhere else, running the full 4.84 m of the cell and 0.75 m past each boundary to meet the gallery's doorway |
 | Alcoves | one facing pair at midspan, 0.80 m across the opening, 0.62 m deep, 2.00 m high — a closet to stand in, not to lie down in |
 | Holds | a mirror, a latrine, or nothing, which is the standing closet |
-| How often | 56.6% of corridors are bare, 30.3% hold one, 13.0% a facing pair |
+| How often | 60% of corridors are bare, 30% hold one, 10% a facing pair |
+| The latrine | a bored stone seat; the bore stops short of the floor and its inner wall carries its own material, so the hole reads as a void rather than as a clean cut through the floorboards |
 
 **Where the band came from.** The corridor's slice of the hash range is taken
 from the *top* rather than continued upward from the reading room's
@@ -829,22 +830,17 @@ rules meet in the middle: a corridor will accept a stairwell as an end, and
 axis. That gets a flight at the end of **1 corridor in 5.1**, against 1 in 47
 when the two types are indifferent to each other.
 
-A richer version of that rule was written first and does not ship. It had the
-corridor prefer an axis with a flight *whose own axis agreed*, which reads as
-the obvious rule and leaves only 1.3% of corridors open at one end instead of
-7.2%. It also called `axisOf` on a neighbour from inside `corridorAxis` —
-which `gapAt` calls, which `cellDesc` calls six times, which the shader calls
-for every cell a ray enters. When the shader stopped linking, that was the
-obvious suspect and it was wrong: see below.
-
-**It was then measured and declined, which is a different thing from being
-dropped.** Over a 91×91 sample it removes 21 dead ends — one-ended corridors
-fall from 27 in 376 to 5 — or about one per 390 cells. Against that it moves
-**1.5% of gallery wall slots** and touches **8.1% of galleries**, which is a
-second reshuffle of the lattice and a second round of walk citations to
-re-check, for a difference almost nobody would walk into. The cheap rule is
-also the right shape for something on `gapAt`'s path. If the dead ends ever
-do grate, the shader has room for it now and those are the numbers to weigh.
+**The axis rule is the richer of the two that were written.** A corridor
+prefers an axis with a flight *whose own axis agrees*, which means calling
+`axisOf` on a neighbour from inside `corridorAxis` — which `gapAt` calls,
+which `cellDesc` calls six times, which the shader calls for every cell a ray
+enters. When the shader first refused to link that was the obvious suspect and
+it was innocent (§17.13 below), so a flat version shipped briefly and this one
+replaced it once the real cause was fixed. It leaves **2.7%** of corridors
+open at one end against 7.2% for the flat rule, and both put a flight at the
+end of 1 corridor in 5. The six ends are resolved once into a bitfield and
+both passes then read bits, which halves the `axisEnd` calls; keep it that
+way.
 
 **What actually stopped the shader linking, and how it was found.** The GLSL
 compiled in 17 ms; the linker then ran for **127 seconds** and returned false
@@ -893,14 +889,14 @@ alcove holds the latrine, what appears in the glass is the latrine.
 
 | | |
 |---|---|
-| Corridors | 4.5% of cells — about 1 in 22 |
-| Two-ended / one-ended / sealed | **92.6% / 7.2% / 0.3%** |
-| With a flight at one end | **19.7%**, 1 in 5.1 |
-| Holding a mirror | 18.4% of corridors; with the reading rooms of §17.4, a mirror stands in **1 cell in 80** |
-| Met on a wander | a corridor on 176 of 200 routes, median step 25; a mirror on 142 of 200, median step 69 |
-| Giant component | 0.96 of standable cells, against 0.97 before |
-| Mean shelved walls | 3.14, against 3.08 before |
-| `routeToShelves` | arrived 197 of 200, median 12 rooms |
+| Corridors | 9.3% of cells — about 1 in 11 |
+| Two-ended / one-ended / sealed | **96.8% / 2.7% / 0.5%** |
+| With a flight at one end | **20.0%**, 1 in 5.0 |
+| Holding a mirror | 15.4% of corridors; with the reading rooms of §17.4, a mirror stands in **1 cell in 52** |
+| Met on a wander | a mirror on **189 of 200** routes, median step 56 |
+| Giant component | 0.962 of standable cells, against 0.967 before |
+| Mean shelved walls | 3.149, against 3.079 before |
+| `routeToShelves` | arrived 198 of 200 |
 
 **The mirror is a real reflection.** One bounce, marched and shaded through
 the same code path as the primary ray — `main()` was split into `marchRay`
@@ -912,29 +908,62 @@ pane, which is what a facing pair really looks like a few reflections in, and
 is as much as LIB-P-024 permits it to settle. What it cost, and how the
 reflection was verified, is below.
 
-**Two defects still open, recorded here so they are not rediscovered.**
+### 17.14 The Mottling: Two Defects Wearing One Coat
 
-*Mottling on bare stone walls.* Large, smooth, dark organic shapes lying
-across a plain wall — the original report, and **still present** at
-`floor/-1/cell/0,3` and `floor/0/cell/-11,0`. The ambient-occlusion fix in
-§17.4 cleared the version of this that appeared on book spines and did
-nothing for the walls, so it should not be assumed to be one defect with one
-cause. What is known: an AO probe off a plain wall reaches 0.21 m and never
-crosses the early-out seam at either margin, so the §17.4 mechanism cannot
-explain it. What has been ruled out for the spine case and is worth re-testing
-on a wall rather than inherited: the 72-step ray budget, the six-level tone
-ramp, and the `lit > 0.28` step in the wall highlight. **Ablate on a wall.**
-The ablation that convicted AO was run on a shelf, which is precisely the
-mistake worth not repeating — the fix was real, and the claim that it fixed
-*this* was not checked.
+**The symptom** was large, smooth, dark organic shapes lying across walls and
+across book spines, reported at `floor/-1/cell/-1,3`, `floor/-1/cell/0,3` and
+`floor/0/cell/-11,0`. It looked like one bug. It was two, and both are fixed;
+the record of getting there is in the case study, because three of my
+diagnoses were wrong and the way each died is the useful part.
 
-*Ripples torn out of a volume's cover, seen edge-on.* At a grazing angle the
-edge of a book tears into ripples, as though chunks were cut out. The lead:
-when the march was instrumented to paint step-exhausted pixels during the AO
-hunt, the marked pixels lay in thin lines along exactly these silhouette
-edges. A ray creeping along a surface at a grazing angle either exhausts the
-72-step budget or oversteps at `d * 0.80`, and both would read as missing
-chunks. Paint exhaustion again and look at a book edge.
+**On book spines: the distance field over-reported, so the march stepped
+through the surface.** Three places in the shelving took geometry out of the
+field rather than measuring it:
+
+- `mod(base, SHELF_P) - 0.167` repeated the shelf up the wall for ever and was
+  not centred on the volume, so above the top shelf it measured to a book that
+  is not there, and in the upper part of each gap to the farther of two books;
+- `abs(w.y) > CASE_HALF + 0.03` dropped a wall's casework out of the field
+  outright — that is what tore the corners;
+- `abs(w.y) > RUN_HALF` and the slot-index range check dropped the books.
+
+An SDF that over-reports lets the ray land *past* the surface, where the
+gradient is nonsense — hence wrong normals, and hence the patches. Measured at
+the 0.80 step scale this shader marches with, **8.5%** of surface pixels
+carried a normal facing no wall; at 0.30 it was 6.1% and the frame cost 6.7×.
+Making the field conservative — nearest of the five real shelves by `clamp`,
+nearest of the thirty-five real slots, and culls that compare against the best
+distance so far instead of discarding — gets the same result at 0.80 **for
+nothing**: 6.58 ms against 6.27 before.
+
+**On bare stone: a step function on a continuous quantity.** The wall
+highlight read
+
+```
+if ((mat < 0.5 || mat > 2.5) && horiz > 0.86 && lit > 0.28) lum += 0.30;
+```
+
+On dim stone that lift is most of what makes a wall visible at all, so the
+pixels that fell the wrong side of 0.28 did not dim — they went nearly black.
+The boundary is an iso-contour of the lighting times the ambient term, which
+is why it came out as smooth shapes following the geometry. Book spines are
+excluded by that same material test, which is why this survived every fix
+aimed at the shelving, and why it was the *last* thing to be suspected rather
+than the first. Both tests are now `smoothstep` ramps. Cost: nothing
+measurable.
+
+**What was ruled out, and how.** The 72-step ray budget: the shader was made
+to paint step-exhausted pixels, and in the reported cell **0.04%** of pixels
+had given up. The six-level tone ramp: the shapes survived turning it off. The
+ambient-occlusion term: forcing `occ = 1.0` did clear the shelves, which
+convicted it — wrongly. AO was *carrying* the spine symptom, not causing it;
+the margin widened in §17.4 is a real inconsistency and worth keeping, but it
+was never the fix. **An ablation proves what it proves in the view you ran it
+in**, and that one was run on a shelf.
+
+*Still open:* ripples torn out of a volume's cover seen edge-on at a grazing
+angle. Possibly the same overshoot as the spine case and therefore possibly
+already gone — unverified either way, so it stays on the list.
 
 **What you can get into.** The alcoves are void in the collision field, not
 just in the render, and the fixtures are solid. Probing the field along the
@@ -949,7 +978,7 @@ the floor, the slot and the seed — it reads no topology at all — so **no
 address that remains valid names a different book**. What changes is
 validity, and it fails loudly:
 
-- 5.4% of galleries are now corridors, and hold no books at all;
+- 11% of galleries are now corridors, and hold no books at all;
 - of the galleries that stay galleries, **3.1% of wall slots** change verdict
   between shelved and doorway, touching **16.8%** of them;
 - an address on a wall that closed is refused with its reason; an address

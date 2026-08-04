@@ -492,8 +492,8 @@ const P_STUDY = 10486;   // + 0.02 -- a reading room, rarely met
    16563 -- and the crimson volume with it. Taken from the top, the band can
    be widened or narrowed to taste without moving a single shaft, stairwell,
    reading room, or the landmark. Only the share of galleries changes.
-   0.05 * 65536 = 3277.                                                    */
-const P_CORR  = 62259;   // 65536 - 3277: a corridor in about 1 cell in 20
+   0.10 * 65536 = 6554.                                                    */
+const P_CORR  = 58982;   // 65536 - 6554: a corridor in about 1 cell in 10
 const CRIM = { q: 15, r: 94, floor: 0, wall: 1, shelf: 2, slot: 17 };
 const GAP = { WALL:0, PASSAGE:1, HALL:2, SHAFT:3 };
 /* CORRIDOR is a room you stand in, unlike the stairwell, which is a move
@@ -524,23 +524,16 @@ function cellType(q,r){
    the furniture. Same kits, same anchor, same order as the shader.       */
 /* stair axis and rise, mirroring the shader */
 const openGround = t => t === TYPE.GALLERY || t === TYPE.STUDY || t === TYPE.CORRIDOR;
-/* Two passes. The first prefers an axis with a corridor at one end, because
-   the text puts the stairway in the hallway and this is the half of that
-   arrangement which costs nothing: the flight is choosing among axes it
-   would have been happy with anyway. The corridor does the other half by
-   accepting a flight as an end (corridorAxis below). Neither consults the
-   other's axis -- that nesting is what stopped the shader linking. */
+/* One pass: any axis with open ground at both ends, a corridor counting as
+   open ground. The stairwell does not go looking for a corridor -- the
+   corridor comes to it, by asking this function for its axis. */
 function axisOf(q, r){
   const base = uhash(u32(cellKey(q,r) ^ 0x5bf03635)) % 3;
-  for (let pass = 0; pass < 2; pass++)
-    for (let k = 0; k < 3; k++){
-      const a = (base + k) % 3;
-      const ta = cellType(q + DIRS[a][0],   r + DIRS[a][1]);
-      const tb = cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]);
-      if (!openGround(ta) || !openGround(tb)) continue;
-      if (pass === 0 && ta !== TYPE.CORRIDOR && tb !== TYPE.CORRIDOR) continue;
-      return a;
-    }
+  for (let k = 0; k < 3; k++){
+    const a = (base + k) % 3;
+    if (openGround(cellType(q + DIRS[a][0],   r + DIRS[a][1])) &&
+        openGround(cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]))) return a;
+  }
   return base;
 }
 const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : -1;
@@ -552,31 +545,40 @@ const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : 
  * its own axis, and those two doorways are structural rather than hashed --
  * but it has no rise, so it is a place and not a move.
  *
- * Its axis is chosen exactly the way a stairwell's is, and deliberately
- * stays that cheap. The first attempt had it prefer an axis with a flight
- * at one end *whose own axis agreed*, which meant calling axisOf on a
- * neighbour from inside a function gapAt calls, which cellDesc calls six
- * times, which the shader calls for every cell a ray enters. That was
- * suspected of the 127-second shader link and it was not the cause -- the
- * cause was two call sites in main(), see §17.13 -- but it is genuinely the
- * most expensive thing this file could put in gapAt's path, and it was not
- * buying much.
+ * The axis is chosen in two passes. First an axis with a flight of stairs at
+ * one end *whose own axis agrees*, because the text puts the stairway in the
+ * hallway and this is as close as a cell-per-stair layout gets to it. Then
+ * any axis with somewhere to walk at both ends.
  *
- * What replaced it is one flat pass of plain type tests, and it gets the
- * same arrangement from the other side: a corridor accepts a flight as an
- * end, and axisOf prefers an axis with a corridor at one. Measured over a
- * 91x91 sample, both versions put a flight at the end of 1 corridor in 5.
- * The cheap one leaves 7.2% of corridors open at one end only, against
- * 1.3%. That is the price, and §17.13 records that it is now affordable to
- * pay it back if the dead ends ever grate.                                */
-const corridorEnd = t => t === TYPE.GALLERY || t === TYPE.STUDY || t === TYPE.STAIRWELL;
+ * That first pass calls axisOf on a neighbour, from inside a function gapAt
+ * calls, which cellDesc calls six times, which the shader calls for every
+ * cell a ray enters. It was suspected of the 127-second shader link and
+ * acquitted -- the cause was two call sites in main(), §17.13 -- so it is
+ * back, having been measured rather than assumed: it leaves 1.3% of
+ * corridors open at one end against 7.2% for the flat version, and puts a
+ * flight at the end of 1 corridor in 5 either way. The six ends are resolved
+ * once into `e` and both passes then read bits, which halves the axisEnd
+ * calls; keep it that way.                                                */
+function axisEnd(q, r, a, i){          // 0 nothing . 1 open ground . 2 a flight
+  const nq = q + DIRS[i][0], nr = r + DIRS[i][1], t = cellType(nq, nr);
+  if (t === TYPE.GALLERY || t === TYPE.STUDY) return 1;
+  if (t === TYPE.STAIRWELL && a === axisOf(nq, nr)) return 2;
+  return 0;                            // a shaft, or another corridor
+}
 function corridorAxis(q, r){
   const base = uhash(u32(cellKey(q,r) ^ 0x1d3f9a7b)) % 3;
+  let e = 0;                           // three axes, two ends, two bits each
   for (let k = 0; k < 3; k++){
     const a = (base + k) % 3;
-    if (corridorEnd(cellType(q + DIRS[a][0],   r + DIRS[a][1])) &&
-        corridorEnd(cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]))) return a;
+    e |= axisEnd(q, r, a, a)     << (k * 4);
+    e |= axisEnd(q, r, a, a + 3) << (k * 4 + 2);
   }
+  for (let pass = 0; pass < 2; pass++)
+    for (let k = 0; k < 3; k++){
+      const e0 = (e >> (k * 4)) & 3, e1 = (e >> (k * 4 + 2)) & 3;
+      if (e0 !== 0 && e1 !== 0 && (pass === 1 || e0 === 2 || e1 === 2))
+        return (base + k) % 3;
+    }
   return base;                         // walled at one or both ends; rare
 }
 
@@ -1818,7 +1820,7 @@ const vec3 C_HIDE   = vec3(0.300, 0.212, 0.150);   // upholstery
 const vec3 C_CRIM   = vec3(0.620, 0.106, 0.196);
 const vec3 C_LAMP   = vec3(1.000, 0.769, 0.431);
 
-float gMat;    // 0 stone . 1 volume . 2 crimson . 3 structure . 5 wood . 8 mirror
+float gMat;    // 0 stone . 1 volume . 2 crimson . 3 structure . 5 wood . 8 mirror . 9 void
 float gTgt;    // 1 on the one volume the reticule is resting on
 float gTint;   // per-volume colour draw
 float gSpineY; // 0 at the tail of the spine, 1 at the head
@@ -1838,7 +1840,7 @@ int cellType(ivec2 c){
   if (h < 1311u) return 1;
   if (h < 9175u) return 2;
   if (h < 10486u) return 3;      // a reading room: no shelves, some furniture
-  if (h >= 62259u) return 4;      // a corridor: mirror, latrine, standing closet
+  if (h >= 58982u) return 4;      // a corridor: mirror, latrine, standing closet
   return 0;
 }
 ivec2 dirOf(int i){
@@ -1850,39 +1852,51 @@ ivec2 dirOf(int i){
   return              ivec2( 0,  1);
 }
 /* Both ends must be open ground, or the flight arrives at a wall and the
-   stair is a dead end. Two passes: the first prefers an axis with a
-   corridor at an end, because the text puts the stairway in the hallway.
-   Plain type tests only -- see the note on corridorAxis. */
+   stair is a dead end. A corridor counts as open ground; it is the corridor
+   that comes looking for the flight, by asking this for its axis. */
 bool openGround(int t){ return t == 0 || t == 3 || t == 4; }
 int axisOf(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x5bf03635u) % 3u);
-  for (int pass = 0; pass < 2; pass++)
-    for (int k = 0; k < 3; k++){
-      int a = (base + k) % 3;
-      int ta = cellType(c + dirOf(a)), tb = cellType(c + dirOf(a + 3));
-      if (!openGround(ta) || !openGround(tb)) continue;
-      if (pass == 0 && ta != 4 && tb != 4) continue;
-      return a;
-    }
+  for (int k = 0; k < 3; k++){
+    int a = (base + k) % 3;
+    if (openGround(cellType(c + dirOf(a))) &&
+        openGround(cellType(c + dirOf(a + 3)))) return a;
+  }
   return base;
 }
 float riseOf(ivec2 c){ return (uhash(cellKey(c) ^ 0x27d4eb2du) & 1u) == 0u ? 1.0 : -1.0; }
 
 /* A corridor is built like the stairwell -- a cut through the rock, open
    only on its own axis -- but has no rise, so it is a place and not a move.
-   One flat pass of plain type tests, and worth keeping that way: gapAt
-   calls this, cellDesc calls gapAt six times, and the shader calls cellDesc
-   for every cell a ray enters. (The richer version that asked a
-   neighbouring flight for its axis was suspected of the 127-second link and
-   acquitted -- see §17.13 -- but it is still the wrong thing to put here.) */
-bool corridorEnd(int t){ return t == 0 || t == 3 || t == 2; }
+   Two passes: first an axis with a flight at one end whose own axis agrees,
+   because the text puts the stairway in the hallway; then any axis with
+   somewhere to walk at both ends.
+
+   The six ends are resolved once into e and both passes read bits. Keep it
+   that way: gapAt calls this, cellDesc calls gapAt six times, and the shader
+   calls cellDesc for every cell a ray enters, so calling axisEnd twice per
+   axis doubles the most-inlined thing in the program. */
+int axisEnd(ivec2 c, int a, int i){       // 0 nothing . 1 open ground . 2 a flight
+  ivec2 n = c + dirOf(i);
+  int t = cellType(n);
+  if (t == 0 || t == 3) return 1;
+  if (t == 2 && a == axisOf(n)) return 2;
+  return 0;
+}
 int corridorAxis(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x1d3f9a7bu) % 3u);
+  int e = 0;
   for (int k = 0; k < 3; k++){
     int a = (base + k) % 3;
-    if (corridorEnd(cellType(c + dirOf(a))) &&
-        corridorEnd(cellType(c + dirOf(a + 3)))) return a;
+    e |= axisEnd(c, a, a)     << (k * 4);
+    e |= axisEnd(c, a, a + 3) << (k * 4 + 2);
   }
+  for (int pass = 0; pass < 2; pass++)
+    for (int k = 0; k < 3; k++){
+      int e0 = (e >> (k * 4)) & 3, e1 = (e >> (k * 4 + 2)) & 3;
+      if (e0 != 0 && e1 != 0 && (pass == 1 || e0 == 2 || e1 == 2))
+        return (base + k) % 3;
+    }
   return base;
 }
 /* 0 nothing . 1 mirror . 2 latrine . 3 an empty standing closet.
@@ -2124,9 +2138,22 @@ float alcoveFixtures(vec2 lp, float fy, int desc){
     if (a == 2){                                // the latrine
       vec2 q = vec2(u, sv - 0.94);
       float blk = sdBox3(vec3(q.x, fy - 0.21, q.y), vec3(0.30, 0.21, 0.28));
-      float bore = length(q) - 0.155;           // an unlidded hole, straight down
+      /* The bore stops 0.09 above the floor instead of going through it. As an
+         infinite cylinder it subtracted a clean hole out of the corridor's
+         floorboards, so looking down a latrine showed you *wood* -- the pale
+         disc that made this look like a window rather than a drop. Bounding
+         it leaves the block its own pan, in stone, in the deepest shade in
+         the room. */
+      float bore = max(length(q) - 0.155, 0.09 - fy);
       float lat = max(blk, -bore);
-      if (lat < d){ d = lat; gFurnMat = 3; }
+      /* Which face of the block are we on? The bore is a subtraction, so its
+         inner wall is the surface where the subtracted term is the active
+         one -- bore near zero -- while the seat's outer faces sit at bore
+         about +0.145. That one comparison is enough to give the inside of
+         the hole its own material, and material 9 shades to nothing. Without
+         it the bore wall carried the block's pale stone and the hole read as
+         a pale disc: a window, not a drop. */
+      if (lat < d){ d = lat; gFurnMat = (abs(bore) < 0.012) ? 9 : 3; }
     }
   }
   /* The mirror last and separately, so its material wins any tie. */
@@ -2280,16 +2307,34 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
   uint ck = cellKey(c);
   float base = fy - SHELF_BASE;
-  float shelfIdx = floor(base / SHELF_P);
-  float ys = mod(base, SHELF_P) - 0.167;
-  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;
+  /* THE NEAREST OF THE FIVE REAL SHELVES, not the containing one modulo the
+     pitch. mod(base, SHELF_P) - 0.167 repeats the shelf up the wall for
+     ever and is not centred on the volume, so above the top shelf it
+     measured to a book that is not there, and in the upper part of each gap
+     it measured to the farther of the two books rather than the nearer.
+     Both over-report the distance, and an SDF that over-reports lets the
+     march step *through* the surface: the ray lands past the spine, the
+     gradient there is nonsense, and the shading paints a dark organic patch.
+     That is the mottling, on shelves and -- through the same mechanism at
+     the case ends -- on the walls beside them. Measured: at the step scale
+     0.80 this shader marches with, 8.5% of surface pixels carried a normal
+     facing no wall; dropping the step to 0.30 took it to 6.1% and cost 6.7x
+     the frame. Making the field conservative gets the same result for free.
+     Clamping also costs a shade less than mod().                          */
+  float shelfIdx = clamp(floor((base - 0.167) / SHELF_P + 0.5), 0.0, 4.0);
+  float ys = base - (shelfIdx * SHELF_P + 0.167);
+  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centred
   float cx = APO_ROOM - CARC_D * 0.5;
 
   for (int i = 0; i < 6; i++){
     if (i != w1 && i != w2) continue;
     vec2 dir = dirW(i);
     vec2 w = vec2(dot(lp, dir), dot(lp, vec2(-dir.y, dir.x)));
-    if (abs(w.y) > CASE_HALF + 0.03) continue;
+    /* A cull that cannot lie: if the lateral distance to this run already
+       exceeds the best distance so far, nothing on the wall can beat it.
+       abs(w.y) > CASE_HALF + 0.03 dropped the casework out of the field
+       outright, which is what tore the corners. */
+    if (abs(w.y) - (CASE_HALF + 0.03) > d) continue;
 
     float up = sdBox3(vec3(w.x - cx, fy - 1.075, abs(w.y) - UP_C),
                       vec3(CARC_D*0.5, 1.075, UP_HW));
@@ -2299,10 +2344,10 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     float pl = sdBox3(vec3(w.x - cx, fy - 0.025, w.y), vec3(CARC_D*0.5, 0.025, CASE_HALF));
     if (pl < d){ d = pl; gMat = 5.0; }
 
-    if (shelfIdx < 0.0 || shelfIdx > 4.0) continue;
-    if (abs(w.y) > RUN_HALF) continue;
-    float bi = floor((w.y + RUN_HALF) / BOOK_W);
-    if (bi < 0.0 || bi > 34.0) continue;
+    if (abs(w.y) - RUN_HALF > d) continue;
+    /* and the nearest of the thirty-five real slots, clamped rather than
+       dropped, for the same reason */
+    float bi = clamp(floor((w.y + RUN_HALF) / BOOK_W), 0.0, 34.0);
     uint  bk = uhash(ck ^ uint(i*7919 + int(bi)*31 + int(shelfIdx)*104729));
     float hh = float(bk & 0xFFFFu) / 65536.0;
     float ch = float((bk >> 16) & 0xFFFFu) / 65536.0;
@@ -2591,6 +2636,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
       float tone = 0.84 + 0.16 * float((rk >> 16) & 0xFFu) / 255.0;
       base = C_WOOD * tone * (0.80 + 0.20 * min(seam, butt));
     }
+    else if (mat > 8.5) base = vec3(0.014);                     // down the latrine
     /* A mirror only reaches this line when it is the far end of a bounce --
        one mirror seen in another. The regress terminates in a dark pane
        rather than continuing, which is what a facing pair really looks like
@@ -2617,7 +2663,17 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     }
 
     float horiz = 1.0 - abs(n.y);
-    if ((mat < 0.5 || mat > 2.5) && horiz > 0.86 && lit > 0.28) lum = min(1.0, lum + 0.30);
+    /* A near-vertical stone face gets a lift, or the walls read as fog. This
+       used to be a step function -- horiz > 0.86 and lit > 0.28 -- on two
+       continuous quantities, and on dim stone the lift is most of what makes
+       the wall visible at all, so the pixels that fell the wrong side of
+       0.28 went almost black. The boundary is an iso-contour of the lighting
+       times the ambient term, which is why it came out as smooth-edged
+       shapes following the geometry: the mottling on bare walls, and the one
+       thing in this hunt that was never the distance field. Ramp both. */
+    if (mat < 0.5 || mat > 2.5)
+      lum = min(1.0, lum + 0.30 * smoothstep(0.80, 0.92, horiz)
+                                * smoothstep(0.18, 0.38, lit));
 
     matOut = mat; nOut = n; pOut = hp;
   }

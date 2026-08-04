@@ -77,6 +77,22 @@ section("DRIFT -- the prototype's inlined copy vs this module");
        g !== null && g.trim().length > 100,
        g ? `${g.trim().length} chars of GLSL` : "missing");
   }
+
+  /* A backtick anywhere in GLSL closes the JavaScript template literal that
+     carries it, and 150,000 characters of script stop parsing. I have done
+     this three times in one session -- twice in the prototype's hand-written
+     shader, once in a comment in babel-glsl.mjs, where it is a module-level
+     syntax error and takes the whole core down. There is no legitimate
+     backtick in GLSL, so this is a total rule and cheap to enforce. */
+  {
+    const open = html.indexOf("`", html.indexOf("const FRAG"));
+    const j = html.indexOf("void main(){", open);
+    const shader = open >= 0 && j >= 0 ? html.slice(open + 1, html.indexOf("`;", j)) : "";
+    ok("no backtick anywhere in the prototype's shader source",
+       shader.length > 1000 && !shader.includes("`"),
+       shader.length > 1000 ? `${shader.length} chars checked`
+                            : "could not locate the shader");
+  }
   /* a stray import or export would throw in a classic <script> and take
      the whole prototype down, not just the core */
   ok("the inlined core declares no import or export",
@@ -354,7 +370,7 @@ section("LATTICE -- the figures §17 of the spec quotes");
   ok("shafts about 2%", Math.abs(pct(shafts) - 2) < 0.6, `${pct(shafts).toFixed(2)}%`);
   ok("stairwells about 12%", Math.abs(pct(stairs) - 12) < 1.2, `${pct(stairs).toFixed(2)}%`);
   ok("reading rooms about 2%", Math.abs(pct(studies) - 2) < 0.6, `${pct(studies).toFixed(2)}%`);
-  ok("corridors about 5%", Math.abs(pct(corridors) - 5) < 0.8, `${pct(corridors).toFixed(2)}%`);
+  ok("corridors about 10%", Math.abs(pct(corridors) - 10) < 1.0, `${pct(corridors).toFixed(2)}%`);
   const mean = shelved / galleries;
   ok("mean shelved walls about 3.14", Math.abs(mean - 3.14) < 0.15, `${mean.toFixed(3)}`);
   ok("a gallery therefore departs from 700 volumes",
@@ -531,16 +547,15 @@ section("JOURNEY -- every stop is a citation");
   ok("a different route hands back different volumes",
      JSON.stringify(text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 9 })) !== JSON.stringify(j));
 
-  /* Route 1, not 7: adding the corridor reshuffled every wander, and route
-     7 now spends its 400 steps without meeting a chair. Which is a real
-     answer -- walkToASeat reports "found: false" rather than inventing one
-     -- but it is not the case this assertion is for. 45 of 60 routes find
-     a seat inside 400 steps, at a median of 55. */
+  /* Route 1, not 7: the corridor reshuffled every wander. Which route comes
+     up empty moves whenever the lattice does, so the pair below is picked
+     from a scan rather than remembered -- most routes find a chair, and the
+     ones that do not must say so rather than invent one. */
   const seat = text.walkToASeat({ route: 1 });
   ok("walkToASeat reports an address for the room", /^babel:\/\/walk\//.test(seat.room.at));
   ok("and reports how far it walked to get there", seat.steps > 0, `${seat.steps} steps`);
   ok("a route that finds nothing says so rather than inventing a chair",
-     text.walkToASeat({ route: 7 }).found === false);
+     text.walkToASeat({ route: 8 }).found === false);
 }
 
 section("PACKED DESC -- the int the shader and the CPU both read");

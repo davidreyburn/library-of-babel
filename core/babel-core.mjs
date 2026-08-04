@@ -87,8 +87,8 @@ const P_STUDY = 10486;   // + 0.02 -- a reading room, rarely met
    16563 -- and the crimson volume with it. Taken from the top, the band can
    be widened or narrowed to taste without moving a single shaft, stairwell,
    reading room, or the landmark. Only the share of galleries changes.
-   0.05 * 65536 = 3277.                                                    */
-const P_CORR  = 62259;   // 65536 - 3277: a corridor in about 1 cell in 20
+   0.10 * 65536 = 6554.                                                    */
+const P_CORR  = 58982;   // 65536 - 6554: a corridor in about 1 cell in 10
 const CRIM = { q: 15, r: 94, floor: 0, wall: 1, shelf: 2, slot: 17 };
 const GAP = { WALL:0, PASSAGE:1, HALL:2, SHAFT:3 };
 /* CORRIDOR is a room you stand in, unlike the stairwell, which is a move
@@ -119,23 +119,16 @@ function cellType(q,r){
    the furniture. Same kits, same anchor, same order as the shader.       */
 /* stair axis and rise, mirroring the shader */
 const openGround = t => t === TYPE.GALLERY || t === TYPE.STUDY || t === TYPE.CORRIDOR;
-/* Two passes. The first prefers an axis with a corridor at one end, because
-   the text puts the stairway in the hallway and this is the half of that
-   arrangement which costs nothing: the flight is choosing among axes it
-   would have been happy with anyway. The corridor does the other half by
-   accepting a flight as an end (corridorAxis below). Neither consults the
-   other's axis -- that nesting is what stopped the shader linking. */
+/* One pass: any axis with open ground at both ends, a corridor counting as
+   open ground. The stairwell does not go looking for a corridor -- the
+   corridor comes to it, by asking this function for its axis. */
 function axisOf(q, r){
   const base = uhash(u32(cellKey(q,r) ^ 0x5bf03635)) % 3;
-  for (let pass = 0; pass < 2; pass++)
-    for (let k = 0; k < 3; k++){
-      const a = (base + k) % 3;
-      const ta = cellType(q + DIRS[a][0],   r + DIRS[a][1]);
-      const tb = cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]);
-      if (!openGround(ta) || !openGround(tb)) continue;
-      if (pass === 0 && ta !== TYPE.CORRIDOR && tb !== TYPE.CORRIDOR) continue;
-      return a;
-    }
+  for (let k = 0; k < 3; k++){
+    const a = (base + k) % 3;
+    if (openGround(cellType(q + DIRS[a][0],   r + DIRS[a][1])) &&
+        openGround(cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]))) return a;
+  }
   return base;
 }
 const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : -1;
@@ -147,31 +140,40 @@ const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : 
  * its own axis, and those two doorways are structural rather than hashed --
  * but it has no rise, so it is a place and not a move.
  *
- * Its axis is chosen exactly the way a stairwell's is, and deliberately
- * stays that cheap. The first attempt had it prefer an axis with a flight
- * at one end *whose own axis agreed*, which meant calling axisOf on a
- * neighbour from inside a function gapAt calls, which cellDesc calls six
- * times, which the shader calls for every cell a ray enters. That was
- * suspected of the 127-second shader link and it was not the cause -- the
- * cause was two call sites in main(), see §17.13 -- but it is genuinely the
- * most expensive thing this file could put in gapAt's path, and it was not
- * buying much.
+ * The axis is chosen in two passes. First an axis with a flight of stairs at
+ * one end *whose own axis agrees*, because the text puts the stairway in the
+ * hallway and this is as close as a cell-per-stair layout gets to it. Then
+ * any axis with somewhere to walk at both ends.
  *
- * What replaced it is one flat pass of plain type tests, and it gets the
- * same arrangement from the other side: a corridor accepts a flight as an
- * end, and axisOf prefers an axis with a corridor at one. Measured over a
- * 91x91 sample, both versions put a flight at the end of 1 corridor in 5.
- * The cheap one leaves 7.2% of corridors open at one end only, against
- * 1.3%. That is the price, and §17.13 records that it is now affordable to
- * pay it back if the dead ends ever grate.                                */
-const corridorEnd = t => t === TYPE.GALLERY || t === TYPE.STUDY || t === TYPE.STAIRWELL;
+ * That first pass calls axisOf on a neighbour, from inside a function gapAt
+ * calls, which cellDesc calls six times, which the shader calls for every
+ * cell a ray enters. It was suspected of the 127-second shader link and
+ * acquitted -- the cause was two call sites in main(), §17.13 -- so it is
+ * back, having been measured rather than assumed: it leaves 1.3% of
+ * corridors open at one end against 7.2% for the flat version, and puts a
+ * flight at the end of 1 corridor in 5 either way. The six ends are resolved
+ * once into `e` and both passes then read bits, which halves the axisEnd
+ * calls; keep it that way.                                                */
+function axisEnd(q, r, a, i){          // 0 nothing . 1 open ground . 2 a flight
+  const nq = q + DIRS[i][0], nr = r + DIRS[i][1], t = cellType(nq, nr);
+  if (t === TYPE.GALLERY || t === TYPE.STUDY) return 1;
+  if (t === TYPE.STAIRWELL && a === axisOf(nq, nr)) return 2;
+  return 0;                            // a shaft, or another corridor
+}
 function corridorAxis(q, r){
   const base = uhash(u32(cellKey(q,r) ^ 0x1d3f9a7b)) % 3;
+  let e = 0;                           // three axes, two ends, two bits each
   for (let k = 0; k < 3; k++){
     const a = (base + k) % 3;
-    if (corridorEnd(cellType(q + DIRS[a][0],   r + DIRS[a][1])) &&
-        corridorEnd(cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]))) return a;
+    e |= axisEnd(q, r, a, a)     << (k * 4);
+    e |= axisEnd(q, r, a, a + 3) << (k * 4 + 2);
   }
+  for (let pass = 0; pass < 2; pass++)
+    for (let k = 0; k < 3; k++){
+      const e0 = (e >> (k * 4)) & 3, e1 = (e >> (k * 4 + 2)) & 3;
+      if (e0 !== 0 && e1 !== 0 && (pass === 1 || e0 === 2 || e1 === 2))
+        return (base + k) % 3;
+    }
   return base;                         // walled at one or both ends; rare
 }
 
@@ -821,7 +823,7 @@ export {
   SHELF_PITCH, SHELF_BASE, volumeHash, volumePresent, volumeDepth,
   /* hash + topology: the surface that MUST agree with the GLSL */
   u32, uhash, cellKey, cellType, edgeKey, gapAt, axisOf, riseOf, openGround,
-  corridorAxis, corridorEnd, corrKey, alcoveAt,
+  corridorAxis, axisEnd, corrKey, alcoveAt,
   studyKey, studyKit, studyAnchor, studyFit, studyItems, studyVisible,
   clearOfDoors, FURN,
   /* geometry */

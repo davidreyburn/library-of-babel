@@ -495,15 +495,42 @@ probe can reach. Measured at 1550×889, the frame cost did not move — 6.27 ms
 against 6.67 before, which is noise.
 
 **And then it was not fixed.** The user sent a second screenshot of a bare
-stone wall carrying the same shapes. The fix had cleared the spines and done
-nothing for the walls, and I had called the defect closed on the strength of
-one view. The arithmetic says why, and I could have run it before claiming
-anything: an AO probe off a plain wall reaches 0.21 m and never crosses that
-seam at *either* margin, so the mechanism I found could never have explained
-the walls. **Two symptoms that look identical are not therefore one defect.**
-The wall case is open, recorded in §17.13 with the two coordinates that
-reproduce it and with a note that the ruled-out list was established on a
-shelf and must be re-run on a wall.
+stone wall carrying the same shapes, and then a third showing that the *shelves
+had gone clean while the stone had not*. Two symptoms that look identical were
+not one defect, and I had called it closed on the strength of one view.
+
+Two more mechanisms had to be found, and neither was AO.
+
+**On the spines it was the distance field, not the shading.** Visualising the
+surface normal put the answer on screen: at the patches the normal pointed
+nowhere near the wall. Dropping the march step from 0.80 to 0.30 made them go
+away — which is the signature of *overshoot*, a field that over-reports the
+distance so the ray lands past the surface where the gradient is nonsense.
+Three places in the shelving were doing it: a `mod()` that repeated the shelf
+for ever and was not centred on the volume, and two hard culls that dropped a
+wall's casework and its books out of the field rather than measuring them.
+8.5% of surface pixels carried a bad normal at step 0.80, 6.1% at 0.30 for
+6.7× the frame cost — and making the field conservative got the same result at
+0.80 for nothing.
+
+**On the stone it was a step function.** `if (… && horiz > 0.86 && lit > 0.28)
+lum += 0.30` — a binary lift on two continuous quantities. On dim stone that
+lift is most of what makes a wall visible, so pixels falling the wrong side of
+0.28 did not dim, they went nearly black, along an iso-contour of the lighting
+times the ambient term. Book spines are excluded by the same material test in
+that line, which is exactly why it survived every fix aimed at the shelving —
+and why I had dismissed it on day one, when the blotches in front of me
+happened to be on books. Both tests are `smoothstep` now.
+
+**Four wrong diagnoses, and what each cost.** The ray budget: killed twice,
+the second time properly, by painting step-exhausted pixels in the reported
+cell — 0.04%. The tone ramp: killed by switching it off. Ambient occlusion:
+*convicted* by forcing `occ = 1.0`, which cleared the shelves — and it was
+carrying the symptom, not causing it. The step function: dismissed on day one
+for a reason that was true at the time and stopped being true once the shelves
+were fixed. The lesson I would carry: **an ablation proves what it proves in
+the view you ran it in**, and a symptom that appears on two materials is two
+bugs until you have shown otherwise.
 
 **What I would keep.** An optimisation that is correct for one consumer of a
 function can be a bug for the next one, and nothing in the code said which
@@ -921,21 +948,15 @@ Open, in rough order of value:
 3. **Rung 6 with a real policy** — point a language model at the seam and read
    its integrity. Everything it needs exists; that number is the first one that
    would say something nobody in this project knows yet.
-4. **Mottling on bare stone walls — the original report, still open.** The
-   ambient-occlusion fix cleared this on book spines and did nothing for the
-   walls; see the end of bug 11. Reproduces at `floor/-1/cell/0,3` and
-   `floor/0/cell/-11,0`. The §17.4 mechanism is arithmetically ruled out for
-   walls, and the other three suspects were eliminated on a shelf, not a wall,
-   so they have to be re-run. **Ablate on a wall first.**
-5. **Rippled chunks missing from a book's cover, seen from the side.** At a
-   grazing angle the edge of a volume tears into ripples, as though pieces
-   were cut out of it. The likely lead is already on record: when the march
-   was instrumented to paint step-exhausted pixels, the marked ones lay in
-   **thin lines along exactly these silhouette edges**. A ray creeping along a
-   surface at a grazing angle either exhausts its 72 steps or oversteps at
-   `d * 0.80`, and both would read as chunks missing. Paint exhaustion again
-   and look at a book edge. Possibly the same root cause as 4, possibly not —
-   do not assume.
+4. **Rippled chunks missing from a book's cover, seen from the side.** At a
+   grazing angle the edge of a volume tears into ripples. This may already be
+   gone: it is the same overshoot signature as the spine mottling, which the
+   conservative shelving field fixed. Unverified either way, so it stays here.
+5. **The corridor rule costs 13% of a frame.** Raising corridors to 10% and
+   restoring the richer axis rule took a gallery from 6.58 ms to 7.45 ms at
+   1550×945. The lever is hoisting `corridorAxis` out of `cellDesc`'s six
+   `gapAt` calls — but that means stating the corridor's gap rule twice, which
+   is the thing `core/` exists to prevent. Weigh it before taking it.
 6. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
    a measured answer to anything. Seven of ten wandering routes meet one inside
    400 steps, at a median of 69. The frequencies that decide it are named

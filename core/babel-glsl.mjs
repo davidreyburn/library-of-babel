@@ -44,39 +44,51 @@ ivec2 dirOf(int i){
   return              ivec2( 0,  1);
 }
 /* Both ends must be open ground, or the flight arrives at a wall and the
-   stair is a dead end. Two passes: the first prefers an axis with a
-   corridor at an end, because the text puts the stairway in the hallway.
-   Plain type tests only -- see the note on corridorAxis. */
+   stair is a dead end. A corridor counts as open ground; it is the corridor
+   that comes looking for the flight, by asking this for its axis. */
 bool openGround(int t){ return t == 0 || t == 3 || t == 4; }
 int axisOf(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x5bf03635u) % 3u);
-  for (int pass = 0; pass < 2; pass++)
-    for (int k = 0; k < 3; k++){
-      int a = (base + k) % 3;
-      int ta = cellType(c + dirOf(a)), tb = cellType(c + dirOf(a + 3));
-      if (!openGround(ta) || !openGround(tb)) continue;
-      if (pass == 0 && ta != 4 && tb != 4) continue;
-      return a;
-    }
+  for (int k = 0; k < 3; k++){
+    int a = (base + k) % 3;
+    if (openGround(cellType(c + dirOf(a))) &&
+        openGround(cellType(c + dirOf(a + 3)))) return a;
+  }
   return base;
 }
 float riseOf(ivec2 c){ return (uhash(cellKey(c) ^ 0x27d4eb2du) & 1u) == 0u ? 1.0 : -1.0; }
 
 /* A corridor is built like the stairwell -- a cut through the rock, open
    only on its own axis -- but has no rise, so it is a place and not a move.
-   One flat pass of plain type tests, and worth keeping that way: gapAt
-   calls this, cellDesc calls gapAt six times, and the shader calls cellDesc
-   for every cell a ray enters. (The richer version that asked a
-   neighbouring flight for its axis was suspected of the 127-second link and
-   acquitted -- see §17.13 -- but it is still the wrong thing to put here.) */
-bool corridorEnd(int t){ return t == 0 || t == 3 || t == 2; }
+   Two passes: first an axis with a flight at one end whose own axis agrees,
+   because the text puts the stairway in the hallway; then any axis with
+   somewhere to walk at both ends.
+
+   The six ends are resolved once into e and both passes read bits. Keep it
+   that way: gapAt calls this, cellDesc calls gapAt six times, and the shader
+   calls cellDesc for every cell a ray enters, so calling axisEnd twice per
+   axis doubles the most-inlined thing in the program. */
+int axisEnd(ivec2 c, int a, int i){       // 0 nothing . 1 open ground . 2 a flight
+  ivec2 n = c + dirOf(i);
+  int t = cellType(n);
+  if (t == 0 || t == 3) return 1;
+  if (t == 2 && a == axisOf(n)) return 2;
+  return 0;
+}
 int corridorAxis(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x1d3f9a7bu) % 3u);
+  int e = 0;
   for (int k = 0; k < 3; k++){
     int a = (base + k) % 3;
-    if (corridorEnd(cellType(c + dirOf(a))) &&
-        corridorEnd(cellType(c + dirOf(a + 3)))) return a;
+    e |= axisEnd(c, a, a)     << (k * 4);
+    e |= axisEnd(c, a, a + 3) << (k * 4 + 2);
   }
+  for (int pass = 0; pass < 2; pass++)
+    for (int k = 0; k < 3; k++){
+      int e0 = (e >> (k * 4)) & 3, e1 = (e >> (k * 4 + 2)) & 3;
+      if (e0 != 0 && e1 != 0 && (pass == 1 || e0 == 2 || e1 == 2))
+        return (base + k) % 3;
+    }
   return base;
 }
 /* 0 nothing . 1 mirror . 2 latrine . 3 an empty standing closet.
