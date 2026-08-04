@@ -835,10 +835,16 @@ the obvious rule and leaves only 1.3% of corridors open at one end instead of
 7.2%. It also called `axisOf` on a neighbour from inside `corridorAxis` —
 which `gapAt` calls, which `cellDesc` calls six times, which the shader calls
 for every cell a ray enters. When the shader stopped linking, that was the
-obvious suspect and it was wrong: see below. The cheap rule was kept anyway,
-because it is the right shape for something on `gapAt`'s path and it costs
-one flat pass, but **restoring the richer rule is now affordable** if 7.2%
-dead ends ever grate.
+obvious suspect and it was wrong: see below.
+
+**It was then measured and declined, which is a different thing from being
+dropped.** Over a 91×91 sample it removes 21 dead ends — one-ended corridors
+fall from 27 in 376 to 5 — or about one per 390 cells. Against that it moves
+**1.5% of gallery wall slots** and touches **8.1% of galleries**, which is a
+second reshuffle of the lattice and a second round of walk citations to
+re-check, for a difference almost nobody would walk into. The cheap rule is
+also the right shape for something on `gapAt`'s path. If the dead ends ever
+do grate, the shader has room for it now and those are the numbers to weigh.
 
 **What actually stopped the shader linking, and how it was found.** The GLSL
 compiled in 17 ms; the linker then ran for **127 seconds** and returned false
@@ -905,6 +911,16 @@ mirror therefore shows the corridor doubled and then terminates in a dark
 pane, which is what a facing pair really looks like a few reflections in, and
 is as much as LIB-P-024 permits it to settle. What it cost, and how the
 reflection was verified, is below.
+
+**A defect still open, recorded here so it is not rediscovered.** Seen from
+the side, at a grazing angle, the edge of a volume tears into ripples — chunks
+apparently cut out of the cover. This is *not* the mottling of §17.4, which
+was ambient occlusion reading the distance field's own conservatism and is
+fixed. The lead: when the march was instrumented to paint step-exhausted
+pixels during that hunt, the marked pixels lay in thin lines along exactly
+these silhouette edges. A ray creeping along a surface at a grazing angle
+either exhausts the 72-step budget or oversteps at `d * 0.80`, and both would
+read as missing chunks. Paint exhaustion again and look at a book edge.
 
 **What you can get into.** The alcoves are void in the collision field, not
 just in the render, and the fixtures are solid. Probing the field along the

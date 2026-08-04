@@ -906,12 +906,30 @@ Open, in rough order of value:
 3. **Rung 6 with a real policy** — point a language model at the seam and read
    its integrity. Everything it needs exists; that number is the first one that
    would say something nobody in this project knows yet.
-4. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
+4. **Rippled chunks missing from a book's cover, seen from the side.** Reported
+   after the ambient-occlusion fix and still present: at a grazing angle the
+   edge of a volume tears into ripples, as though pieces were cut out of it.
+   Not the same defect as the blotches — that one was AO reading the distance
+   field's own conservatism, and it is gone. The likely lead is already on
+   record: when the march was instrumented to paint step-exhausted pixels, the
+   marked ones lay in **thin lines along exactly these silhouette edges**. A
+   ray creeping along a surface at a grazing angle either exhausts its 72 steps
+   or oversteps at `d * 0.80`, and both would read as chunks missing. Start by
+   painting exhaustion again and looking at a book edge, not a wall.
+5. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
    a measured answer to anything. Seven of ten wandering routes meet one inside
    400 steps, at a median of 69. The frequencies that decide it are named
    constants and one kit table in `babel-core.mjs`; moving them moves nothing
    else.
-5. A Three.js port, if a durable build is ever wanted.
+6. **The richer corridor-axis rule — measured, and declined.** The version
+   dropped while hunting the link failure was innocent of it, and there is
+   shader budget for it now. What it buys is exact: one-ended corridors fall
+   from 27 in 376 to 5, which is **21 fewer dead ends per 8,281 cells**, one
+   per ~390. What it costs is a *second* reshuffle of the lattice — 1.5% of
+   gallery wall slots change verdict, touching 8.1% of galleries — so every
+   walk citation would have to be re-checked again for a difference almost
+   nobody would walk into. Declined on those numbers, not forgotten.
+7. A Three.js port, if a durable build is ever wanted.
 
 ---
 
