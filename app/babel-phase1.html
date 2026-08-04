@@ -2259,10 +2259,15 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
      exact region and this one falls across the shelving and AO paints it
      there: the case front stands CARC_D in from the wall and the probe
      reaches 0.21 further, so 0.12 of margin put the seam at 0.38 and the
-     probe at 0.47. That was the mottling on the spines, and on any wall
-     whose case was within a probe's reach -- organic, because which side of
-     the seam a sample fell on depended on the depth of the volume under it.
-     0.24 puts the seam beyond anything the probe can reach.               */
+     probe at 0.47. That was the mottling on the spines -- organic, because
+     which side of the seam a sample fell on depended on the depth of the
+     volume under it. 0.24 puts the seam beyond anything the probe can reach.
+
+     THIS DID NOT FIX THE SAME-LOOKING MOTTLING ON BARE STONE WALLS, which is
+     still open (§17.13). Do not assume one cause: a probe off a plain wall
+     reaches 0.21 and never crosses this seam at either margin, so whatever
+     paints the walls is something else. Ablate on a wall before theorising;
+     the ablation that convicted AO here was run on a shelf.               */
   if (dh < -(CARC_D + 0.24)) return min(d, -dh - CARC_D);
 
   int w1 = -1, w2 = -1; float p1 = -1e9, p2 = -1e9;

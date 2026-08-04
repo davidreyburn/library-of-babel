@@ -912,15 +912,29 @@ pane, which is what a facing pair really looks like a few reflections in, and
 is as much as LIB-P-024 permits it to settle. What it cost, and how the
 reflection was verified, is below.
 
-**A defect still open, recorded here so it is not rediscovered.** Seen from
-the side, at a grazing angle, the edge of a volume tears into ripples — chunks
-apparently cut out of the cover. This is *not* the mottling of §17.4, which
-was ambient occlusion reading the distance field's own conservatism and is
-fixed. The lead: when the march was instrumented to paint step-exhausted
-pixels during that hunt, the marked pixels lay in thin lines along exactly
-these silhouette edges. A ray creeping along a surface at a grazing angle
-either exhausts the 72-step budget or oversteps at `d * 0.80`, and both would
-read as missing chunks. Paint exhaustion again and look at a book edge.
+**Two defects still open, recorded here so they are not rediscovered.**
+
+*Mottling on bare stone walls.* Large, smooth, dark organic shapes lying
+across a plain wall — the original report, and **still present** at
+`floor/-1/cell/0,3` and `floor/0/cell/-11,0`. The ambient-occlusion fix in
+§17.4 cleared the version of this that appeared on book spines and did
+nothing for the walls, so it should not be assumed to be one defect with one
+cause. What is known: an AO probe off a plain wall reaches 0.21 m and never
+crosses the early-out seam at either margin, so the §17.4 mechanism cannot
+explain it. What has been ruled out for the spine case and is worth re-testing
+on a wall rather than inherited: the 72-step ray budget, the six-level tone
+ramp, and the `lit > 0.28` step in the wall highlight. **Ablate on a wall.**
+The ablation that convicted AO was run on a shelf, which is precisely the
+mistake worth not repeating — the fix was real, and the claim that it fixed
+*this* was not checked.
+
+*Ripples torn out of a volume's cover, seen edge-on.* At a grazing angle the
+edge of a book tears into ripples, as though chunks were cut out. The lead:
+when the march was instrumented to paint step-exhausted pixels during the AO
+hunt, the marked pixels lay in thin lines along exactly these silhouette
+edges. A ray creeping along a surface at a grazing angle either exhausts the
+72-step budget or oversteps at `d * 0.80`, and both would read as missing
+chunks. Paint exhaustion again and look at a book edge.
 
 **What you can get into.** The alcoves are void in the collision field, not
 just in the render, and the fixtures are solid. Probing the field along the

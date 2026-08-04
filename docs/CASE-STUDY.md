@@ -494,14 +494,29 @@ The fix is one constant: push the seam from 0.38 to 0.50, beyond anything the
 probe can reach. Measured at 1550×889, the frame cost did not move — 6.27 ms
 against 6.67 before, which is noise.
 
+**And then it was not fixed.** The user sent a second screenshot of a bare
+stone wall carrying the same shapes. The fix had cleared the spines and done
+nothing for the walls, and I had called the defect closed on the strength of
+one view. The arithmetic says why, and I could have run it before claiming
+anything: an AO probe off a plain wall reaches 0.21 m and never crosses that
+seam at *either* margin, so the mechanism I found could never have explained
+the walls. **Two symptoms that look identical are not therefore one defect.**
+The wall case is open, recorded in §17.13 with the two coordinates that
+reproduce it and with a note that the ruled-out list was established on a
+shelf and must be re-run on a wall.
+
 **What I would keep.** An optimisation that is correct for one consumer of a
 function can be a bug for the next one, and nothing in the code said which
 guarantee `mapAt` was offering. It offers a lower bound; the marcher wanted a
 lower bound; AO wanted the truth. That is not a coding error anywhere — it is
 an unstated contract, and the comment that now sits on that line states it.
+
 Also: I ran three ablations before the one that worked, and each cost about
 two minutes. Ablation is cheap and reasoning is expensive; I should have
-started there rather than arriving there.
+started there rather than arriving there. And having finally used the right
+method, I stopped one view too early — the ablation proved AO caused *the
+blotches in front of me*, and I generalised it to *the blotches*. The
+instrument was right and the sample was too small.
 
 ---
 
@@ -906,22 +921,27 @@ Open, in rough order of value:
 3. **Rung 6 with a real policy** — point a language model at the seam and read
    its integrity. Everything it needs exists; that number is the first one that
    would say something nobody in this project knows yet.
-4. **Rippled chunks missing from a book's cover, seen from the side.** Reported
-   after the ambient-occlusion fix and still present: at a grazing angle the
-   edge of a volume tears into ripples, as though pieces were cut out of it.
-   Not the same defect as the blotches — that one was AO reading the distance
-   field's own conservatism, and it is gone. The likely lead is already on
-   record: when the march was instrumented to paint step-exhausted pixels, the
-   marked ones lay in **thin lines along exactly these silhouette edges**. A
-   ray creeping along a surface at a grazing angle either exhausts its 72 steps
-   or oversteps at `d * 0.80`, and both would read as chunks missing. Start by
-   painting exhaustion again and looking at a book edge, not a wall.
-5. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
+4. **Mottling on bare stone walls — the original report, still open.** The
+   ambient-occlusion fix cleared this on book spines and did nothing for the
+   walls; see the end of bug 11. Reproduces at `floor/-1/cell/0,3` and
+   `floor/0/cell/-11,0`. The §17.4 mechanism is arithmetically ruled out for
+   walls, and the other three suspects were eliminated on a shelf, not a wall,
+   so they have to be re-run. **Ablate on a wall first.**
+5. **Rippled chunks missing from a book's cover, seen from the side.** At a
+   grazing angle the edge of a volume tears into ripples, as though pieces
+   were cut out of it. The likely lead is already on record: when the march
+   was instrumented to paint step-exhausted pixels, the marked ones lay in
+   **thin lines along exactly these silhouette edges**. A ray creeping along a
+   surface at a grazing angle either exhausts its 72 steps or oversteps at
+   `d * 0.80`, and both would read as chunks missing. Paint exhaustion again
+   and look at a book edge. Possibly the same root cause as 4, possibly not —
+   do not assume.
+6. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
    a measured answer to anything. Seven of ten wandering routes meet one inside
    400 steps, at a median of 69. The frequencies that decide it are named
    constants and one kit table in `babel-core.mjs`; moving them moves nothing
    else.
-6. **The richer corridor-axis rule — measured, and declined.** The version
+7. **The richer corridor-axis rule — measured, and declined.** The version
    dropped while hunting the link failure was innocent of it, and there is
    shader budget for it now. What it buys is exact: one-ended corridors fall
    from 27 in 376 to 5, which is **21 fewer dead ends per 8,281 cells**, one
@@ -929,7 +949,7 @@ Open, in rough order of value:
    gallery wall slots change verdict, touching 8.1% of galleries — so every
    walk citation would have to be re-checked again for a difference almost
    nobody would walk into. Declined on those numbers, not forgotten.
-7. A Three.js port, if a durable build is ever wanted.
+8. A Three.js port, if a durable build is ever wanted.
 
 ---
 
