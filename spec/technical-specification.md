@@ -912,9 +912,15 @@ reflection was verified, is below.
 
 **The symptom** was large, smooth, dark organic shapes lying across walls and
 across book spines, reported at `floor/-1/cell/-1,3`, `floor/-1/cell/0,3` and
-`floor/0/cell/-11,0`. It looked like one bug. It was two, and both are fixed;
-the record of getting there is in the case study, because three of my
-diagnoses were wrong and the way each died is the useful part.
+`floor/0/cell/-11,0`. It looked like one bug and it was at least two. Both are
+found and fixed below; the record of getting there is in the case study,
+because four diagnoses were wrong and the way each died is the useful part.
+
+**Status: believed fixed, not signed off.** Two of the three fixes claimed here
+were claimed prematurely, and the reporter's verdict on the third was *"I don't
+know if this fully got it."* Treat it as open until someone has walked a long
+way without seeing it. If it recurs, the two mechanisms below are known to have
+been real, so look for a third rather than re-litigating these.
 
 **On book spines: the distance field over-reported, so the march stepped
 through the surface.** Three places in the shelving took geometry out of the
@@ -961,9 +967,14 @@ the margin widened in §17.4 is a real inconsistency and worth keeping, but it
 was never the fix. **An ablation proves what it proves in the view you ran it
 in**, and that one was run on a shelf.
 
-*Still open:* ripples torn out of a volume's cover seen edge-on at a grazing
+*Also open:* ripples torn out of a volume's cover seen edge-on at a grazing
 angle. Possibly the same overshoot as the spine case and therefore possibly
 already gone — unverified either way, so it stays on the list.
+
+*And a cost that was not there before:* raising corridors to 10% and restoring
+the richer axis rule took a gallery from 6.58 ms to 7.45 ms at 1550×945,
+**+13%**, and the reporter's own panel showed a 160 ms worst frame that has not
+been characterised. The mean is understood; the spike is not.
 
 **What you can get into.** The alcoves are void in the collision field, not
 just in the render, and the fixtures are solid. Probing the field along the

@@ -932,45 +932,48 @@ or a standing closet in alcoves off it, and a flight of stairs at the end of 1 i
 hallway — remains deviated for the same reason stairs got their own cells in the
 first place. The mirror hangs in one other place: three reading rooms in
 sixteen hold a mirror on the wall and nothing else. Between the two, a mirror
-stands in about 1 cell in 80.
+stands in about 1 cell in 52, and a wander meets one on 189 routes in 200.
 
 Open, in rough order of value:
 
-1. **Mouse capture done properly**, once this lives outside the artifact frame.
+1. **The mottling, not signed off.** Two real mechanisms were found and fixed
+   (bug 11, spec §17.14), and the reporter's verdict was *"I don't know if this
+   fully got it."* Two earlier fixes for the same symptom had been announced
+   prematurely, so this stays open until someone has walked a long way without
+   meeting it. If it recurs, look for a *third* mechanism: the two named are
+   established, not suspected.
+2. **A 160 ms worst frame, uncharacterised.** Seen on the reporter's own panel
+   while the mean sat at 8.1 ms. The mean is understood — see 3 — but the spike
+   is not, and by this document's own argument a mean is the wrong instrument
+   for a stutter. Measure the distribution before theorising.
+3. **The corridor changes cost 13% of a frame.** Raising corridors to 10% and
+   restoring the richer axis rule took a gallery from 6.58 ms to 7.45 ms at
+   1550×945. The lever is hoisting `corridorAxis` out of `cellDesc`'s six
+   `gapAt` calls — but that means stating the corridor's gap rule twice, which
+   is the thing `core/` exists to prevent. Weigh it before taking it. Cheaper
+   alternatives: fewer corridors, or back to the flat axis rule at the price of
+   2.7% → 7.2% one-ended corridors.
+4. **Rippled chunks missing from a book's cover, seen from the side.** At a
+   grazing angle the edge of a volume tears into ripples. This may already be
+   gone — it is the same overshoot signature as the spine mottling, which the
+   conservative shelving field fixed — but nobody has checked.
+5. **Mouse capture done properly**, once this lives outside the artifact frame.
    What ships today is an imitation — hidden cursor and edge-turning — and the
    user was right that it "doesn't feel totally legit". When there is a real
    home, delete the imitation rather than build on it.
-2. **The last hand-written mirror.** The hash deciding which slots the Purifiers
+6. **The last hand-written mirror.** The hash deciding which slots the Purifiers
    emptied lives inside the shader's `mapAt`, too entangled with the SDF to
    extract as it stands, so `volumePresent()` is a hand-written twin guarded only
    by a statistical test. It would catch a broken mirror, not a subtly different
    one.
-3. **Rung 6 with a real policy** — point a language model at the seam and read
+7. **Rung 6 with a real policy** — point a language model at the seam and read
    its integrity. Everything it needs exists; that number is the first one that
    would say something nobody in this project knows yet.
-4. **Rippled chunks missing from a book's cover, seen from the side.** At a
-   grazing angle the edge of a volume tears into ripples. This may already be
-   gone: it is the same overshoot signature as the spine mottling, which the
-   conservative shelving field fixed. Unverified either way, so it stays here.
-5. **The corridor rule costs 13% of a frame.** Raising corridors to 10% and
-   restoring the richer axis rule took a gallery from 6.58 ms to 7.45 ms at
-   1550×945. The lever is hoisting `corridorAxis` out of `cellDesc`'s six
-   `gapAt` calls — but that means stating the corridor's gap rule twice, which
-   is the thing `core/` exists to prevent. Weigh it before taking it.
-6. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
-   a measured answer to anything. Seven of ten wandering routes meet one inside
-   400 steps, at a median of 69. The frequencies that decide it are named
+8. **Tune how often a mirror turns up.** One cell in 52 is a third guess, not a
+   measured answer to anything. The frequencies that decide it are named
    constants and one kit table in `babel-core.mjs`; moving them moves nothing
    else.
-7. **The richer corridor-axis rule — measured, and declined.** The version
-   dropped while hunting the link failure was innocent of it, and there is
-   shader budget for it now. What it buys is exact: one-ended corridors fall
-   from 27 in 376 to 5, which is **21 fewer dead ends per 8,281 cells**, one
-   per ~390. What it costs is a *second* reshuffle of the lattice — 1.5% of
-   gallery wall slots change verdict, touching 8.1% of galleries — so every
-   walk citation would have to be re-checked again for a difference almost
-   nobody would walk into. Declined on those numbers, not forgotten.
-8. A Three.js port, if a durable build is ever wanted.
+9. A Three.js port, if a durable build is ever wanted.
 
 ---
 
