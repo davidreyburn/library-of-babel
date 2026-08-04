@@ -97,11 +97,11 @@ being an accident.
 
 ---
 
-## Part three — ten bugs, and how each was actually found
+## Part three — eleven bugs, and how each was actually found
 
 This is the useful part of the record. In every case the method that found it was
 the same: **measure the thing, or probe the thing, rather than reason about it.**
-In four cases my confident reasoning was simply wrong.
+In five cases my confident reasoning was simply wrong.
 
 ### 1. Mouse capture — a guess stated as fact, then the real answer
 
@@ -455,6 +455,53 @@ by pixel probe rather than by eye: with the bounce off the glass is a flat dark
 pane, with it on 68% of the pixels across the alcove change, and in a corridor
 whose opposite alcove holds the latrine, what appears in the glass is the
 latrine.
+
+### 11. Dark continents on the shelves — the shading measuring the shader's own approximation
+
+The user sent a screenshot of a gallery with large, smooth, dark shapes lying
+across a wall like a map of a coastline, and said they also appeared on the
+books. This one is worth recording because the answer was in a place I would
+not have looked, and because three plausible theories died first.
+
+**Theory one: the ray budget.** Grazing angles make a march take many small
+steps, and a ray that exhausts its 72 steps renders as background — dark. I
+made the shader paint step-exhausted pixels red, near-exhausted green. The
+marked pixels lay in thin lines along silhouette edges and nowhere near the
+blotches. Dead.
+
+**Theory two: the tone ramp.** The renderer quantises luminance to six levels,
+which can turn a tiny discontinuity into a hard visible edge. Turning the
+quantiser off left the blotches in place, softer. Dead.
+
+**Theory three: a hard threshold in the shading.** There is a line that lifts
+luminance by 0.30 on near-vertical surfaces when `lit > 0.28` — a step function
+on a continuous quantity, exactly the shape that draws iso-contours on a wall.
+It excludes book materials, and the blotches were on books. Dead.
+
+The answer was ambient occlusion, found by ablation: forcing `occ = 1.0` made
+the shelves clean. And the reason is the interesting part. `mapAt` has a speed
+early-out — once a sample is more than 0.38 m in from the wall, don't walk the
+casework, just return the distance to the front of it. That value is a *lower
+bound*, which is all a raymarcher needs and all it was ever asked for. But
+`aoCtx` takes the difference between the distance field and the distance it
+expected and calls it occlusion, so **feeding it a conservative field makes it
+draw the conservatism**. Its probe reaches 0.21 m out from a spine face that
+sits 0.16–0.20 m in from the wall, landing at 0.37–0.41 — just across the seam.
+Which volume you were looking at decided whether the probe tripped it, so the
+boundary wandered across the shelf in smooth organic curves.
+
+The fix is one constant: push the seam from 0.38 to 0.50, beyond anything the
+probe can reach. Measured at 1550×889, the frame cost did not move — 6.27 ms
+against 6.67 before, which is noise.
+
+**What I would keep.** An optimisation that is correct for one consumer of a
+function can be a bug for the next one, and nothing in the code said which
+guarantee `mapAt` was offering. It offers a lower bound; the marcher wanted a
+lower bound; AO wanted the truth. That is not a coding error anywhere — it is
+an unstated contract, and the comment that now sits on that line states it.
+Also: I ran three ablations before the one that worked, and each cost about
+two minutes. Ablation is cheap and reasoning is expensive; I should have
+started there rather than arriving there.
 
 ---
 
@@ -833,7 +880,7 @@ Worth doing from the other side:
 
 ## Where it stands, and what is left
 
-Green: 129 core assertions, 41 gates, 500 GPU integers, build current. Walking
+Green: 137 core assertions, 41 gates, 500 GPU integers, build current. Walking
 somewhere on purpose arrives 197 times in 200 and says why when it does not.
 
 The corridor closes §9.3, the last part of the specification that was written
@@ -841,7 +888,9 @@ and not built: the hallway is now a cell type, 1 in 22, with a mirror, a latrine
 or a standing closet in alcoves off it, and a flight of stairs at the end of 1 in
 5. LIB-P-020, 021, 023 and 024 are met; LIB-P-022 — the stairway *inside* the
 hallway — remains deviated for the same reason stairs got their own cells in the
-first place.
+first place. The mirror hangs in one other place: three reading rooms in
+sixteen hold a mirror on the wall and nothing else. Between the two, a mirror
+stands in about 1 cell in 80.
 
 Open, in rough order of value:
 
@@ -857,10 +906,11 @@ Open, in rough order of value:
 3. **Rung 6 with a real policy** — point a language model at the seam and read
    its integrity. Everything it needs exists; that number is the first one that
    would say something nobody in this project knows yet.
-4. **Tune how often a mirror turns up.** One cell in 120 is the first guess, not
-   a measured answer to anything. Two of three wandering routes meet one inside
-   400 steps, at a median of 87. The three frequencies that decide it are named
-   constants in `babel-core.mjs` and moving them moves nothing else.
+4. **Tune how often a mirror turns up.** One cell in 80 is a second guess, not
+   a measured answer to anything. Seven of ten wandering routes meet one inside
+   400 steps, at a median of 69. The frequencies that decide it are named
+   constants and one kit table in `babel-core.mjs`; moving them moves nothing
+   else.
 5. A Three.js port, if a durable build is ever wanted.
 
 ---

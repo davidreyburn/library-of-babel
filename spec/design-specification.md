@@ -83,7 +83,7 @@ Borges sets up a direct comparison, and it is the most designed passage in the s
 - **D-52** The classic dictum is that the Library is a sphere whose centre is any hexagon and whose circumference is inaccessible. Formally: **every position is the centre; no position is distinguished.** Placelessness is the goal.
 - **D-53** Each hallway holds a mirror that "faithfully duplicates all appearances." Doubling is an available motif, and the text attaches genuine ambiguity to it — the men read it as proof of limits, the narrator as a promise of the infinite. The mirror should not resolve the question.
 
-  **Built** (see LIB-BABEL-SPEC-001 §17.13). A real single-bounce reflection, shaded through the same path as the primary ray, in an alcove off the corridor — about 1 cell in 120. *Faithfully* is taken literally: the loss at the surface is in level, not in hue. The ambiguity survives by arithmetic rather than by taste — one bounce means a facing pair doubles the corridor once and terminates in a dark pane, so the mirror shows neither a bounded room nor an endless one.
+  **Built** (see LIB-BABEL-SPEC-001 §17.13 and §17.4). A real single-bounce reflection, shaded through the same path as the primary ray. It hangs in two places: in an alcove off a corridor, and — in 22% of reading rooms — alone on the wall of a room holding nothing else. Together, a mirror stands in about 1 cell in 80. *Faithfully* is taken literally: the loss at the surface is in level, not in hue. The ambiguity survives by arithmetic rather than by taste — one bounce means a facing pair doubles the corridor once and terminates in a dark pane, so the mirror shows neither a bounded room nor an endless one.
 
 ### 3.7 Air
 

@@ -166,8 +166,11 @@ float sdBox3(vec3 p, vec3 b){
    against which wall. Shared because the collision mesh and the drawn
    mesh must agree; a mismatch here is furniture you can walk through. */
 const STUDY_GLSL = `
+/* Sixteen arrangements whose first eight are the original eight, so half
+   the reading rooms are furnished exactly as they were. Three of sixteen
+   are a mirror and nothing else. */
 int studyKit(uint key){
-  int i = int(key % 8u);
+  int i = int(key % 16u);
   if (i == 0) return 1;                    // recliner
   if (i == 1) return 3;                    // recliner, end table
   if (i == 2) return 5;                    // recliner, lamp
@@ -175,7 +178,13 @@ int studyKit(uint key){
   if (i == 4) return 8;                    // desk and chair
   if (i == 5) return 12;                   // desk and chair, lamp
   if (i == 6) return 6;                    // end table, lamp
-  return 4;                                // lamp alone
+  if (i == 7) return 4;                    // lamp alone
+  if (i == 8 || i == 9 || i == 10) return 16;   // a mirror, and nothing else
+  if (i == 11) return 1;
+  if (i == 12) return 3;
+  if (i == 13) return 8;
+  if (i == 14) return 12;
+  return 7;
 }
 /* Every doorway axis runs through the middle of the room, so keeping a
    0.55 m corridor clear along each one guarantees the centre is open and
@@ -200,6 +209,7 @@ int studyFit(int i, int kit, int desc){
   if ((kit & 4) != 0 && clearOfDoors(ax * 1.46 + pv *  0.76, 0.21, desc)) n++;
   if ((kit & 8) != 0 && clearOfDoors(ax * 1.44, 0.60, desc)
                      && clearOfDoors(ax * 1.06, 0.25, desc)) n++;
+  if ((kit & 16) != 0 && clearOfDoors(ax * 1.79, 0.06, desc)) n++;
   return n;
 }
 /* The blank wall that keeps most of the kit, so a room is rarely left
@@ -234,9 +244,9 @@ int studyAnchor(int desc, uint key){
      0-11   six gaps, two bits each
      12-14  stair axis (2) and rise (1)
      15-17  study anchor wall
-     18-21  study furniture kit surviving the doorway culling
-     22-23  corridor axis
-     24-27  what stands in each of its two alcoves, two bits a side      */
+     18-22  study furniture kit surviving the doorway culling (five pieces)
+     23-24  corridor axis
+     25-28  what stands in each of its two alcoves, two bits a side      */
 const DESC_GLSL = `
 /* The gaps alone, for callers that need the anchor and nothing else. */
 int studyAnchorAt(ivec2 c, int fl){
@@ -270,15 +280,16 @@ int cellDesc(ivec2 c, int fl){
     if (!clearOfDoors(ax * 1.46 + pv *  0.76, 0.21, packed)) m &= ~4;
     if (!clearOfDoors(ax * 1.44, 0.60, packed) ||
         !clearOfDoors(ax * 1.06, 0.25, packed)) m &= ~8;
+    if (!clearOfDoors(ax * 1.79, 0.06, packed)) m &= ~16;
     packed |= m << 18;
   }
-  if (t == 4){                                 // the corridor, bits 22-27
+  if (t == 4){                                 // the corridor, bits 23-28
     /* Which alcove holds what is a fact about the cell, not about the
        sample point, so it is resolved here rather than inside mapAt --
        the same rule that took the furniture cull out of the SDF. */
-    packed |= corridorAxis(c) << 22;
-    packed |= alcoveAt(c, fl, 0) << 24;
-    packed |= alcoveAt(c, fl, 1) << 26;
+    packed |= corridorAxis(c) << 23;
+    packed |= alcoveAt(c, fl, 0) << 25;
+    packed |= alcoveAt(c, fl, 1) << 27;
   }
   return packed;
 }

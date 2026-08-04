@@ -151,8 +151,10 @@ case "mirror": {
   const m = text.walkToAMirror({ ...c, route: Number(flag("route", 1)) });
   if (JSONOUT) return out(m);
   if (!m.found) return out(`no mirror within ${m.trail.length} steps on route ${m.route}`);
-  out(`a mirror after ${m.steps} steps\n  ${m.room.at}\n  the corridor holds ` +
-      m.room.alcoves.map(a => `${a.holds} on the ${a.side}`).join(", "));
+  out(`a mirror after ${m.steps} steps\n  ${m.room.at}\n  ` +
+      (m.room.alcoves.length
+        ? "the corridor holds " + m.room.alcoves.map(a => `${a.holds} on the ${a.side}`).join(", ")
+        : `a ${m.room.type}, holding ${m.room.holds.join(", ")} and nothing else`));
   break;
 }
 

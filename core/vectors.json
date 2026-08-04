@@ -69,7 +69,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 5,
-   "studyKit": 12,
+   "studyKit": 8,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": 2,
@@ -77,7 +77,7 @@
     0,
     0
    ],
-   "desc": 8389648,
+   "desc": 16778256,
    "cellKey": 4116463384,
    "edgeKeys": [
     1519092585,
@@ -112,7 +112,7 @@
     1,
     0
    ],
-   "desc": 25166864,
+   "desc": 50332688,
    "cellKey": 4116463384,
    "edgeKeys": [
     1012296906,
@@ -147,7 +147,7 @@
     0,
     2
    ],
-   "desc": 142607376,
+   "desc": 285213712,
    "cellKey": 4116463384,
    "edgeKeys": [
     246934049,
@@ -174,7 +174,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": 1,
@@ -182,7 +182,7 @@
     2,
     3
    ],
-   "desc": 239075588,
+   "desc": 478150916,
    "cellKey": 4103917731,
    "edgeKeys": [
     2134196008,
@@ -252,7 +252,7 @@
     1,
     0
    ],
-   "desc": 25166864,
+   "desc": 50332688,
    "cellKey": 4233063759,
    "edgeKeys": [
     2149564083,
@@ -399,7 +399,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 0,
-   "studyKit": 1,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -437,7 +437,7 @@
    "axis": 2,
    "rise": -1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -484,7 +484,7 @@
     2,
     2
    ],
-   "desc": 167772225,
+   "desc": 335544385,
    "cellKey": 4098492759,
    "edgeKeys": [
     1685303035,
@@ -814,7 +814,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 0,
-   "studyKit": 1,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -1005,7 +1005,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -1115,7 +1115,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -1258,7 +1258,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 3,
-   "studyKit": 7,
+   "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -1413,7 +1413,7 @@
    "axis": 0,
    "rise": 1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -1453,7 +1453,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 0,
-   "studyKit": 1,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     2,
@@ -1569,7 +1569,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -1715,7 +1715,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -1832,7 +1832,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [
     2,
@@ -1870,7 +1870,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -1982,7 +1982,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 2,
-   "studyKit": 5,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -2099,7 +2099,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     3
@@ -2136,7 +2136,7 @@
    "axis": 0,
    "rise": 1,
    "studyKeyMod8": 5,
-   "studyKit": 12,
+   "studyKit": 8,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -2253,7 +2253,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     2,
@@ -2292,7 +2292,7 @@
    "axis": 2,
    "rise": -1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -2327,7 +2327,7 @@
    "axis": 2,
    "rise": -1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -2368,7 +2368,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -2403,7 +2403,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -2518,7 +2518,7 @@
    "axis": 0,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     2,
@@ -2603,7 +2603,7 @@
     0,
     0
    ],
-   "desc": 4194564,
+   "desc": 8388868,
    "cellKey": 4267969909,
    "edgeKeys": [
     3424993920,
@@ -2630,7 +2630,7 @@
    "axis": 0,
    "rise": 1,
    "studyKeyMod8": 3,
-   "studyKit": 7,
+   "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -2670,7 +2670,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -2710,7 +2710,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 3,
-   "studyKit": 7,
+   "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -2822,7 +2822,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     4,
@@ -2860,7 +2860,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 3,
-   "studyKit": 7,
+   "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -2899,7 +2899,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -2978,7 +2978,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 3,
-   "studyKit": 7,
+   "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -3018,7 +3018,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 2,
-   "studyKit": 5,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -3127,7 +3127,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 5,
-   "studyKit": 12,
+   "studyKit": 8,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -3246,7 +3246,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     3,
@@ -3284,7 +3284,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 2,
-   "studyKit": 5,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -3400,7 +3400,7 @@
    "axis": 2,
    "rise": -1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     2,
@@ -3438,7 +3438,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -3476,7 +3476,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 7,
-   "studyKit": 4,
+   "studyKit": 7,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -3586,7 +3586,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 2,
-   "studyKit": 5,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -3664,7 +3664,7 @@
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [
     1,
@@ -3703,7 +3703,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -3743,7 +3743,7 @@
    "axis": 0,
    "rise": 1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -3778,7 +3778,7 @@
    "axis": 0,
    "rise": -1,
    "studyKeyMod8": 0,
-   "studyKit": 1,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -3962,7 +3962,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 5,
-   "studyKit": 12,
+   "studyKit": 8,
    "studyAnchor": 5,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -3970,7 +3970,7 @@
     0,
     0
    ],
-   "desc": 3309712,
+   "desc": 2261136,
    "cellKey": 660549766,
    "edgeKeys": [
     2327128428,
@@ -3997,7 +3997,7 @@
    "axis": 2,
    "rise": -1,
    "studyKeyMod8": 2,
-   "studyKit": 5,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -4254,7 +4254,7 @@
    "axis": 0,
    "rise": 1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
@@ -4533,7 +4533,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 1,
-   "studyKit": 3,
+   "studyKit": 16,
    "studyAnchor": -1,
    "shelvedWalls": [
     2,
@@ -4611,7 +4611,7 @@
    "axis": 1,
    "rise": 1,
    "studyKeyMod8": 4,
-   "studyKit": 8,
+   "studyKit": 3,
    "studyAnchor": 1,
    "shelvedWalls": [],
    "corridorAxis": -1,
@@ -4619,7 +4619,7 @@
     0,
     0
    ],
-   "desc": 2131553,
+   "desc": 558689,
    "cellKey": 609079935,
    "edgeKeys": [
     2130673118,
@@ -4646,7 +4646,7 @@
    "axis": 1,
    "rise": -1,
    "studyKeyMod8": 6,
-   "studyKit": 6,
+   "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,

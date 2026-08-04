@@ -64,10 +64,11 @@ node tools/babel.mjs seat --route 1941        # walk until there is a chair
 node tools/babel.mjs mirror --route 1941      # walk until a corridor holds one
 ```
 
-A mirror is in about one cell in 120, so `mirror` finds one on roughly two
-routes in three inside its 400 steps and says so plainly when it does not. If
-you are asked to go and look at one, cite the corridor: someone else can
-stand in front of the same mirror.
+A mirror hangs in about one cell in 80 — in a corridor's alcove, or alone on
+the wall of a reading room that holds nothing else — so `mirror` finds one on
+roughly seven routes in ten inside its 400 steps, and says so plainly when it
+does not. If you are asked to go and look at one, cite the room: someone else
+can stand in front of the same mirror.
 
 Add `--json` to any command for machine-readable output. To import the modules
 directly instead, see `core/README.md` and `core/RUN.md`.

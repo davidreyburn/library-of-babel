@@ -384,12 +384,28 @@ standing up, and nothing else. It is a humanising intrusion, taken
 knowingly.
 
 Two rules constrain it. A room never holds everything: contents come from
-eight fixed arrangements of at most three pieces, and a desk never shares a
+sixteen fixed arrangements of at most three pieces, and a desk never shares a
 room with a recliner. And nothing blocks the way: the group is anchored to a
 wall with no doorway, and any piece coming within 0.55 m of a doorway's axis
 is dropped. Since every doorway axis runs through the middle of the room,
 that keeps the centre clear and guarantees any door reaches any other —
 verified by flood fill over 500 rooms, zero failures.
+
+**A fifth piece, added later: the mirror.** Three of the sixteen
+arrangements are a mirror on the anchor wall and nothing else at all — no
+chair, no lamp, no table. **22.4% of reading rooms** hold one, and every one
+that does holds only that. It is the same reflective surface a corridor's
+alcove carries (§17.13), so the same single bounce applies; what differs is
+that here it hangs in an otherwise empty room, which is a thing worth walking
+into and the closest this build comes to composing anything (against D-51,
+knowingly).
+
+The arrangements went from eight to sixteen and **the first eight are the
+original eight**, so `key % 16` agrees with `key % 8` wherever the index is
+under 8: half the reading rooms in the Library are furnished exactly as they
+were, and the new half is where the mirror lives. Because it hangs flat on a
+wall that by construction has no doorway, the doorway cull can never drop it
+— asserted rather than assumed.
 
 ### 17.5 The Alphabet Is 29 Symbols, Not 25
 
@@ -604,7 +620,8 @@ drifted, more than once, and put walls where the renderer drew doorways.
 
 The layer is now single-sourced in `core/` — including `cellDesc`, the packed
 per-cell int both sides read (gaps 0-11, stair axis and rise 12-14, study
-anchor 15-17, culled furniture kit 18-21) — inlined into the prototype by
+anchor 15-17, culled furniture kit 18-22, corridor axis 23-24, its two
+alcoves 25-28) — inlined into the prototype by
 `core/build.mjs`, and checked three ways: `core/test-core.mjs` compares the
 inlined copy against the module byte for byte **and evaluates it**, because an
 aliased import survives a byte-identical comparison and still throws in a
@@ -873,8 +890,8 @@ alcove holds the latrine, what appears in the glass is the latrine.
 | Corridors | 4.5% of cells — about 1 in 22 |
 | Two-ended / one-ended / sealed | **92.6% / 7.2% / 0.3%** |
 | With a flight at one end | **19.7%**, 1 in 5.1 |
-| Holding a mirror | 18.4% of corridors — **1 cell in 120** |
-| Met on a wander | a corridor on 176 of 200 routes, median step 25; a mirror on 126 of 200, median step 87 |
+| Holding a mirror | 18.4% of corridors; with the reading rooms of §17.4, a mirror stands in **1 cell in 80** |
+| Met on a wander | a corridor on 176 of 200 routes, median step 25; a mirror on 142 of 200, median step 69 |
 | Giant component | 0.96 of standable cells, against 0.97 before |
 | Mean shelved walls | 3.14, against 3.08 before |
 | `routeToShelves` | arrived 197 of 200, median 12 rooms |

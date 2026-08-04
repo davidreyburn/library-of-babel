@@ -335,7 +335,11 @@ section("SPINES -- §7");
 /* ---- MEANING: the lattice still measures as the spec says ---------- */
 section("LATTICE -- the figures §17 of the spec quotes");
 {
-  let shafts = 0, stairs = 0, studies = 0, galleries = 0, shelved = 0;
+  /* Corridors are counted as their own type, not folded into the gallery
+     bucket. Folded in they hold no shelves, so they drag the mean down and
+     the assertion below would be measuring the corridor share instead of
+     what a gallery holds. */
+  let shafts = 0, stairs = 0, studies = 0, corridors = 0, galleries = 0, shelved = 0;
   const N = 20000;
   for (let k = 0; k < N; k++){
     const q = (k % 200) - 100, r = Math.floor(k / 200) - 50;
@@ -343,16 +347,65 @@ section("LATTICE -- the figures §17 of the spec quotes");
     if (t === core.TYPE.SHAFT) shafts++;
     else if (t === core.TYPE.STAIRWELL) stairs++;
     else if (t === core.TYPE.STUDY) studies++;
+    else if (t === core.TYPE.CORRIDOR) corridors++;
     else { galleries++; shelved += core.shelvedWalls(q, r, 0).length; }
   }
   const pct = n => (n / N) * 100;
   ok("shafts about 2%", Math.abs(pct(shafts) - 2) < 0.6, `${pct(shafts).toFixed(2)}%`);
   ok("stairwells about 12%", Math.abs(pct(stairs) - 12) < 1.2, `${pct(stairs).toFixed(2)}%`);
   ok("reading rooms about 2%", Math.abs(pct(studies) - 2) < 0.6, `${pct(studies).toFixed(2)}%`);
+  ok("corridors about 5%", Math.abs(pct(corridors) - 5) < 0.8, `${pct(corridors).toFixed(2)}%`);
   const mean = shelved / galleries;
-  ok("mean shelved walls about 3.07", Math.abs(mean - 3.07) < 0.15, `${mean.toFixed(3)}`);
+  ok("mean shelved walls about 3.14", Math.abs(mean - 3.14) < 0.15, `${mean.toFixed(3)}`);
   ok("a gallery therefore departs from 700 volumes",
      Math.abs(mean * 5 * 35 - 700) > 50, `${Math.round(mean * 5 * 35)} volumes on average`);
+}
+
+section("THE MIRROR -- the one fixture the story argues about");
+{
+  /* Half the reading rooms must be furnished exactly as they were before
+     the mirror existed: studyKit went from eight arrangements to sixteen,
+     and the first eight are the old eight so that key % 16 agrees with
+     key % 8 wherever the index is under 8. */
+  ok("the first eight kits are unchanged",
+     [0,1,2,3,4,5,6,7].every(i => core.studyKit(i) === [1,3,5,7,8,12,6,4][i]),
+     [0,1,2,3,4,5,6,7].map(i => core.studyKit(i)).join(","));
+
+  let studies = 0, withMirror = 0, onlyMirror = 0, corridorMirror = 0, cells = 0;
+  for (let q = -45; q <= 45; q++) for (let r = -45; r <= 45; r++){
+    cells++;
+    const t = core.cellType(q, r);
+    if (t === core.TYPE.STUDY){
+      studies++;
+      const kit = core.studyVisible(q, r, 0);
+      if (kit & core.FURN_MIRROR){ withMirror++; if (kit === core.FURN_MIRROR) onlyMirror++; }
+    }
+    if (t === core.TYPE.CORRIDOR && core.mirrorsIn(q, r, 0).length) corridorMirror++;
+  }
+  ok("a reading room sometimes holds a mirror", withMirror > 0,
+     `${withMirror} of ${studies} (${(withMirror / studies * 100).toFixed(1)}%)`);
+  /* The kit that carries a mirror carries nothing else, so a room with one
+     is a room with one thing in it -- which is the point of it. */
+  ok("and when it does, it holds only the mirror", onlyMirror === withMirror,
+     `${onlyMirror} of ${withMirror}`);
+  /* It hangs flat on the anchor wall, which by construction has no doorway,
+     so the cull that drops furniture blocking a door can never drop it. */
+  ok("the mirror is never culled by a doorway",
+     (() => { for (let q = -45; q <= 45; q++) for (let r = -45; r <= 45; r++){
+        if (core.cellType(q, r) !== core.TYPE.STUDY) continue;
+        const key = core.studyKey(q, r, 0);
+        if ((core.studyKit(key) & core.FURN_MIRROR) &&
+            !(core.studyVisible(q, r, 0) & core.FURN_MIRROR)) return false;
+      } return true; })());
+  ok("mirrorsIn finds them in both kinds of room", corridorMirror > 0 && withMirror > 0,
+     `${corridorMirror} corridors, ${withMirror} reading rooms, ` +
+     `1 cell in ${Math.round(cells / (corridorMirror + withMirror))}`);
+  /* A named piece in a known place, exactly as a seat is: an agent that
+     says it stood in front of a mirror can be checked. */
+  const room = core.findMirror({ seed: 5, maxSteps: 400 });
+  ok("a wander can be sent to find one", room.room !== null, `after ${room.steps} steps`);
+  ok("and what it found really holds one",
+     core.mirrorsIn(room.room.q, room.room.r, room.room.floor).length > 0);
 }
 
 /* ---- MEANING: traversal without a renderer ------------------------- */
@@ -528,21 +581,22 @@ section("PACKED DESC -- the int the shader and the CPU both read");
         const key = core.studyKey(q, r, 0);
         if (core.descKit(core.cellDesc(q, r, 0)) & ~core.studyKit(key)) return false;
       } return true; })());
-  ok("the packing ends at bit 27 and nothing spills past it",
+  ok("the packing ends at bit 28 and nothing spills past it",
      (() => { for (let k = 0; k < 6000; k++){
         const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
-        if (core.cellDesc(q, r, 0) >>> 28) return false;
+        if (core.cellDesc(q, r, 0) >>> 29) return false;
       } return true; })());
   /* A cell is only ever one type, so the corridor's fields sit above the
      study's rather than on top of them. Assert the separation, or a later
      type will alias one of these and the shader will read furniture out of
-     an alcove. */
+     an alcove -- which is exactly what a fifth kit bit would have done had
+     the corridor still started at 22. */
   ok("a corridor's fields do not collide with a reading room's",
      (() => { for (let k = 0; k < 6000; k++){
         const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
         const d = core.cellDesc(q, r, 0), t = core.cellType(q, r);
-        if (t !== core.TYPE.CORRIDOR && (d >>> 22)) return false;
-        if (t === core.TYPE.CORRIDOR && ((d >> 12) & 0x3FF)) return false;
+        if (t !== core.TYPE.CORRIDOR && (d >>> 23)) return false;
+        if (t === core.TYPE.CORRIDOR && ((d >> 12) & 0x7FF)) return false;
       } return true; })());
 }
 

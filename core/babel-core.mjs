@@ -197,8 +197,15 @@ function alcoveAt(q, r, fl, side){
 }
 
 const studyKey = (q,r,fl) => uhash(u32(cellKey(q,r) ^ u32(Math.imul(fl + 32768, 2654435761))));
+/* Sixteen arrangements, and the first eight are the original eight on
+   purpose: key % 16 agrees with key % 8 wherever the index is under 8, so
+   half the reading rooms in the Library are furnished exactly as they were.
+   The new half is where the mirror lives -- three of the sixteen are a
+   mirror and nothing else, which is a room worth walking into and the one
+   Borges fixture the text argues about (LIB-P-023, D-53). The rest repeat
+   existing kits rather than invent combinations nobody asked for. */
 function studyKit(key){
-  return [1,3,5,7,8,12,6,4][key % 8];
+  return [1,3,5,7,8,12,6,4, 16,16,16,1,3,8,12,7][key % 16];
 }
 function studyFit(q, r, fl, i, kit){
   const ax = DIRW[i];
@@ -221,8 +228,12 @@ function studyAnchor(q, r, fl, key){
   }
   return best;
 }
+/* The mirror hangs flat on the anchor wall, which by definition has no
+   doorway in it, so it survives every cull and never stands in anyone's
+   way -- the radius is nominal, enough to be a real piece and not enough
+   to be an obstacle. */
 const FURN = [[1, 1.30,-0.32, 0.44],[2, 1.32, 0.40, 0.26],[4, 1.46, 0.76, 0.21],
-              [8, 1.44, 0.00, 0.60],[8, 1.06, 0.00, 0.25]];
+              [8, 1.44, 0.00, 0.60],[8, 1.06, 0.00, 0.25],[16, 1.79, 0.00, 0.06]];
 function clearOfDoors(q, r, fl, px, pz, rad){
   for (let i = 0; i < 6; i++){
     if (gapAt(q, r, i, fl) === GAP.WALL) continue;
@@ -419,7 +430,8 @@ function describeCell(q, r, fl){
     volumes: walls.length * SHELVES_PER_WALL * BOOKS_PER_SHELF,
     exits: exitsFrom(q, r, fl),
     furniture: t === TYPE.STUDY ? studyItems(q, r, fl).length : 0,
-    alcoves: alcovesIn(q, r, fl)
+    alcoves: alcovesIn(q, r, fl),
+    holds: holdsIn(q, r, fl)
   };
 }
 
@@ -439,15 +451,29 @@ function alcovesIn(q, r, fl){
   }
   return out;
 }
-const mirrorsIn = (q, r, fl) => alcovesIn(q, r, fl).filter(a => a.kind === ALCOVE.MIRROR);
+
+/* What a room holds that is neither a shelf nor a seat, named so a wander
+   can report it. A corridor's alcoves, and a reading room's mirror -- which
+   hangs on the wall rather than standing in a recess, and is the only piece
+   of study furniture listed here because the rest are already reported as
+   furniture and seats. */
+function holdsIn(q, r, fl){
+  const t = cellType(q, r);
+  if (t === TYPE.CORRIDOR) return alcovesIn(q, r, fl).map(a => a.holds);
+  if (t === TYPE.STUDY && (studyVisible(q, r, fl) & FURN_MIRROR)) return ["mirror"];
+  return [];
+}
+const mirrorsIn = (q, r, fl) => holdsIn(q, r, fl).filter(h => h === "mirror");
 
 /* ---- furniture you can sit in -------------------------------------- *
  * "Find a chair, sit and reflect" has to mean something checkable, so a
  * seat is a named piece at a known spot in a known room, not a vibe. Of
  * the four possible pieces only two are sittable: the recliner, and the
  * chair that comes with a desk.                                        */
-const FURN_NAME = { 1: "recliner", 2: "end table", 4: "reading lamp", 8: "desk and chair" };
+const FURN_NAME = { 1: "recliner", 2: "end table", 4: "reading lamp",
+                    8: "desk and chair", 16: "mirror" };
 const SITTABLE = 1 | 8;
+const FURN_MIRROR = 16;
 
 /* Every piece actually present, named and placed. Same kits, same anchor
    and same culling as the renderer, so what is listed is what is drawn
@@ -480,9 +506,9 @@ const seatsIn = (q, r, fl) => studyPieces(q, r, fl).filter(p => p.sittable);
  *   0-11   six gaps, two bits each
  *   12-14  stair axis (2 bits) and rise (1)
  *   15-17  study anchor wall
- *   18-21  study furniture kit surviving the doorway culling
- *   22-23  corridor axis
- *   24-27  what stands in each of its two alcoves, two bits a side
+ *   18-22  study furniture kit surviving the doorway culling (five pieces)
+ *   23-24  corridor axis
+ *   25-28  what stands in each of its two alcoves, two bits a side
  *
  * A cell is only ever one type, so the corridor's fields could have been
  * aliased onto the stairwell's. They are not: 32 bits is not the scarce
@@ -508,9 +534,9 @@ function cellDesc(q, r, fl){
     packed |= studyVisible(q, r, fl) << 18;
   }
   if (t === TYPE.CORRIDOR){
-    packed |= corridorAxis(q, r) << 22;
-    packed |= alcoveAt(q, r, fl, 0) << 24;
-    packed |= alcoveAt(q, r, fl, 1) << 26;
+    packed |= corridorAxis(q, r) << 23;
+    packed |= alcoveAt(q, r, fl, 0) << 25;
+    packed |= alcoveAt(q, r, fl, 1) << 27;
   }
   return packed;
 }
@@ -519,9 +545,9 @@ const descGaps   = d => [0,1,2,3,4,5].map(i => (d >> (i * 2)) & 3);
 const descAxis   = d => (d >> 12) & 3;
 const descRise   = d => ((d >> 14) & 1) ? 1 : -1;
 const descAnchor = d => (d >> 15) & 7;
-const descKit    = d => (d >> 18) & 15;
-const descCorrAxis = d => (d >> 22) & 3;
-const descAlcove   = (d, side) => (d >> (24 + side * 2)) & 3;
+const descKit    = d => (d >> 18) & 31;
+const descCorrAxis = d => (d >> 23) & 3;
+const descAlcove   = (d, side) => (d >> (25 + side * 2)) & 3;
 
 /* ---- a reproducible walk ------------------------------------------- *
  * A wander has to be replayable or it cannot be followed: the point is
@@ -587,7 +613,7 @@ function wander({ q = 0, r = 0, floor = 0, steps = 24, seed = 1 } = {}){
     const entry = { step: n, q: at.q, r: at.r, floor: at.floor, type: here.type,
                     volumes: here.volumes, shelvedWalls: here.shelvedWalls,
                     seats: seatsIn(at.q, at.r, at.floor).map(s => s.piece),
-                    holds: here.alcoves.map(a => a.holds) };
+                    holds: here.holds };
     const mv = walkStep(at, seed, n, cameFrom);
     if (!mv){ trail.push({ ...entry, took: null }); break; }
     entry.took = { via: mv.via, dir: mv.dir, climb: mv.climb, to: mv.to };
@@ -625,7 +651,9 @@ function findMirror({ q = 0, r = 0, floor = 0, seed = 1, maxSteps = 400 } = {}){
     trail: i < 0 ? trail : trail.slice(0, i + 1),
     steps: i < 0 ? trail.length : i,
     room: i < 0 ? null : { q: trail[i].q, r: trail[i].r, floor: trail[i].floor,
-                           alcoves: alcovesIn(trail[i].q, trail[i].r, trail[i].floor) }
+                           type: trail[i].type,
+                           alcoves: alcovesIn(trail[i].q, trail[i].r, trail[i].floor),
+                           holds: holdsIn(trail[i].q, trail[i].r, trail[i].floor) }
   };
 }
 
@@ -782,7 +810,7 @@ export {
   /* constants */
   CORE_VERSION,
   G, P_OPEN, P_SHAFT, P_STAIR, P_STUDY, P_CORR, CRIM, GAP, TYPE, DIRS, DIRW, SQ3,
-  FURN_NAME, SITTABLE, ALCOVE, ALCOVE_NAME, P_ALC_NONE, P_ALC_ONE,
+  FURN_NAME, SITTABLE, FURN_MIRROR, ALCOVE, ALCOVE_NAME, P_ALC_NONE, P_ALC_ONE,
   /* the packed per-cell facts, shared with the shader */
   cellDesc, descGaps, descAxis, descRise, descAnchor, descKit,
   descCorrAxis, descAlcove,
@@ -799,7 +827,8 @@ export {
   /* geometry */
   worldOf, cellOf, sdHexFlat, storeyOf, stairUV, stairTread, corridorUV,
   /* the agent surface */
-  shelvedWalls, galleryCapacity, exitsFrom, describeCell, alcovesIn, mirrorsIn,
+  shelvedWalls, galleryCapacity, exitsFrom, describeCell,
+  alcovesIn, holdsIn, mirrorsIn,
   /* routing: the same topology, searched instead of sampled */
   movesFrom, isStandable, walkGraph, routeTo, routeToShelves,
   someStanding, pickVolume, nodeKey
