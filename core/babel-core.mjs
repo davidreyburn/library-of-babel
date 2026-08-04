@@ -21,7 +21,7 @@
    under one version replays only against that version: a rules change
    must break a replay loudly rather than invalidate it quietly. Bump it
    whenever the lattice, the corpus or the seam changes behaviour. */
-const CORE_VERSION = "0.4.0";
+const CORE_VERSION = "0.5.0";
 
 /* ---- lattice constants (verbatim from the prototype) --------------- */
 const G = {
@@ -52,6 +52,17 @@ const G = {
                          entrance rendered as a wall you could still walk
                          through. The tread is clamped, so the overhang is
                          flat and level with the floor it opens onto. */
+  /* The corridor: the same cut through the rock as the stair, without the
+     climb (LIB-P-020, "narrow"). Same half-width and the same overhang past
+     the boundary, for the same reason the stair needs one. */
+  CORR_HW:   0.62,
+  CORR_EXT:  0.75,
+  /* An alcove is a recess in the corridor wall, not a room: 0.80 m across
+     the opening and 0.62 m deep, which is a closet you can stand in and not
+     one you could lie down in (LIB-P-021, "very small ... sleep standing up"). */
+  ALC_HW:    0.40,
+  ALC_D:     0.62,
+  ALC_H:     2.00,
   H_ROOM:    2.10,
   H_FLOOR:   2.60,
   EYE:       1.60,
@@ -69,9 +80,20 @@ const P_OPEN  = 32768;   // 0.50 * 65536
 const P_SHAFT = 1311;    // 0.02 -- a shaft view in about 1 room in 18
 const P_STAIR = 9175;    // 0.02 + 0.12
 const P_STUDY = 10486;   // + 0.02 -- a reading room, rarely met
+/* The corridor's band is taken from the TOP of the range rather than
+   continued from P_STUDY, and that is deliberate. Continuing the ascending
+   chain makes the type of every gallery a function of where this threshold
+   lands: a 10% band starting at P_STUDY swallows cell 15,94 -- hash lane
+   16563 -- and the crimson volume with it. Taken from the top, the band can
+   be widened or narrowed to taste without moving a single shaft, stairwell,
+   reading room, or the landmark. Only the share of galleries changes.
+   0.05 * 65536 = 3277.                                                    */
+const P_CORR  = 62259;   // 65536 - 3277: a corridor in about 1 cell in 20
 const CRIM = { q: 15, r: 94, floor: 0, wall: 1, shelf: 2, slot: 17 };
 const GAP = { WALL:0, PASSAGE:1, HALL:2, SHAFT:3 };
-const TYPE = { GALLERY:0, SHAFT:1, STAIRWELL:2, STUDY:3 };
+/* CORRIDOR is a room you stand in, unlike the stairwell, which is a move
+   you make. It has two doorways, on its own axis, and no shelves. */
+const TYPE = { GALLERY:0, SHAFT:1, STAIRWELL:2, STUDY:3, CORRIDOR:4 };
 
 /* ---- hashes: bit-identical mirror of the GLSL --------------------- */
 const u32 = x => x >>> 0;
@@ -90,23 +112,89 @@ function cellType(q,r){
   if (h < P_SHAFT) return TYPE.SHAFT;
   if (h < P_STAIR) return TYPE.STAIRWELL;
   if (h < P_STUDY) return TYPE.STUDY;
+  if (h >= P_CORR) return TYPE.CORRIDOR;
   return TYPE.GALLERY;
 }
 /* Footprints of whatever this reading room holds, so you cannot walk through
    the furniture. Same kits, same anchor, same order as the shader.       */
 /* stair axis and rise, mirroring the shader */
+const openGround = t => t === TYPE.GALLERY || t === TYPE.STUDY || t === TYPE.CORRIDOR;
+/* Two passes. The first prefers an axis with a corridor at one end, because
+   the text puts the stairway in the hallway and this is the half of that
+   arrangement which costs nothing: the flight is choosing among axes it
+   would have been happy with anyway. The corridor does the other half by
+   accepting a flight as an end (corridorAxis below). Neither consults the
+   other's axis -- that nesting is what stopped the shader linking. */
 function axisOf(q, r){
   const base = uhash(u32(cellKey(q,r) ^ 0x5bf03635)) % 3;
-  for (let k = 0; k < 3; k++){
-    const a = (base + k) % 3;
-    const ta = cellType(q + DIRS[a][0], r + DIRS[a][1]);
-    const tb = cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]);
-    if ((ta === TYPE.GALLERY || ta === TYPE.STUDY) &&
-        (tb === TYPE.GALLERY || tb === TYPE.STUDY)) return a;
-  }
+  for (let pass = 0; pass < 2; pass++)
+    for (let k = 0; k < 3; k++){
+      const a = (base + k) % 3;
+      const ta = cellType(q + DIRS[a][0],   r + DIRS[a][1]);
+      const tb = cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]);
+      if (!openGround(ta) || !openGround(tb)) continue;
+      if (pass === 0 && ta !== TYPE.CORRIDOR && tb !== TYPE.CORRIDOR) continue;
+      return a;
+    }
   return base;
 }
 const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : -1;
+
+/* ---- the corridor -------------------------------------------------- *
+ * Borges's hallway: the narrow passage between two galleries, holding a
+ * mirror, a latrine and somewhere to sleep standing up (LIB-P-020..023).
+ * It is built like the stairwell -- a cut through solid rock, open only on
+ * its own axis, and those two doorways are structural rather than hashed --
+ * but it has no rise, so it is a place and not a move.
+ *
+ * Its axis is chosen exactly the way a stairwell's is, and deliberately
+ * stays that cheap. The first attempt had it prefer an axis with a flight
+ * at one end *whose own axis agreed*, which meant calling axisOf on a
+ * neighbour from inside a function gapAt calls, which cellDesc calls six
+ * times, which the shader calls for every cell a ray enters. That was
+ * suspected of the 127-second shader link and it was not the cause -- the
+ * cause was two call sites in main(), see §17.13 -- but it is genuinely the
+ * most expensive thing this file could put in gapAt's path, and it was not
+ * buying much.
+ *
+ * What replaced it is one flat pass of plain type tests, and it gets the
+ * same arrangement from the other side: a corridor accepts a flight as an
+ * end, and axisOf prefers an axis with a corridor at one. Measured over a
+ * 91x91 sample, both versions put a flight at the end of 1 corridor in 5.
+ * The cheap one leaves 7.2% of corridors open at one end only, against
+ * 1.3%. That is the price, and §17.13 records that it is now affordable to
+ * pay it back if the dead ends ever grate.                                */
+const corridorEnd = t => t === TYPE.GALLERY || t === TYPE.STUDY || t === TYPE.STAIRWELL;
+function corridorAxis(q, r){
+  const base = uhash(u32(cellKey(q,r) ^ 0x1d3f9a7b)) % 3;
+  for (let k = 0; k < 3; k++){
+    const a = (base + k) % 3;
+    if (corridorEnd(cellType(q + DIRS[a][0],   r + DIRS[a][1])) &&
+        corridorEnd(cellType(q + DIRS[a+3][0], r + DIRS[a+3][1]))) return a;
+  }
+  return base;                         // walled at one or both ends; rare
+}
+
+/* What stands in the two recesses, one to each side at the corridor's
+   midpoint. Both may be empty: most corridors are just a corridor.
+   Floor-dependent, unlike the axis -- the same shaft of rock is cut the
+   same way on every storey, but it is not the same closet ninety floors up.
+   These four numbers are the tuning knobs; nothing else decides how often
+   you meet a mirror. */
+const ALCOVE = { NONE:0, MIRROR:1, LATRINE:2, CLOSET:3 };
+const ALCOVE_NAME = ["nothing", "mirror", "latrine", "empty closet"];
+const P_ALC_NONE = 39322;              // 0.60 of corridors hold nothing
+const P_ALC_ONE  = 58982;              // 0.30 hold one, 0.10 hold a facing pair
+const corrKey = (q,r,fl) => uhash(u32(cellKey(q,r) ^ u32(Math.imul(fl + 32768, 0x7ed55d16))));
+/* side 0 is +v (left, looking uphill along the axis), side 1 is -v */
+function alcoveAt(q, r, fl, side){
+  const k = corrKey(q, r, fl), n = k & 0xFFFF;
+  const count = n < P_ALC_NONE ? 0 : (n < P_ALC_ONE ? 1 : 2);
+  if (count === 0) return ALCOVE.NONE;
+  if (count === 1 && side !== ((k >>> 16) & 1)) return ALCOVE.NONE;
+  /* independent draws, so a facing pair is rarely two of the same thing */
+  return 1 + (uhash(u32(k ^ u32(Math.imul(side + 1, 0x9E3779B9)))) % 3);
+}
 
 const studyKey = (q,r,fl) => uhash(u32(cellKey(q,r) ^ u32(Math.imul(fl + 32768, 2654435761))));
 function studyKit(key){
@@ -188,6 +276,21 @@ function gapAt(cq, cr, i, fl){
   const tc = cellType(cq,cr), tn = cellType(nq,nr);
   if (tc === TYPE.SHAFT && tn === TYPE.SHAFT) return GAP.WALL;
   if (tc === TYPE.STAIRWELL && tn === TYPE.STAIRWELL) return GAP.WALL;
+  if (tc === TYPE.CORRIDOR && tn === TYPE.CORRIDOR) return GAP.WALL;
+  /* A corridor opens only on its own axis, and always, for the same reason
+     the stairwell does: the cut has to arrive at a doorway. Where a corridor
+     meets a flight of stairs both rules are structural, so the edge is open
+     only where the two axes agree -- neither ever contradicts the other. */
+  if (tc === TYPE.CORRIDOR || tn === TYPE.CORRIDOR){
+    if (tc === TYPE.SHAFT || tn === TYPE.SHAFT) return GAP.WALL;
+    const kq = (tc === TYPE.CORRIDOR) ? cq : nq;
+    const kr = (tc === TYPE.CORRIDOR) ? cr : nr;
+    if (i % 3 !== corridorAxis(kq, kr)) return GAP.WALL;
+    const oq = (tc === TYPE.CORRIDOR) ? nq : cq;
+    const or = (tc === TYPE.CORRIDOR) ? nr : cr;
+    if (cellType(oq, or) === TYPE.STAIRWELL && i % 3 !== axisOf(oq, or)) return GAP.WALL;
+    return GAP.PASSAGE;                         // narrow, per LIB-P-020
+  }
   // a stairwell opens only on its own axis, and always -- the flight has to
   // arrive at a doorway on every storey, so these cannot be hashed per floor
   if (tc === TYPE.STAIRWELL || tn === TYPE.STAIRWELL){
@@ -229,6 +332,12 @@ function stairUV(lx, lz, cq, cr){
 function stairTread(u){
   const t = Math.max(0, Math.min(1, (u + G.STAIR_RUN) / (2 * G.STAIR_RUN)));
   return Math.ceil(t * 14) * (G.H_FLOOR / 14);
+}
+/* The same for a corridor, without the sign flip: a corridor has no uphill,
+   so the axis's own direction fixes which side is left. v > 0 is side 0. */
+function corridorUV(lx, lz, cq, cr){
+  const ax = DIRW[corridorAxis(cq, cr)];
+  return [lx*ax[0] + lz*ax[1], -lx*ax[1] + lz*ax[0]];
 }
 
 /* ==================================================================== *
@@ -278,7 +387,7 @@ function galleryCapacity(q, r, fl){
 }
 
 /* ---- traversal, without a renderer -------------------------------- */
-const CELL_TYPE_NAME = ["gallery", "shaft", "stairwell", "study"];
+const CELL_TYPE_NAME = ["gallery", "shaft", "stairwell", "study", "corridor"];
 const GAP_NAME = ["wall", "passage", "hall", "shaft"];
 
 /* Every exit from a cell, and what lies through it. A stairwell is a
@@ -309,9 +418,28 @@ function describeCell(q, r, fl){
     shelvedWalls: walls,
     volumes: walls.length * SHELVES_PER_WALL * BOOKS_PER_SHELF,
     exits: exitsFrom(q, r, fl),
-    furniture: t === TYPE.STUDY ? studyItems(q, r, fl).length : 0
+    furniture: t === TYPE.STUDY ? studyItems(q, r, fl).length : 0,
+    alcoves: alcovesIn(q, r, fl)
   };
 }
+
+/* ---- what a corridor holds ----------------------------------------- *
+ * The counterpart of studyPieces(): a named fixture in a known recess, so
+ * "there is a mirror here" is a claim someone else can stand in front of.
+ * Only the recesses that hold something are listed -- an alcove with
+ * nothing in it is a standing closet, which is a fixture (LIB-P-021), and
+ * an absent alcove is solid rock.                                        */
+function alcovesIn(q, r, fl){
+  if (cellType(q, r) !== TYPE.CORRIDOR) return [];
+  const out = [];
+  for (let side = 0; side < 2; side++){
+    const a = alcoveAt(q, r, fl, side);
+    if (a === ALCOVE.NONE) continue;
+    out.push({ side: side === 0 ? "left" : "right", holds: ALCOVE_NAME[a], kind: a });
+  }
+  return out;
+}
+const mirrorsIn = (q, r, fl) => alcovesIn(q, r, fl).filter(a => a.kind === ALCOVE.MIRROR);
 
 /* ---- furniture you can sit in -------------------------------------- *
  * "Find a chair, sit and reflect" has to mean something checkable, so a
@@ -353,11 +481,19 @@ const seatsIn = (q, r, fl) => studyPieces(q, r, fl).filter(p => p.sittable);
  *   12-14  stair axis (2 bits) and rise (1)
  *   15-17  study anchor wall
  *   18-21  study furniture kit surviving the doorway culling
+ *   22-23  corridor axis
+ *   24-27  what stands in each of its two alcoves, two bits a side
  *
- * The last field is why this matters beyond tidiness. The culling depends
+ * A cell is only ever one type, so the corridor's fields could have been
+ * aliased onto the stairwell's. They are not: 32 bits is not the scarce
+ * resource here, and a reader who has to remember which type a field
+ * belongs to before decoding it is the scarce resource.
+ *
+ * The furniture kit is why this matters beyond tidiness. The culling depends
  * on the cell and never on the sample point, and the shader used to redo
  * it inside the SDF -- about eighty times per pixel, which cost 6.5 ms a
- * frame in a furnished room. It is computed here, once. */
+ * frame in a furnished room. It is computed here, once. The alcoves are
+ * carried for exactly the same reason. */
 function cellDesc(q, r, fl){
   let packed = 0;
   for (let i = 0; i < 6; i++) packed |= gapAt(q, r, i, fl) << (i * 2);
@@ -371,6 +507,11 @@ function cellDesc(q, r, fl){
     packed |= studyAnchor(q, r, fl, key) << 15;
     packed |= studyVisible(q, r, fl) << 18;
   }
+  if (t === TYPE.CORRIDOR){
+    packed |= corridorAxis(q, r) << 22;
+    packed |= alcoveAt(q, r, fl, 0) << 24;
+    packed |= alcoveAt(q, r, fl, 1) << 26;
+  }
   return packed;
 }
 /* the fields, for anyone who would rather not shift bits by hand */
@@ -379,6 +520,8 @@ const descAxis   = d => (d >> 12) & 3;
 const descRise   = d => ((d >> 14) & 1) ? 1 : -1;
 const descAnchor = d => (d >> 15) & 7;
 const descKit    = d => (d >> 18) & 15;
+const descCorrAxis = d => (d >> 22) & 3;
+const descAlcove   = (d, side) => (d >> (24 + side * 2)) & 3;
 
 /* ---- a reproducible walk ------------------------------------------- *
  * A wander has to be replayable or it cannot be followed: the point is
@@ -443,7 +586,8 @@ function wander({ q = 0, r = 0, floor = 0, steps = 24, seed = 1 } = {}){
     const here = describeCell(at.q, at.r, at.floor);
     const entry = { step: n, q: at.q, r: at.r, floor: at.floor, type: here.type,
                     volumes: here.volumes, shelvedWalls: here.shelvedWalls,
-                    seats: seatsIn(at.q, at.r, at.floor).map(s => s.piece) };
+                    seats: seatsIn(at.q, at.r, at.floor).map(s => s.piece),
+                    holds: here.alcoves.map(a => a.holds) };
     const mv = walkStep(at, seed, n, cameFrom);
     if (!mv){ trail.push({ ...entry, took: null }); break; }
     entry.took = { via: mv.via, dir: mv.dir, climb: mv.climb, to: mv.to };
@@ -466,6 +610,22 @@ function findSeat({ q = 0, r = 0, floor = 0, seed = 1, maxSteps = 400 } = {}){
     steps: i < 0 ? trail.length : i,
     room: i < 0 ? null : { q: trail[i].q, r: trail[i].r, floor: trail[i].floor,
                            pieces: studyPieces(trail[i].q, trail[i].r, trail[i].floor) }
+  };
+}
+
+/* The same, for the one fixture the text puts any weight on. The men infer
+   from the mirror that the Library is not infinite; the narrator dreams
+   that it is a promise of the infinite (LIB-P-023, LIB-P-024, D-53).
+   Neither reading is the core's business -- what it owes is a mirror you
+   can be sent to find, and coordinates for the one you found. */
+function findMirror({ q = 0, r = 0, floor = 0, seed = 1, maxSteps = 400 } = {}){
+  const trail = wander({ q, r, floor, steps: maxSteps, seed });
+  const i = trail.findIndex(t => t.holds.includes("mirror"));
+  return {
+    trail: i < 0 ? trail : trail.slice(0, i + 1),
+    steps: i < 0 ? trail.length : i,
+    room: i < 0 ? null : { q: trail[i].q, r: trail[i].r, floor: trail[i].floor,
+                           alcoves: alcovesIn(trail[i].q, trail[i].r, trail[i].floor) }
   };
 }
 
@@ -621,22 +781,25 @@ function pickVolume(q, r, fl, seed){
 export {
   /* constants */
   CORE_VERSION,
-  G, P_OPEN, P_SHAFT, P_STAIR, P_STUDY, CRIM, GAP, TYPE, DIRS, DIRW, SQ3,
-  FURN_NAME, SITTABLE,
+  G, P_OPEN, P_SHAFT, P_STAIR, P_STUDY, P_CORR, CRIM, GAP, TYPE, DIRS, DIRW, SQ3,
+  FURN_NAME, SITTABLE, ALCOVE, ALCOVE_NAME, P_ALC_NONE, P_ALC_ONE,
   /* the packed per-cell facts, shared with the shader */
   cellDesc, descGaps, descAxis, descRise, descAnchor, descKit,
+  descCorrAxis, descAlcove,
   /* wandering */
-  stepHash, throughStairwell, walkStep, wander, findSeat, studyPieces, seatsIn,
+  stepHash, throughStairwell, walkStep, wander, findSeat, findMirror,
+  studyPieces, seatsIn,
   SHELVES_PER_WALL, BOOKS_PER_SHELF, CELL_TYPE_NAME, GAP_NAME,
   SHELF_PITCH, SHELF_BASE, volumeHash, volumePresent, volumeDepth,
   /* hash + topology: the surface that MUST agree with the GLSL */
-  u32, uhash, cellKey, cellType, edgeKey, gapAt, axisOf, riseOf,
+  u32, uhash, cellKey, cellType, edgeKey, gapAt, axisOf, riseOf, openGround,
+  corridorAxis, corridorEnd, corrKey, alcoveAt,
   studyKey, studyKit, studyAnchor, studyFit, studyItems, studyVisible,
   clearOfDoors, FURN,
   /* geometry */
-  worldOf, cellOf, sdHexFlat, storeyOf, stairUV, stairTread,
+  worldOf, cellOf, sdHexFlat, storeyOf, stairUV, stairTread, corridorUV,
   /* the agent surface */
-  shelvedWalls, galleryCapacity, exitsFrom, describeCell,
+  shelvedWalls, galleryCapacity, exitsFrom, describeCell, alcovesIn, mirrorsIn,
   /* routing: the same topology, searched instead of sampled */
   movesFrom, isStandable, walkGraph, routeTo, routeToShelves,
   someStanding, pickVolume, nodeKey

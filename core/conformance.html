@@ -35,11 +35,15 @@ const log = (s, cls = "") => out.insertAdjacentHTML("beforeend",
  * raw because a hash that is off by one bit is the whole failure mode we
  * are hunting; the rest are bitfields.                                 */
 function packCPU(q, r, fl){
+  /* Three bits for the type, not two. At two, the corridor -- type 4 --
+     aliased onto the gallery, and the one lane whose whole job is to catch
+     a disagreement about what a cell IS would have agreed happily while the
+     two sides drew different rooms. */
   const type = cellType(q, r);
-  let g = type & 3;
-  for (let i = 0; i < 6; i++) g |= (gapAt(q, r, i, fl) & 3) << (2 + 2 * i);
-  g |= (axisOf(q, r) & 3) << 14;
-  g |= (riseOf(q, r) > 0 ? 1 : 0) << 16;
+  let g = type & 7;
+  for (let i = 0; i < 6; i++) g |= (gapAt(q, r, i, fl) & 3) << (3 + 2 * i);
+  g |= (axisOf(q, r) & 3) << 15;
+  g |= (riseOf(q, r) > 0 ? 1 : 0) << 17;
   let edges = 0;
   for (let i = 0; i < 6; i++) edges = u32(edges ^ edgeKey(q, r, i, fl));
   /* the fourth lane is now the real packed desc -- gaps, stair axis and
@@ -71,10 +75,10 @@ void main(){
   int fl = cell.z;
 
   int type = cellType(c);
-  uint g = uint(type & 3);
-  for (int i = 0; i < 6; i++) g |= uint(gapAt(c, i, fl) & 3) << uint(2 + 2 * i);
-  g |= uint(axisOf(c) & 3) << 14u;
-  g |= uint(riseOf(c) > 0.0 ? 1 : 0) << 16u;
+  uint g = uint(type & 7);
+  for (int i = 0; i < 6; i++) g |= uint(gapAt(c, i, fl) & 3) << uint(3 + 2 * i);
+  g |= uint(axisOf(c) & 3) << 15u;
+  g |= uint(riseOf(c) > 0.0 ? 1 : 0) << 17u;
 
   uint edges = 0u;
   for (int i = 0; i < 6; i++) edges ^= edgeKey(c, i, fl);
@@ -146,7 +150,7 @@ void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
   gl.readPixels(0, 0, N, 1, gl.RGBA_INTEGER, gl.UNSIGNED_INT, got);
 
   const LANES = ["cellKey", "type+gaps+axis+rise", "edgeKeys xor",
-                 "packed desc (gaps+stair+anchor+culled kit)"];
+                 "packed desc (gaps+stair+anchor+culled kit+corridor alcoves)"];
   const bad = [];
   cells.forEach((c, i) => {
     const want = packCPU(c.q, c.r, c.floor);

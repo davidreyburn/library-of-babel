@@ -49,7 +49,7 @@ case "here": {
   if (JSONOUT) return out({ ...d, address: text.cellAddress(c.q, c.r, c.floor) });
   out(`${text.cellAddress(c.q, c.r, c.floor)}
   a ${d.type}${d.volumes ? `, ${d.volumes} volumes on ${d.shelvedWalls.length} shelved walls` : ", no shelves"}
-${d.furniture ? "  furniture: " + core.studyPieces(c.q, c.r, c.floor).map(p => p.piece + (p.sittable ? " (you can sit)" : "")).join(", ") + "\n" : ""}  exits:
+${d.furniture ? "  furniture: " + core.studyPieces(c.q, c.r, c.floor).map(p => p.piece + (p.sittable ? " (you can sit)" : "")).join(", ") + "\n" : ""}${d.alcoves.length ? "  alcoves: " + d.alcoves.map(a => `${a.holds} on the ${a.side}`).join(", ") + "\n" : ""}  exits:
 ${d.exits.map(e => `    wall ${e.dir}  ${e.via.padEnd(8)} to ${e.to.q},${e.to.r}` +
    `  a ${e.type}${e.climbs ? ` (a flight ${e.climbs > 0 ? "up" : "down"})` : ""}` +
    `${e.crossable ? "" : "  -- cannot be crossed"}`).join("\n") || "    none"}`);
@@ -129,7 +129,8 @@ case "wander": {
     const took = s.took ? `-> ${s.took.via}${s.took.climb ? (s.took.climb > 0 ? " up" : " down") : ""}` : "(stopped)";
     out(`${String(s.step).padStart(3)}  ${s.type.padEnd(9)} ${(s.cell.q + "," + s.cell.r).padEnd(9)} ` +
         `fl ${String(s.cell.floor).padStart(3)}  ${String(s.volumes).padStart(4)} vols` +
-        `${s.seats.length ? "  [" + s.seats.join(",") + "]" : "        "}  ${took}`);
+        `${s.seats.length ? "  [" + s.seats.join(",") + "]"
+          : s.holds.length ? "  [" + s.holds.join(",") + "]" : "        "}  ${took}`);
     for (const b of s.shelves) out(`       ${b.uri}\n         spine ${b.spine}`);
   }
   break;
@@ -145,6 +146,16 @@ case "seat": {
   break;
 }
 
+case "mirror": {
+  const c = cell(flag("from", "0,0,0"));
+  const m = text.walkToAMirror({ ...c, route: Number(flag("route", 1)) });
+  if (JSONOUT) return out(m);
+  if (!m.found) return out(`no mirror within ${m.trail.length} steps on route ${m.route}`);
+  out(`a mirror after ${m.steps} steps\n  ${m.room.at}\n  the corridor holds ` +
+      m.room.alcoves.map(a => `${a.holds} on the ${a.side}`).join(", "));
+  break;
+}
+
 default:
   out(`the Library of Babel, from a command line
 
@@ -156,6 +167,7 @@ default:
   verify   <babel://...> <page> <line> <col> <quote>
   wander   [--from q,r,fl] [--route n] [--steps n] [--take n]
   seat     [--from q,r,fl] [--route n]
+  mirror   [--from q,r,fl] [--route n]     walk until a corridor holds one
 
   --json on any command for machine-readable output.
 

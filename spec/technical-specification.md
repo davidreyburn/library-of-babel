@@ -27,7 +27,7 @@ Every requirement below carries a traceability note in the form *[src: …]* poi
 | **Book** | An ordered sequence of exactly 1,312,000 symbols, plus a spine label. |
 | **Slot** | A physical position on a shelf holding exactly one book. |
 | **Hexagon** / **Gallery** | The unit room. Six walls, four shelved. |
-| **Hallway** | The connecting passage between two hexagons; contains closets, stairway, mirror. |
+| **Hallway** | The connecting passage between two hexagons; contains closets, stairway, mirror. Built as the **corridor** cell — see §17.13. |
 | **Circuit** | A connected chain of hexagons on one floor. *[src: "circuit fifteen ninety-four"]* |
 | **Address** | The tuple that uniquely identifies a slot in the lattice. |
 | **Index** | The integer in `[0, N)` naming a book's content. |
@@ -186,11 +186,15 @@ This is the section on which the feasibility of the entire system turns.
 
 ### 9.3 Hallway
 
-- **LIB-P-020** Each hallway MUST be narrow and MUST open onto a gallery identical to every other. *[src]*
-- **LIB-P-021** Each hallway MUST contain two very small closets, left and right: one permitting sleep **standing up**, one for sanitation. *[src]*
-- **LIB-P-022** Each hallway MUST contain a spiral stairway passing through it, descending and ascending without terminus. *[src]*
-- **LIB-P-023** Each hallway MUST contain a mirror that faithfully duplicates all appearances. *[src]*
-- **LIB-P-024** The mirror's presence MUST NOT be taken to settle the question of the Library's extent. The source records the inference and the narrator's dissent without resolving it; the mirror is a specified fixture, not a diagnostic instrument. *[src]*
+*Built as of §17.13, with the deviations recorded there: the fixtures are
+occasional rather than universal, and the stairway is next door rather than
+inside.*
+
+- **LIB-P-020** Each hallway MUST be narrow and MUST open onto a gallery identical to every other. *[src]* — **built**, 1.24 m wide.
+- **LIB-P-021** Each hallway MUST contain two very small closets, left and right: one permitting sleep **standing up**, one for sanitation. *[src]* — **built as alcoves**, but not in every hallway; see §17.13.
+- **LIB-P-022** Each hallway MUST contain a spiral stairway passing through it, descending and ascending without terminus. *[src]* — **deviated** (T-4, T-6): the flight has its own cell, and is at one end of about 1 hallway in 5.
+- **LIB-P-023** Each hallway MUST contain a mirror that faithfully duplicates all appearances. *[src]* — **built**, as a true single-bounce reflection, in about 1 hallway in 5.
+- **LIB-P-024** The mirror's presence MUST NOT be taken to settle the question of the Library's extent. The source records the inference and the narrator's dissent without resolving it; the mirror is a specified fixture, not a diagnostic instrument. *[src]* — **held**: one bounce, so a facing pair doubles the corridor and then stops.
 
 ### 9.4 Shafts
 
@@ -323,21 +327,26 @@ its layout — see §18.
 | # | Deviation | Reason |
 |---|---|---|
 | T-1 | Wall degree is variable, not exactly two (LIB-A-001) | Two open walls is 2-regular, and every component of a 2-regular graph is a cycle. Strict fidelity yields disjoint circuits and can never yield a network: no junctions, no dead ends. |
-| T-2 | Four cell types: gallery, shaft, stairwell, reading room | Borges has only galleries. Stairs and wells need their own volumes if they are not to eat the rooms. |
-| T-3 | A gap is only ever a *passage* or a *hall*; what varies is the destination | Matches how buildings work, and keeps the grammar legible. |
+| T-2 | Five cell types: gallery, shaft, stairwell, reading room, corridor | Borges has only galleries. Stairs, wells and hallways need their own volumes if they are not to eat the rooms. |
+| T-3 | A gap is only ever a *passage* or a *hall*; what varies is the destination | Matches how buildings work, and keeps the grammar legible. Note that a *hall* is a wide doorway and a *corridor* is a room; they are different things. |
 | T-4 | Stairs occupy cells, not wall gaps | A 2.60 m rise needs more run than the 1.20 m of wall between cavities. As an edge feature it punched 0.7 m into both galleries. |
 | T-5 | Reading rooms exist at all | An intentional break with the text — see §17.4. |
+| T-6 | The hallway is a cell too, and it does not contain the stairway | Same reason as T-4: the closets and the mirror need floor area a wall gap does not have. The flight is often at the end of one instead — see §17.13. |
 
 **Measured lattice parameters.** Openness 0.50, shafts 0.02, stairwells 0.12,
-reading rooms 0.02. Over a 91×91 sample: gallery giant component **0.90**,
-mean shelved walls **3.07** (against 4 in the text), a stairwell within 4
-rooms at the 90th percentile, a shaft in view from about **1 room in 17**, a
-reading room about **1 cell in 48**.
+reading rooms 0.02, corridors 0.05. Over a 91×91 sample: giant component
+**0.96** of standable cells, mean shelved walls **3.14** (against 4 in the
+text), a shaft in view from about **1 room in 17**, a reading room about **1
+cell in 48**, a corridor about **1 cell in 22**.
 
 Openness is forced upward by T-4: a stairwell is a *vertical* link and
 carries no same-floor traffic, so the galleries must percolate on their own.
 That is the direct cost of keeping stairs out of the rooms, and it is why
-mean shelved walls sits at 3.07 rather than 4.
+mean shelved walls sits near 3 rather than 4. The corridor does not add to
+that cost — it is a lateral link like any room — and in fact lifts the mean
+slightly, from 3.08 to 3.14, because a wall facing a corridor opens on the
+corridor's axis (one chance in three) where a hashed wall opens one time in
+two.
 
 ### 17.2 Geometry as built
 
@@ -466,9 +475,9 @@ enumeration of it. Uniqueness and totality (LIB-C-020, LIB-C-021) are
 unaffected — they hold in the corpus, by construction, as §6.2 intends.
 
 A walk address is also **falsifiable**, which is the property that matters for
-agents: a wall that is a doorway carries no books, and a shaft, a stairwell
-and a reading room hold no shelves at all. `validate()` in the core rejects
-all four, so a claimed coordinate can be checked rather than trusted.
+agents: a wall that is a doorway carries no books, and a shaft, a stairwell,
+a reading room and a corridor hold no shelves at all. `validate()` in the core
+rejects all five, so a claimed coordinate can be checked rather than trusted.
 
 ### 17.8 A Third Way In: Being Turned Loose
 
@@ -767,6 +776,144 @@ checked before the change rather than hoped. Widening later would have cost more
 and never widening would have left a defect that is observable from inside the
 Library by anyone who walked 170 galleries.
 
+### 17.13 The Corridor, and What It Holds
+
+**Implements §9.3, which had been specified and not built.** A fifth cell
+type: Borges's hallway, the narrow passage between galleries, with a mirror,
+a latrine and somewhere to sleep standing up.
+
+It is built like the stairwell — a cut through solid rock, open only on its
+own axis, and those two doorways structural rather than hashed — but it has
+no rise, so **a corridor is a place and a stairwell is a move**. You stand in
+one and choose again. Rooms remain the nodes of §17.11's model and the
+corridor is simply another node, which is why `movesFrom`, `walkGraph`,
+`routeTo` and `wander` needed no changes at all.
+
+| | |
+|---|---|
+| Corridor | 1.24 m wide, ceiling at 2.10 m as everywhere else, running the full 4.84 m of the cell and 0.75 m past each boundary to meet the gallery's doorway |
+| Alcoves | one facing pair at midspan, 0.80 m across the opening, 0.62 m deep, 2.00 m high — a closet to stand in, not to lie down in |
+| Holds | a mirror, a latrine, or nothing, which is the standing closet |
+| How often | 56.6% of corridors are bare, 30.3% hold one, 13.0% a facing pair |
+
+**Where the band came from.** The corridor's slice of the hash range is taken
+from the *top* rather than continued upward from the reading room's
+threshold. Continued, the type of every gallery becomes a function of where
+that threshold lands: a 10% band starting at `P_STUDY` swallows cell 15,94 —
+hash lane 16563 — and the crimson volume with it. Taken from the top, the
+share can be tuned without moving a single shaft, stairwell, reading room, or
+the landmark. A test asserts the crimson volume is still a shelved slot.
+
+**The stairway in the hallway, arrived at sideways.** LIB-P-022 puts the
+flight inside the hallway; T-4 has already given flights their own cells, so
+the nearest available arrangement is a flight at the end of a corridor. Two
+rules meet in the middle: a corridor will accept a stairwell as an end, and
+`axisOf` prefers an axis with a corridor at one. Neither consults the other's
+axis. That gets a flight at the end of **1 corridor in 5.1**, against 1 in 47
+when the two types are indifferent to each other.
+
+A richer version of that rule was written first and does not ship. It had the
+corridor prefer an axis with a flight *whose own axis agreed*, which reads as
+the obvious rule and leaves only 1.3% of corridors open at one end instead of
+7.2%. It also called `axisOf` on a neighbour from inside `corridorAxis` —
+which `gapAt` calls, which `cellDesc` calls six times, which the shader calls
+for every cell a ray enters. When the shader stopped linking, that was the
+obvious suspect and it was wrong: see below. The cheap rule was kept anyway,
+because it is the right shape for something on `gapAt`'s path and it costs
+one flat pass, but **restoring the richer rule is now affordable** if 7.2%
+dead ends ever grate.
+
+**What actually stopped the shader linking, and how it was found.** The GLSL
+compiled in 17 ms; the linker then ran for **127 seconds** and returned false
+with an empty info log. Nothing reported an error — the page simply froze,
+and after a few reloads Chrome disabled WebGL for the whole session, which
+presents as a broken machine rather than a broken change.
+
+The cause was **two call sites**. The mirror was written the obvious way:
+march, shade, and if the surface was a mirror, march and shade again. ANGLE
+inlines, so `main()` ended up holding two copies of a body that already
+contains `mapAt` eight times over — once for the march, four for the normal,
+three for the ambient term — plus `lighting()`. Removing the second bounce
+made the link instant; stubbing out the suspected axis rule did not, and nor
+did stubbing `studyAnchorAt` out of `lighting()`, which had looked like the
+other candidate.
+
+The fix is that the bounce is now a **loop**, and `uBounce` is a *uniform*
+rather than the constant 2, because a compiler cannot unroll a loop whose
+bound it does not know. One call site; nothing else about the render changed.
+
+Two smaller lessons are worth keeping. A bisection that disables code with a
+runtime `if` proves nothing — the compiler still emits it, and the first
+attempt here did exactly that and cleared an innocent suspect. And the timer
+must span `getProgramParameter(LINK_STATUS)`, not just `linkProgram`: ANGLE
+defers the real work, so timing only the first call reported **0.0 s** for a
+link that had just hung the tab for ninety seconds. The link step now times
+the pair and prints the elapsed time when the driver has nothing to say.
+
+**The mirror costs nothing until you look at one.** Measured at 1550×889 by
+timing 24 draws against a `readPixels` sync, since the display is vsync-locked
+at 50 Hz and frame time cannot see it:
+
+| | one ray | with the bounce |
+|---|---|---|
+| Standing in a gallery, no mirror in view | 6.67 ms | **6.67 ms** |
+| Facing a mirror at arm's length, filling much of the frame | 3.61 ms | **4.29 ms** (+19%) |
+
+The loop breaks after its first pass on every pixel that is not a mirror,
+which is almost all of them. And that the reflection is real was checked by
+probing the renderer rather than by eye, as in §17.9: with the bounce off, the
+mirror is a flat dark pane; with it on, **68.1%** of the pixels across the
+alcove change and mean luma goes from 11.7 to 18.3. In a corridor whose other
+alcove holds the latrine, what appears in the glass is the latrine.
+
+**Measured** over a 91×91 sample on floor 0, and over 200 seeded routes:
+
+| | |
+|---|---|
+| Corridors | 4.5% of cells — about 1 in 22 |
+| Two-ended / one-ended / sealed | **92.6% / 7.2% / 0.3%** |
+| With a flight at one end | **19.7%**, 1 in 5.1 |
+| Holding a mirror | 18.4% of corridors — **1 cell in 120** |
+| Met on a wander | a corridor on 176 of 200 routes, median step 25; a mirror on 126 of 200, median step 87 |
+| Giant component | 0.96 of standable cells, against 0.97 before |
+| Mean shelved walls | 3.14, against 3.08 before |
+| `routeToShelves` | arrived 197 of 200, median 12 rooms |
+
+**The mirror is a real reflection.** One bounce, marched and shaded through
+the same code path as the primary ray — `main()` was split into `marchRay`
+and `shadeHit` for exactly this, because a reflection shaded by a second code
+path is a reflection that does not match the room, and duplicating
+appearances faithfully is the one thing LIB-P-023 asks. A mirror facing a
+mirror therefore shows the corridor doubled and then terminates in a dark
+pane, which is what a facing pair really looks like a few reflections in, and
+is as much as LIB-P-024 permits it to settle. What it cost, and how the
+reflection was verified, is below.
+
+**What you can get into.** The alcoves are void in the collision field, not
+just in the render, and the fixtures are solid. Probing the field along the
+cross-axis: you can stand 0.38 m from the back of an empty closet — which is
+what sleeping standing up requires (LIB-P-021) — and step up to within 0.3 m
+of a mirror, while a latrine lets you reach its mouth and no further. The
+corridor itself is continuous end to end and out through both doorways.
+
+**What this does to existing citations.** Less than the key widening did
+(§17.12), and in a different way. `walkKey` is a function of the cell key,
+the floor, the slot and the seed — it reads no topology at all — so **no
+address that remains valid names a different book**. What changes is
+validity, and it fails loudly:
+
+- 5.4% of galleries are now corridors, and hold no books at all;
+- of the galleries that stay galleries, **3.1% of wall slots** change verdict
+  between shelved and doorway, touching **16.8%** of them;
+- an address on a wall that closed is refused with its reason; an address
+  anywhere else verifies exactly as before;
+- every room address still names somewhere you can stand;
+- wander and route seeds give different journeys, so the figures in §17.11
+  were re-measured above.
+
+`CORE_VERSION` is **0.5.0**. A transcript recorded under 0.4.0 replays only
+against 0.4.0, which is what that stamp is for.
+
 ---
 
 ## 18. Reproducing the Layout Elsewhere
@@ -780,8 +927,9 @@ That requires pinning, to the bit:
 
 1. The integer hash and every constant fed to it.
 2. Cell-type thresholds and the axial hex lattice mapping.
-3. Gap resolution, including the stairwell's always-open axis rule and the
-   reading room's kit and anchor rules.
+3. Gap resolution, including the stairwell's and the corridor's always-open
+   axis rules, the reading room's kit and anchor rules, and which alcove of a
+   corridor holds what.
 4. The address ordering — which volume is "shelf 2, slot 17" — and the
    base-25 expansion that turns an address into text (§6.2).
 5. A table of test vectors, so any implementation can prove it agrees.

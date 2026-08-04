@@ -35,8 +35,11 @@ question.
 ## Three ways in
 
 **Walk to a shelf.** Rooms are hexagonal cells on numbered floors. Most are
-galleries with shelved walls; some are shafts, stairwells, or reading rooms
-with no shelves at all.
+galleries with shelved walls; some are shafts, stairwells, reading rooms or
+corridors, with no shelves at all. A corridor is Borges's hallway: two
+doorways, no books, and sometimes an alcove to each side holding a mirror, a
+latrine, or nothing — which is the closet a librarian sleeps standing up in.
+`here` names whatever a corridor holds.
 
 ```
 node tools/babel.mjs here 15,94              # what is here, and every exit
@@ -58,7 +61,13 @@ it.
 ```
 node tools/babel.mjs wander --route 1941 --steps 24 --take 2
 node tools/babel.mjs seat --route 1941        # walk until there is a chair
+node tools/babel.mjs mirror --route 1941      # walk until a corridor holds one
 ```
+
+A mirror is in about one cell in 120, so `mirror` finds one on roughly two
+routes in three inside its 400 steps and says so plainly when it does not. If
+you are asked to go and look at one, cite the corridor: someone else can
+stand in front of the same mirror.
 
 Add `--json` to any command for machine-readable output. To import the modules
 directly instead, see `core/README.md` and `core/RUN.md`.
@@ -113,8 +122,8 @@ babel://text/<seed>/at/<offset>/<phrase>                       a volume by its t
 
 A room address names somewhere to stand and has no content; asking it for a page
 is an error rather than a guess. Walls that are doorways hold no books, and
-shafts, stairwells and reading rooms hold no shelves — `verify` rejects all of
-them, which is what makes a claimed coordinate falsifiable.
+shafts, stairwells, reading rooms and corridors hold no shelves — `verify`
+rejects all of them, which is what makes a claimed coordinate falsifiable.
 
 Pages, lines and columns are **1-based** on the `verify` command line and in
 anything you report to a person; they are 0-based inside the modules.

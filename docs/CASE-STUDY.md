@@ -97,11 +97,11 @@ being an accident.
 
 ---
 
-## Part three — nine bugs, and how each was actually found
+## Part three — ten bugs, and how each was actually found
 
 This is the useful part of the record. In every case the method that found it was
 the same: **measure the thing, or probe the thing, rather than reason about it.**
-In three cases my confident reasoning was simply wrong.
+In four cases my confident reasoning was simply wrong.
 
 ### 1. Mouse capture — a guess stated as fact, then the real answer
 
@@ -379,6 +379,82 @@ conformance harness and 119 assertions all passed while the Library was a
 four-billionth of the size it claimed. Every one of them checked that the thing
 was *self-consistent*. None asked how big it was. The question came from outside,
 and the honest answer required arithmetic nobody had done.
+
+### 10. A shader that compiled in 17 ms and would not link in 127 seconds
+
+Session three added the corridor — Borges's hallway, the fifth cell type, with
+a mirror and a latrine in alcoves off it (spec §17.13). The lattice work went in
+cleanly and the tests were green. Then the page froze.
+
+Not crashed. Froze: a blank canvas, a veil still saying *click to enter*, and a
+JavaScript main thread that would not answer for 45 seconds at a time. Reloading
+made it worse, and after the third attempt Chrome disabled WebGL for the whole
+session, so even a fresh tab reported *WebGL2 unavailable* — which reads like a
+machine problem and is not one.
+
+Two failures were tangled together, and separating them was the whole job.
+
+The first was mine and stupid: a comment I wrote inside the fragment shader's
+template literal contained a pair of backticks, which closed the string. 153,000
+characters of JavaScript stopped parsing. The symptom is indistinguishable from
+the second failure — a page that loads, styles itself, and never starts — and I
+spent two reloads on the wrong theory before checking. `new Function(script)`
+over the file finds it in a millisecond, and there is now an assertion that does
+exactly that on every test run.
+
+The second was real. I instrumented the link step rather than guessing again:
+
+```
+compile   16.8 ms
+link     127362.9 ms   ->  false, and getProgramInfoLog() returned ""
+```
+
+An empty log after two minutes is an inlining blow-up, and I had an obvious
+suspect. The corridor picked its axis by preferring one with a flight of stairs
+at the end *whose own axis agreed*, so `corridorAxis` called `axisOf` on a
+neighbour — and `gapAt` calls `corridorAxis`, `cellDesc` calls `gapAt` six
+times, and the shader calls `cellDesc` for every cell every ray enters. That is
+a genuinely bad thing to put on that path, so I replaced it with a flat pass of
+type comparisons that buys the same arrangement from the other side: the
+corridor accepts a flight as an end, and the *stair* prefers an axis with a
+corridor at one. Both versions put a flight at the end of 1 corridor in 5.
+
+**It was still broken.** 140.9 seconds. My suspect was innocent, and so was the
+second one — I stubbed `studyAnchorAt` out of `lighting()`, on the theory that
+126 inlined copies of a now-larger `gapAt` was the multiplier, and that changed
+nothing either.
+
+The cause was **two call sites**. I had written the mirror the obvious way:
+march, shade, and if the surface was a mirror, march and shade again. ANGLE
+inlines, so `main()` held two copies of a body that already contains `mapAt`
+eight times over — once for the march, four for the normal, three for the
+ambient term — plus `lighting()`. Deleting the second bounce made the link
+instant. The fix was not to delete it but to make it a **loop**, with the bounce
+count passed as a *uniform* rather than the constant 2, because a compiler
+cannot unroll a loop whose bound it does not know. One call site, same picture,
+and it links.
+
+**Four things I would keep.** My first bisection was worthless: I disabled the
+reflection with a runtime `if`, which changes nothing about what the compiler
+emits, and it cleared a suspect that was in fact guilty. Guarding code at
+runtime does not remove it. Second, both of my confident diagnoses were wrong
+and the third guess was right only because I had finally made each test remove
+real code. Third, my instrument lied to me once before it helped: timing
+`linkProgram` alone reported **0.0 s** for a link that had just hung the tab for
+ninety seconds, because ANGLE defers the work to the `LINK_STATUS` query. An
+instrument you have not checked is a confident source of wrong numbers. Fourth,
+and the reason this section exists: **a link failure is allowed to be silent,
+and a frozen page looks exactly like a broken machine** — after three reloads
+Chrome disabled WebGL for the entire session, which sent me hunting a hardware
+problem that did not exist. The link step now times the right pair of calls and
+prints the elapsed time when the driver has nothing to say.
+
+The reflection ended up costing nothing where nobody is looking at a mirror —
+6.67 ms either way in a gallery — and +19% on a frame filled with one. Verified
+by pixel probe rather than by eye: with the bounce off the glass is a flat dark
+pane, with it on 68% of the pixels across the alcove change, and in a corridor
+whose opposite alcove holds the latrine, what appears in the glass is the
+latrine.
 
 ---
 
@@ -757,8 +833,15 @@ Worth doing from the other side:
 
 ## Where it stands, and what is left
 
-Green: 124 core assertions, 41 gates, 484 GPU integers, build current. Walking
-somewhere on purpose works 98.8% of the time and says why when it does not.
+Green: 129 core assertions, 41 gates, 500 GPU integers, build current. Walking
+somewhere on purpose arrives 197 times in 200 and says why when it does not.
+
+The corridor closes §9.3, the last part of the specification that was written
+and not built: the hallway is now a cell type, 1 in 22, with a mirror, a latrine
+or a standing closet in alcoves off it, and a flight of stairs at the end of 1 in
+5. LIB-P-020, 021, 023 and 024 are met; LIB-P-022 — the stairway *inside* the
+hallway — remains deviated for the same reason stairs got their own cells in the
+first place.
 
 Open, in rough order of value:
 
@@ -774,8 +857,11 @@ Open, in rough order of value:
 3. **Rung 6 with a real policy** — point a language model at the seam and read
    its integrity. Everything it needs exists; that number is the first one that
    would say something nobody in this project knows yet.
-4. The hallway mirror (D-53), and a Three.js port if a durable build is ever
-   wanted.
+4. **Tune how often a mirror turns up.** One cell in 120 is the first guess, not
+   a measured answer to anything. Two of three wandering routes meet one inside
+   400 steps, at a median of 87. The three frequencies that decide it are named
+   constants in `babel-core.mjs` and moving them moves nothing else.
+5. A Three.js port, if a durable build is ever wanted.
 
 ---
 

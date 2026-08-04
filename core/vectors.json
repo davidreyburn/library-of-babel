@@ -9,7 +9,10 @@
   "P_OPEN": 32768,
   "P_SHAFT": 1311,
   "P_STAIR": 9175,
-  "P_STUDY": 10486
+  "P_STUDY": 10486,
+  "P_CORR": 62259,
+  "P_ALC_NONE": 39322,
+  "P_ALC_ONE": 58982
  },
  "topology": [
   {
@@ -34,6 +37,12 @@
     1,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1346,
    "cellKey": 1085476921,
    "edgeKeys": [
     3322679751,
@@ -42,6 +51,146 @@
     2902855688,
     702437272,
     139389130
+   ]
+  },
+  {
+   "q": -2,
+   "r": -2,
+   "floor": 0,
+   "type": 4,
+   "gaps": [
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "axis": 2,
+   "rise": 1,
+   "studyKeyMod8": 5,
+   "studyKit": 12,
+   "studyAnchor": -1,
+   "shelvedWalls": [],
+   "corridorAxis": 2,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 8389648,
+   "cellKey": 4116463384,
+   "edgeKeys": [
+    1519092585,
+    1413847975,
+    3259173632,
+    1162223799,
+    1947961050,
+    3625622915
+   ]
+  },
+  {
+   "q": -2,
+   "r": -2,
+   "floor": -2,
+   "type": 4,
+   "gaps": [
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "axis": 2,
+   "rise": 1,
+   "studyKeyMod8": 6,
+   "studyKit": 6,
+   "studyAnchor": -1,
+   "shelvedWalls": [],
+   "corridorAxis": 2,
+   "alcoves": [
+    1,
+    0
+   ],
+   "desc": 25166864,
+   "cellKey": 4116463384,
+   "edgeKeys": [
+    1012296906,
+    573447571,
+    4139487755,
+    922310764,
+    3342688383,
+    2832036174
+   ]
+  },
+  {
+   "q": -2,
+   "r": -2,
+   "floor": 2,
+   "type": 4,
+   "gaps": [
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "axis": 2,
+   "rise": 1,
+   "studyKeyMod8": 3,
+   "studyKit": 7,
+   "studyAnchor": -1,
+   "shelvedWalls": [],
+   "corridorAxis": 2,
+   "alcoves": [
+    0,
+    2
+   ],
+   "desc": 142607376,
+   "cellKey": 4116463384,
+   "edgeKeys": [
+    246934049,
+    3763509383,
+    502122131,
+    259817706,
+    965070128,
+    3151793900
+   ]
+  },
+  {
+   "q": -5,
+   "r": -2,
+   "floor": 0,
+   "type": 4,
+   "gaps": [
+    0,
+    1,
+    0,
+    0,
+    1,
+    0
+   ],
+   "axis": 1,
+   "rise": 1,
+   "studyKeyMod8": 6,
+   "studyKit": 6,
+   "studyAnchor": -1,
+   "shelvedWalls": [],
+   "corridorAxis": 1,
+   "alcoves": [
+    2,
+    3
+   ],
+   "desc": 239075588,
+   "cellKey": 4103917731,
+   "edgeKeys": [
+    2134196008,
+    4057346440,
+    2610299591,
+    3771315593,
+    3035491645,
+    2543891230
    ]
   },
   {
@@ -63,6 +212,12 @@
    "studyKit": 3,
    "studyAnchor": 5,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 688533,
    "cellKey": 646653579,
    "edgeKeys": [
     3367830259,
@@ -77,27 +232,27 @@
    "q": -128,
    "r": -128,
    "floor": -3,
-   "type": 0,
+   "type": 4,
    "gaps": [
-    0,
     0,
     0,
     1,
     0,
-    0
+    0,
+    1
    ],
    "axis": 2,
    "rise": 1,
    "studyKeyMod8": 4,
    "studyKit": 8,
    "studyAnchor": -1,
-   "shelvedWalls": [
-    0,
+   "shelvedWalls": [],
+   "corridorAxis": 2,
+   "alcoves": [
     1,
-    2,
-    4,
-    5
+    0
    ],
+   "desc": 25166864,
    "cellKey": 4233063759,
    "edgeKeys": [
     2149564083,
@@ -130,6 +285,12 @@
     1,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1345,
    "cellKey": 1536502740,
    "edgeKeys": [
     2852222046,
@@ -165,6 +326,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1024,
    "cellKey": 825487793,
    "edgeKeys": [
     1022556452,
@@ -200,6 +367,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 16,
    "cellKey": 3264207640,
    "edgeKeys": [
     841608858,
@@ -232,6 +405,12 @@
     0,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1608,
    "cellKey": 3354416729,
    "edgeKeys": [
     1277794580,
@@ -265,6 +444,12 @@
     1,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2944,
    "cellKey": 1624414961,
    "edgeKeys": [
     2189926359,
@@ -279,13 +464,13 @@
    "q": -60,
    "r": 167,
    "floor": 1,
-   "type": 0,
+   "type": 4,
    "gaps": [
+    1,
+    0,
     0,
     1,
     0,
-    1,
-    1,
     0
    ],
    "axis": 2,
@@ -293,11 +478,13 @@
    "studyKeyMod8": 1,
    "studyKit": 3,
    "studyAnchor": -1,
-   "shelvedWalls": [
-    0,
+   "shelvedWalls": [],
+   "corridorAxis": 0,
+   "alcoves": [
     2,
-    5
+    2
    ],
+   "desc": 167772225,
    "cellKey": 4098492759,
    "edgeKeys": [
     1685303035,
@@ -318,7 +505,7 @@
     0,
     1,
     1,
-    0,
+    1,
     1
    ],
    "axis": 1,
@@ -327,9 +514,14 @@
    "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [
-    1,
-    4
+    1
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1361,
    "cellKey": 843867057,
    "edgeKeys": [
     1444237202,
@@ -361,6 +553,12 @@
    "shelvedWalls": [
     1
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1618,
    "cellKey": 2214940102,
    "edgeKeys": [
     630731074,
@@ -392,6 +590,12 @@
    "shelvedWalls": [
     1
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1618,
    "cellKey": 1337665233,
    "edgeKeys": [
     4131922395,
@@ -426,6 +630,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 80,
    "cellKey": 766623221,
    "edgeKeys": [
     3843292494,
@@ -443,7 +653,7 @@
    "type": 0,
    "gaps": [
     1,
-    0,
+    1,
     1,
     2,
     0,
@@ -455,9 +665,14 @@
    "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [
-    1,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1173,
    "cellKey": 1848510804,
    "edgeKeys": [
     1808598774,
@@ -492,6 +707,12 @@
     2,
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1280,
    "cellKey": 1006900048,
    "edgeKeys": [
     3254576225,
@@ -524,6 +745,12 @@
     0,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1348,
    "cellKey": 3048065606,
    "edgeKeys": [
     3187407695,
@@ -555,6 +782,12 @@
    "shelvedWalls": [
     1
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1361,
    "cellKey": 927580108,
    "edgeKeys": [
     3062587695,
@@ -587,6 +820,12 @@
     1,
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1553,
    "cellKey": 1343334988,
    "edgeKeys": [
     2027813625,
@@ -620,6 +859,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1030,
    "cellKey": 2234317887,
    "edgeKeys": [
     1447565155,
@@ -653,6 +898,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1044,
    "cellKey": 2191386940,
    "edgeKeys": [
     2951726998,
@@ -682,6 +933,12 @@
    "studyKit": 8,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 65,
    "cellKey": 496366686,
    "edgeKeys": [
     3084206652,
@@ -705,7 +962,7 @@
     0,
     2
    ],
-   "axis": 2,
+   "axis": 0,
    "rise": -1,
    "studyKeyMod8": 3,
    "studyKit": 7,
@@ -716,6 +973,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2052,
    "cellKey": 2308483531,
    "edgeKeys": [
     3402150693,
@@ -745,6 +1008,12 @@
    "studyKit": 8,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 25616,
    "cellKey": 177809733,
    "edgeKeys": [
     2122029103,
@@ -779,6 +1048,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2052,
    "cellKey": 3557564929,
    "edgeKeys": [
     3618040857,
@@ -808,6 +1083,12 @@
    "studyKit": 7,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 20740,
    "cellKey": 576486369,
    "edgeKeys": [
     2370305224,
@@ -840,6 +1121,12 @@
     0,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 340,
    "cellKey": 2378609062,
    "edgeKeys": [
     2878972846,
@@ -869,6 +1156,12 @@
    "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 25616,
    "cellKey": 353299611,
    "edgeKeys": [
     1814644688,
@@ -898,6 +1191,12 @@
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 16449,
    "cellKey": 102052834,
    "edgeKeys": [
     4276858746,
@@ -927,6 +1226,12 @@
    "studyKit": 8,
    "studyAnchor": 0,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2098176,
    "cellKey": 674515347,
    "edgeKeys": [
     2414742671,
@@ -956,6 +1261,12 @@
    "studyKit": 7,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 4356,
    "cellKey": 409679569,
    "edgeKeys": [
     1723228162,
@@ -974,9 +1285,9 @@
    "gaps": [
     0,
     1,
-    2,
     0,
     1,
+    0,
     0
    ],
    "axis": 2,
@@ -986,9 +1297,16 @@
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
-    3,
+    2,
+    4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 68,
    "cellKey": 3955675966,
    "edgeKeys": [
     1918893230,
@@ -1023,6 +1341,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 66,
    "cellKey": 2452183751,
    "edgeKeys": [
     2783183966,
@@ -1057,6 +1381,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1028,
    "cellKey": 2186859772,
    "edgeKeys": [
     1949690992,
@@ -1091,6 +1421,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1032,
    "cellKey": 1726671029,
    "edgeKeys": [
     4070306919,
@@ -1124,6 +1460,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 69,
    "cellKey": 2674173057,
    "edgeKeys": [
     3395118509,
@@ -1157,6 +1499,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 84,
    "cellKey": 1118833997,
    "edgeKeys": [
     3446589935,
@@ -1189,6 +1537,12 @@
     2,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1098,
    "cellKey": 3955388945,
    "edgeKeys": [
     1458578018,
@@ -1218,6 +1572,12 @@
    "studyKit": 8,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 20740,
    "cellKey": 322717669,
    "edgeKeys": [
     1660828660,
@@ -1250,6 +1610,12 @@
     0,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2436,
    "cellKey": 3894680027,
    "edgeKeys": [
     1255585182,
@@ -1282,6 +1648,12 @@
     0,
     1
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1616,
    "cellKey": 3263918216,
    "edgeKeys": [
     1189648596,
@@ -1311,6 +1683,12 @@
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 20740,
    "cellKey": 439805362,
    "edgeKeys": [
     171056420,
@@ -1344,6 +1722,12 @@
     2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 322,
    "cellKey": 1113700912,
    "edgeKeys": [
     2367436211,
@@ -1363,20 +1747,25 @@
     0,
     2,
     0,
-    0,
+    1,
     2,
     1
    ],
-   "axis": 2,
+   "axis": 0,
    "rise": -1,
    "studyKeyMod8": 2,
    "studyKit": 5,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
-    2,
-    3
+    2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1608,
    "cellKey": 2698519320,
    "edgeKeys": [
     1048678088,
@@ -1400,7 +1789,7 @@
     0,
     1
    ],
-   "axis": 1,
+   "axis": 2,
    "rise": -1,
    "studyKeyMod8": 7,
    "studyKit": 4,
@@ -1411,6 +1800,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1056,
    "cellKey": 3883419716,
    "edgeKeys": [
     2532047687,
@@ -1443,6 +1838,12 @@
     2,
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1285,
    "cellKey": 1577463750,
    "edgeKeys": [
     2369209237,
@@ -1472,6 +1873,12 @@
    "studyKit": 6,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1366,
    "cellKey": 1490423971,
    "edgeKeys": [
     562592851,
@@ -1505,6 +1912,12 @@
     1,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 336,
    "cellKey": 1557598433,
    "edgeKeys": [
     2889920583,
@@ -1537,6 +1950,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2069,
    "cellKey": 2954078366,
    "edgeKeys": [
     4153875217,
@@ -1571,6 +1990,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 18,
    "cellKey": 2041798819,
    "edgeKeys": [
     208960343,
@@ -1604,6 +2029,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 145,
    "cellKey": 3016550180,
    "edgeKeys": [
     3536023176,
@@ -1636,6 +2067,12 @@
     1,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 849,
    "cellKey": 4034216011,
    "edgeKeys": [
     2266070692,
@@ -1667,6 +2104,12 @@
    "shelvedWalls": [
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1302,
    "cellKey": 3406947634,
    "edgeKeys": [
     1132998371,
@@ -1699,6 +2142,12 @@
     1,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 609,
    "cellKey": 3500339951,
    "edgeKeys": [
     2126197803,
@@ -1732,6 +2181,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2053,
    "cellKey": 858497137,
    "edgeKeys": [
     840112226,
@@ -1751,11 +2206,11 @@
     1,
     0,
     0,
-    0,
+    1,
     0,
     0
    ],
-   "axis": 2,
+   "axis": 0,
    "rise": -1,
    "studyKeyMod8": 1,
    "studyKit": 3,
@@ -1763,10 +2218,15 @@
    "shelvedWalls": [
     1,
     2,
-    3,
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 65,
    "cellKey": 1822090424,
    "edgeKeys": [
     10380749,
@@ -1800,6 +2260,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1034,
    "cellKey": 3957178520,
    "edgeKeys": [
     1081095167,
@@ -1817,18 +2283,24 @@
    "type": 2,
    "gaps": [
     0,
+    0,
     1,
     0,
     0,
-    1,
     0
    ],
-   "axis": 1,
+   "axis": 2,
    "rise": -1,
    "studyKeyMod8": 1,
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 8208,
    "cellKey": 489601640,
    "edgeKeys": [
     439928699,
@@ -1864,6 +2336,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 8,
    "cellKey": 2086091919,
    "edgeKeys": [
     1483063471,
@@ -1893,6 +2371,12 @@
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 20740,
    "cellKey": 237506561,
    "edgeKeys": [
     2680120914,
@@ -1916,7 +2400,7 @@
     2,
     1
    ],
-   "axis": 2,
+   "axis": 1,
    "rise": 1,
    "studyKeyMod8": 6,
    "studyKit": 6,
@@ -1925,6 +2409,12 @@
     0,
     1
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1616,
    "cellKey": 1521791926,
    "edgeKeys": [
     3649681340,
@@ -1943,7 +2433,7 @@
    "gaps": [
     0,
     2,
-    0,
+    1,
     1,
     1,
     0
@@ -1955,9 +2445,14 @@
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
-    2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 344,
    "cellKey": 2491607448,
    "edgeKeys": [
     89120851,
@@ -1991,6 +2486,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 84,
    "cellKey": 3806095979,
    "edgeKeys": [
     1189816127,
@@ -2023,6 +2524,12 @@
     2,
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1285,
    "cellKey": 1265443604,
    "edgeKeys": [
     2209701859,
@@ -2056,6 +2563,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 548,
    "cellKey": 2181622685,
    "edgeKeys": [
     1560798737,
@@ -2070,13 +2583,13 @@
    "q": 317,
    "r": 1843,
    "floor": -3,
-   "type": 0,
+   "type": 4,
    "gaps": [
-    1,
     0,
     1,
-    1,
     0,
+    0,
+    1,
     0
    ],
    "axis": 2,
@@ -2084,11 +2597,13 @@
    "studyKeyMod8": 0,
    "studyKit": 1,
    "studyAnchor": -1,
-   "shelvedWalls": [
-    1,
-    4,
-    5
+   "shelvedWalls": [],
+   "corridorAxis": 1,
+   "alcoves": [
+    0,
+    0
    ],
+   "desc": 4194564,
    "cellKey": 4267969909,
    "edgeKeys": [
     3424993920,
@@ -2123,6 +2638,12 @@
     2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 320,
    "cellKey": 3886918185,
    "edgeKeys": [
     355510262,
@@ -2157,6 +2678,12 @@
     2,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1088,
    "cellKey": 1545505518,
    "edgeKeys": [
     2118034247,
@@ -2177,17 +2704,24 @@
     0,
     1,
     1,
-    2,
+    0,
     1
    ],
-   "axis": 0,
+   "axis": 1,
    "rise": 1,
    "studyKeyMod8": 3,
    "studyKit": 7,
    "studyAnchor": -1,
    "shelvedWalls": [
-    1
+    1,
+    4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1105,
    "cellKey": 3105863002,
    "edgeKeys": [
     326575850,
@@ -2206,7 +2740,7 @@
    "gaps": [
     0,
     0,
-    0,
+    1,
     2,
     1,
     0
@@ -2219,9 +2753,14 @@
    "shelvedWalls": [
     0,
     1,
-    2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 400,
    "cellKey": 784141130,
    "edgeKeys": [
     3078401608,
@@ -2241,7 +2780,7 @@
     1,
     0,
     0,
-    1,
+    0,
     0,
     0
    ],
@@ -2251,6 +2790,12 @@
    "studyKit": 7,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 16385,
    "cellKey": 116582649,
    "edgeKeys": [
     1056451105,
@@ -2283,6 +2828,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 86,
    "cellKey": 2628395138,
    "edgeKeys": [
     559168078,
@@ -2301,7 +2852,7 @@
    "gaps": [
     0,
     0,
-    0,
+    1,
     2,
     0,
     3
@@ -2314,9 +2865,14 @@
    "shelvedWalls": [
     0,
     1,
-    2,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 3216,
    "cellKey": 2181698569,
    "edgeKeys": [
     330664227,
@@ -2350,6 +2906,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2068,
    "cellKey": 1491365283,
    "edgeKeys": [
     3724386908,
@@ -2370,10 +2932,10 @@
     1,
     0,
     1,
-    2,
+    0,
     0
    ],
-   "axis": 2,
+   "axis": 1,
    "rise": -1,
    "studyKeyMod8": 3,
    "studyKit": 7,
@@ -2381,8 +2943,15 @@
    "shelvedWalls": [
     0,
     2,
+    4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 68,
    "cellKey": 2215190015,
    "edgeKeys": [
     1350539881,
@@ -2417,6 +2986,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 520,
    "cellKey": 1738037430,
    "edgeKeys": [
     3381440848,
@@ -2433,24 +3008,29 @@
    "floor": -2,
    "type": 0,
    "gaps": [
-    0,
+    1,
     0,
     1,
     0,
     1,
     0
    ],
-   "axis": 1,
+   "axis": 0,
    "rise": -1,
    "studyKeyMod8": 2,
    "studyKit": 5,
    "studyAnchor": -1,
    "shelvedWalls": [
-    0,
     1,
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 273,
    "cellKey": 3476414547,
    "edgeKeys": [
     4095657967,
@@ -2480,6 +3060,12 @@
    "studyKit": 5,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 771,
    "cellKey": 50935731,
    "edgeKeys": [
     375345006,
@@ -2509,6 +3095,12 @@
    "studyKit": 6,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1366,
    "cellKey": 3647228682,
    "edgeKeys": [
     2266786850,
@@ -2541,6 +3133,12 @@
     1,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 337,
    "cellKey": 3425522991,
    "edgeKeys": [
     355645684,
@@ -2576,6 +3174,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 16,
    "cellKey": 3023507091,
    "edgeKeys": [
     2654117078,
@@ -2593,24 +3197,29 @@
    "type": 0,
    "gaps": [
     0,
-    0,
+    1,
     0,
     2,
     0,
     0
    ],
-   "axis": 0,
+   "axis": 1,
    "rise": -1,
    "studyKeyMod8": 6,
    "studyKit": 6,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
-    1,
     2,
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 132,
    "cellKey": 2549864199,
    "edgeKeys": [
     3666860238,
@@ -2643,6 +3252,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1049,
    "cellKey": 3852752345,
    "edgeKeys": [
     1662126605,
@@ -2677,6 +3292,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 264,
    "cellKey": 1977382423,
    "edgeKeys": [
     1155721514,
@@ -2706,6 +3327,12 @@
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 195,
    "cellKey": 55680238,
    "edgeKeys": [
     3551219019,
@@ -2741,6 +3368,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2048,
    "cellKey": 2538008052,
    "edgeKeys": [
     1510013984,
@@ -2773,6 +3406,12 @@
     2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 393,
    "cellKey": 2106208004,
    "edgeKeys": [
     296035917,
@@ -2805,6 +3444,12 @@
     0,
     2
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2372,
    "cellKey": 1187979569,
    "edgeKeys": [
     2269629308,
@@ -2821,12 +3466,12 @@
    "floor": -3,
    "type": 0,
    "gaps": [
-    1,
-    1,
     0,
     1,
     0,
-    1
+    1,
+    0,
+    0
    ],
    "axis": 0,
    "rise": -1,
@@ -2834,9 +3479,17 @@
    "studyKit": 4,
    "studyAnchor": -1,
    "shelvedWalls": [
+    0,
     2,
-    4
+    4,
+    5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 68,
    "cellKey": 1492264696,
    "edgeKeys": [
     442855212,
@@ -2866,6 +3519,12 @@
    "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 3075,
    "cellKey": 42126257,
    "edgeKeys": [
     4086501847,
@@ -2895,6 +3554,12 @@
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 65,
    "cellKey": 530075603,
    "edgeKeys": [
     2574607039,
@@ -2929,6 +3594,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 65,
    "cellKey": 947129220,
    "edgeKeys": [
     3369653968,
@@ -2945,9 +3616,9 @@
    "floor": 1,
    "type": 0,
    "gaps": [
-    0,
     1,
-    0,
+    1,
+    1,
     3,
     0,
     0
@@ -2958,11 +3629,15 @@
    "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [
-    0,
-    2,
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 213,
    "cellKey": 1563924786,
    "edgeKeys": [
     700158438,
@@ -2996,6 +3671,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 530,
    "cellKey": 1177327620,
    "edgeKeys": [
     3066844099,
@@ -3030,6 +3711,12 @@
     2,
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 3328,
    "cellKey": 3478105669,
    "edgeKeys": [
     3573860004,
@@ -3059,6 +3746,12 @@
    "studyKit": 3,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1366,
    "cellKey": 2152886592,
    "edgeKeys": [
     3736881245,
@@ -3088,6 +3781,12 @@
    "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 65,
    "cellKey": 455225464,
    "edgeKeys": [
     964577034,
@@ -3122,6 +3821,12 @@
     2,
     3
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1536,
    "cellKey": 1428339269,
    "edgeKeys": [
     1562220585,
@@ -3151,6 +3856,12 @@
    "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 4080,
    "cellKey": 27335903,
    "edgeKeys": [
     1755830676,
@@ -3168,7 +3879,7 @@
    "type": 2,
    "gaps": [
     0,
-    1,
+    0,
     0,
     0,
     1,
@@ -3180,6 +3891,12 @@
    "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 20736,
    "cellKey": 376571958,
    "edgeKeys": [
     1691694829,
@@ -3213,6 +3930,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 276,
    "cellKey": 2261802560,
    "edgeKeys": [
     2344001113,
@@ -3242,6 +3965,12 @@
    "studyKit": 12,
    "studyAnchor": 5,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 3309712,
    "cellKey": 660549766,
    "edgeKeys": [
     2327128428,
@@ -3271,6 +4000,12 @@
    "studyKit": 5,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 9232,
    "cellKey": 338525914,
    "edgeKeys": [
     2708408079,
@@ -3287,19 +4022,28 @@
    "floor": 0,
    "type": 0,
    "gaps": [
-    1,
-    1,
+    0,
+    0,
     1,
     1,
     2,
     1
    ],
-   "axis": 2,
+   "axis": 0,
    "rise": 1,
    "studyKeyMod8": 0,
    "studyKit": 1,
    "studyAnchor": -1,
-   "shelvedWalls": [],
+   "shelvedWalls": [
+    0,
+    1
+   ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1616,
    "cellKey": 714340355,
    "edgeKeys": [
     2080462757,
@@ -3329,6 +4073,12 @@
    "studyKit": 1,
    "studyAnchor": 3,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 362516,
    "cellKey": 646752863,
    "edgeKeys": [
     2212024628,
@@ -3362,6 +4112,12 @@
     2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 324,
    "cellKey": 1857789241,
    "edgeKeys": [
     3654984108,
@@ -3391,6 +4147,12 @@
    "studyKit": 12,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 3,
    "cellKey": 15492059,
    "edgeKeys": [
     3097887244,
@@ -3420,6 +4182,12 @@
    "studyKit": 1,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 65,
    "cellKey": 475202006,
    "edgeKeys": [
     3437635095,
@@ -3454,6 +4222,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1032,
    "cellKey": 2512670278,
    "edgeKeys": [
     2209320197,
@@ -3471,7 +4245,7 @@
    "type": 0,
    "gaps": [
     0,
-    0,
+    1,
     0,
     1,
     1,
@@ -3484,10 +4258,15 @@
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
-    1,
     2,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 324,
    "cellKey": 3170000828,
    "edgeKeys": [
     1130941481,
@@ -3521,6 +4300,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 261,
    "cellKey": 882099332,
    "edgeKeys": [
     3116071246,
@@ -3539,7 +4324,7 @@
    "gaps": [
     0,
     1,
-    1,
+    0,
     1,
     0,
     0
@@ -3551,9 +4336,16 @@
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
+    2,
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 68,
    "cellKey": 3409064302,
    "edgeKeys": [
     113023586,
@@ -3588,6 +4380,12 @@
     3,
     4
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2064,
    "cellKey": 1247787095,
    "edgeKeys": [
     3837440517,
@@ -3623,6 +4421,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 1,
    "cellKey": 1624547376,
    "edgeKeys": [
     675174081,
@@ -3642,20 +4446,27 @@
     0,
     1,
     2,
-    2,
+    0,
     0,
     0
    ],
-   "axis": 1,
+   "axis": 0,
    "rise": 1,
    "studyKeyMod8": 2,
    "studyKit": 5,
    "studyAnchor": -1,
    "shelvedWalls": [
     0,
+    3,
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 36,
    "cellKey": 3100285955,
    "edgeKeys": [
     1534508649,
@@ -3677,7 +4488,7 @@
     1,
     0,
     0,
-    2
+    0
    ],
    "axis": 2,
    "rise": -1,
@@ -3687,8 +4498,15 @@
    "shelvedWalls": [
     0,
     3,
-    4
+    4,
+    5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 20,
    "cellKey": 2476133070,
    "edgeKeys": [
     3867198824,
@@ -3722,6 +4540,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 133,
    "cellKey": 4061051632,
    "edgeKeys": [
     152279959,
@@ -3755,6 +4579,12 @@
     4,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 26,
    "cellKey": 1656750675,
    "edgeKeys": [
     1138779738,
@@ -3784,6 +4614,12 @@
    "studyKit": 8,
    "studyAnchor": 1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 2131553,
    "cellKey": 609079935,
    "edgeKeys": [
     2130673118,
@@ -3817,6 +4653,12 @@
     3,
     5
    ],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 280,
    "cellKey": 743392929,
    "edgeKeys": [
     1984359144,
@@ -3846,6 +4688,12 @@
    "studyKit": 6,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 16449,
    "cellKey": 450929021,
    "edgeKeys": [
     1373681936,
@@ -3875,6 +4723,12 @@
    "studyKit": 4,
    "studyAnchor": -1,
    "shelvedWalls": [],
+   "corridorAxis": -1,
+   "alcoves": [
+    0,
+    0
+   ],
+   "desc": 9232,
    "cellKey": 176649469,
    "edgeKeys": [
     713194707,

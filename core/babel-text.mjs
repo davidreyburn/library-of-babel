@@ -44,9 +44,9 @@
    something that does not exist there -- which is exactly the bug this
    comment replaces. core/test-core.mjs now evaluates the inlined blocks
    rather than only comparing their text, so a repeat would be caught. */
-import { u32, uhash, cellKey, cellType, gapAt, TYPE, GAP,
+import { u32, uhash, cellKey, cellType, gapAt, TYPE, GAP, CELL_TYPE_NAME,
          shelvedWalls, SHELVES_PER_WALL, BOOKS_PER_SHELF,
-         stepHash, wander, findSeat } from "./babel-core.mjs";
+         stepHash, wander, findSeat, findMirror } from "./babel-core.mjs";
 
 /* ---- the alphabet (§4.1) ------------------------------------------- *
  * 29 symbols: the whole English alphabet, then space, comma, period.
@@ -183,10 +183,13 @@ function textAddress({ phrase = "", offset = 0, seed = DEFAULT_SEED } = {}){
 }
 
 /* ---- validity: is this address a place that exists? ---------------- *
- * A shaft and a stairwell hold no shelves; a reading room is defined by
- * having none (an intentional break with the text). And a wall that is
- * a doorway carries no books, whatever an agent claims. This is the
- * check that makes "return with coordinates" falsifiable.             */
+ * A shaft, a stairwell and a corridor hold no shelves; a reading room is
+ * defined by having none (an intentional break with the text). And a wall
+ * that is a doorway carries no books, whatever an agent claims. This is
+ * the check that makes "return with coordinates" falsifiable. The type
+ * names come from the core rather than a literal here: this function used
+ * to carry two copies of the list, which is how a fifth cell type gets
+ * reported as `undefined` to the one caller that needed to know.       */
 function validate(a){
   if (a.kind === "text"){
     if (a.offset + a.phrase.length > C) return { ok: false, reason: "phrase runs past the book" };
@@ -199,9 +202,9 @@ function validate(a){
   if (a.scope === "room")
     return t === TYPE.SHAFT
       ? { ok: false, reason: `cell ${a.q},${a.r} is a shaft: you can look into it but not stand in it` }
-      : { ok: true, place: ["gallery", "shaft", "stairwell", "study"][t] };
+      : { ok: true, place: CELL_TYPE_NAME[t] };
   if (t !== TYPE.GALLERY)
-    return { ok: false, reason: `cell ${a.q},${a.r} is a ${["gallery","shaft","stairwell","study"][t]}, which holds no shelves` };
+    return { ok: false, reason: `cell ${a.q},${a.r} is a ${CELL_TYPE_NAME[t]}, which holds no shelves` };
   const walls = shelvedWalls(a.q, a.r, a.floor);
   if (!walls.includes(a.wall))
     return { ok: false, reason: `wall ${a.wall} of ${a.q},${a.r} on floor ${a.floor} is not shelved (shelved: ${walls.join(", ") || "none"})` };
@@ -491,6 +494,7 @@ function journey({ q = 0, r = 0, floor = 0, steps = 24, seed = DEFAULT_SEED,
       type: t.type,
       volumes: t.volumes,
       seats: t.seats,
+      holds: t.holds,                      // what a corridor's alcoves hold
       shelves: t.volumes
         ? volumesToHand(t.q, t.r, t.floor, { seed, journey: route, step: t.step, take })
             .map(a => ({ uri: formatAddress(a), spine: spineLabel(a) }))
@@ -517,9 +521,29 @@ function walkToASeat({ q = 0, r = 0, floor = 0, seed = DEFAULT_SEED,
   };
 }
 
+/* And the same for the one fixture the story argues about. The men infer
+   from the mirror that the Library is not infinite; the narrator dreams the
+   opposite (LIB-P-023, LIB-P-024). Whether the reflection means anything is
+   not the core's business -- what it owes is an address for the mirror you
+   found, so someone else can stand in front of the same one. */
+function walkToAMirror({ q = 0, r = 0, floor = 0, seed = DEFAULT_SEED,
+                         route = 1, maxSteps = 400 } = {}){
+  const found = findMirror({ q, r, floor, seed: route, maxSteps });
+  return {
+    route, seed, steps: found.steps,
+    found: !!found.room,
+    room: found.room && {
+      ...found.room,
+      at: cellAddress(found.room.q, found.room.r, found.room.floor, seed)
+    },
+    trail: found.trail.map(t => ({ step: t.step, cell: { q: t.q, r: t.r, floor: t.floor },
+                                   type: t.type, volumes: t.volumes, holds: t.holds }))
+  };
+}
+
 export {
   ALPHABET, LETTERS, RADIX, PAGES, LINES, COLS, PAGE_LEN, C, LOG10_N, DEFAULT_SEED,
-  shelfAddresses, volumesToHand, journey, walkToASeat, cellAddress,
+  shelfAddresses, volumesToHand, journey, walkToASeat, walkToAMirror, cellAddress,
   WALK_DOMAIN, TEXT_DOMAIN, LABEL_DOMAIN,
   mix, reduceRadix, streamDigit, walkKey, addressKey,
   walkAddress, roomAddress, textAddress, validate,

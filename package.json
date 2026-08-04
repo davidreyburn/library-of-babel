@@ -1,6 +1,6 @@
 {
   "name": "library-of-babel",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A deterministic, walkable Library of Babel: a WebGL simulator and an agent-readable core, sharing one implementation of the lattice and the corpus.",
   "type": "module",
   "license": "MIT",

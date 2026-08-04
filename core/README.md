@@ -43,8 +43,8 @@ babel://text/00001594/at/0/axaxaxas%20mlo
 A **walk** address is a shelf you can stand in front of. The position is hashed
 before it is used, so the volume in the next slot is unrelated rather than a near
 twin. It is also falsifiable: a wall that is a doorway holds no books, and shafts,
-stairwells and reading rooms hold no shelves at all — `validate()` rejects all four,
-so a claimed coordinate can be checked instead of trusted.
+stairwells, reading rooms and corridors hold no shelves at all — `validate()` rejects
+all five, so a claimed coordinate can be checked instead of trusted.
 
 A **text** address is a volume chosen for what it says, and is invertible by
 construction: you find a phrase by writing its address down. Two text addresses under

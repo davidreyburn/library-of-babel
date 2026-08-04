@@ -14,7 +14,8 @@
  * probability can never drift between the CPU and the GPU.
  * ==================================================================== */
 
-import { P_OPEN, P_SHAFT, P_STAIR, P_STUDY } from "./babel-core.mjs";
+import { P_OPEN, P_SHAFT, P_STAIR, P_STUDY, P_CORR,
+         P_ALC_NONE, P_ALC_ONE } from "./babel-core.mjs";
 
 /* uhash .. sdBox3 -- hashing, cell types, gaps, and the hex helpers */
 const TOPOLOGY_GLSL = `
@@ -25,11 +26,13 @@ uint uhash(uint x){
 }
 uint cellKey(ivec2 c){ return uhash(uint(c.x + 32768) | (uint(c.y + 32768) << 16)); }
 uint studyKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 2654435761u)); }
+uint corrKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 0x7ed55d16u)); }
 int cellType(ivec2 c){
   uint h = cellKey(c) >> 16;
   if (h < ${P_SHAFT}u) return 1;
   if (h < ${P_STAIR}u) return 2;
   if (h < ${P_STUDY}u) return 3;      // a reading room: no shelves, some furniture
+  if (h >= ${P_CORR}u) return 4;      // a corridor: mirror, latrine, standing closet
   return 0;
 }
 ivec2 dirOf(int i){
@@ -40,18 +43,51 @@ ivec2 dirOf(int i){
   if (i == 4) return ivec2(-1,  1);
   return              ivec2( 0,  1);
 }
-/* Prefer an axis whose both ends are open ground, or the flight arrives at
-   a wall and the stair is a dead end. Both ends must be galleries. */
+/* Both ends must be open ground, or the flight arrives at a wall and the
+   stair is a dead end. Two passes: the first prefers an axis with a
+   corridor at an end, because the text puts the stairway in the hallway.
+   Plain type tests only -- see the note on corridorAxis. */
+bool openGround(int t){ return t == 0 || t == 3 || t == 4; }
 int axisOf(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x5bf03635u) % 3u);
-  for (int k = 0; k < 3; k++){
-    int a = (base + k) % 3;
-    int ta = cellType(c + dirOf(a)), tb = cellType(c + dirOf(a + 3));
-    if ((ta == 0 || ta == 3) && (tb == 0 || tb == 3)) return a;
-  }
+  for (int pass = 0; pass < 2; pass++)
+    for (int k = 0; k < 3; k++){
+      int a = (base + k) % 3;
+      int ta = cellType(c + dirOf(a)), tb = cellType(c + dirOf(a + 3));
+      if (!openGround(ta) || !openGround(tb)) continue;
+      if (pass == 0 && ta != 4 && tb != 4) continue;
+      return a;
+    }
   return base;
 }
 float riseOf(ivec2 c){ return (uhash(cellKey(c) ^ 0x27d4eb2du) & 1u) == 0u ? 1.0 : -1.0; }
+
+/* A corridor is built like the stairwell -- a cut through the rock, open
+   only on its own axis -- but has no rise, so it is a place and not a move.
+   One flat pass of plain type tests, and worth keeping that way: gapAt
+   calls this, cellDesc calls gapAt six times, and the shader calls cellDesc
+   for every cell a ray enters. (The richer version that asked a
+   neighbouring flight for its axis was suspected of the 127-second link and
+   acquitted -- see §17.13 -- but it is still the wrong thing to put here.) */
+bool corridorEnd(int t){ return t == 0 || t == 3 || t == 2; }
+int corridorAxis(ivec2 c){
+  int base = int(uhash(cellKey(c) ^ 0x1d3f9a7bu) % 3u);
+  for (int k = 0; k < 3; k++){
+    int a = (base + k) % 3;
+    if (corridorEnd(cellType(c + dirOf(a))) &&
+        corridorEnd(cellType(c + dirOf(a + 3)))) return a;
+  }
+  return base;
+}
+/* 0 nothing . 1 mirror . 2 latrine . 3 an empty standing closet.
+   Side 0 is +v across the corridor, side 1 is -v. */
+int alcoveAt(ivec2 c, int fl, int side){
+  uint k = corrKey(c, fl), n = k & 0xFFFFu;
+  int count = (n < ${P_ALC_NONE}u) ? 0 : ((n < ${P_ALC_ONE}u) ? 1 : 2);
+  if (count == 0) return 0;
+  if (count == 1 && side != int((k >> 16) & 1u)) return 0;
+  return 1 + int(uhash(k ^ (uint(side + 1) * 0x9E3779B9u)) % 3u);
+}
 
 vec2 dirW(int i){
   if (i == 0) return vec2( 0.8660254,  0.5);
@@ -74,6 +110,18 @@ int gapAt(ivec2 c, int i, int fl){
   int tc = cellType(c), tn = cellType(n);
   if (tc == 1 && tn == 1) return 0;                  // two wells
   if (tc == 2 && tn == 2) return 0;                  // two stairs
+  if (tc == 4 && tn == 4) return 0;                  // two corridors
+  /* A corridor opens only on its own axis, and always. Where it meets a
+     flight both rules are structural, so the edge is open only where the
+     two axes agree -- neither ever contradicts the other.               */
+  if (tc == 4 || tn == 4){
+    if (tc == 1 || tn == 1) return 0;
+    ivec2 kc = (tc == 4) ? c : n;
+    if (i % 3 != corridorAxis(kc)) return 0;
+    ivec2 oc = (tc == 4) ? n : c;
+    if (cellType(oc) == 2 && i % 3 != axisOf(oc)) return 0;
+    return 1;                                        // narrow, per LIB-P-020
+  }
   /* A stairwell opens only on the two walls its flight runs between, and
      those doorways are structural -- always there, on every storey -- or
      the stair could climb to a wall.                                    */
@@ -186,7 +234,9 @@ int studyAnchor(int desc, uint key){
      0-11   six gaps, two bits each
      12-14  stair axis (2) and rise (1)
      15-17  study anchor wall
-     18-21  study furniture kit surviving the doorway culling            */
+     18-21  study furniture kit surviving the doorway culling
+     22-23  corridor axis
+     24-27  what stands in each of its two alcoves, two bits a side      */
 const DESC_GLSL = `
 /* The gaps alone, for callers that need the anchor and nothing else. */
 int studyAnchorAt(ivec2 c, int fl){
@@ -221,6 +271,14 @@ int cellDesc(ivec2 c, int fl){
     if (!clearOfDoors(ax * 1.44, 0.60, packed) ||
         !clearOfDoors(ax * 1.06, 0.25, packed)) m &= ~8;
     packed |= m << 18;
+  }
+  if (t == 4){                                 // the corridor, bits 22-27
+    /* Which alcove holds what is a fact about the cell, not about the
+       sample point, so it is resolved here rather than inside mapAt --
+       the same rule that took the furniture cull out of the SDF. */
+    packed |= corridorAxis(c) << 22;
+    packed |= alcoveAt(c, fl, 0) << 24;
+    packed |= alcoveAt(c, fl, 1) << 26;
   }
   return packed;
 }

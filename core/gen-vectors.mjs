@@ -24,10 +24,30 @@ function sampleCells(n){
   return out;
 }
 
-const cells = [
+/* A scatter of 120 cells contains about six corridors and, at these odds,
+   very likely no mirror at all -- so the lanes that carry the alcoves would
+   go unchecked on the GPU. Pin one of each deliberately, by scanning
+   outwards from the origin and taking the first that qualifies. */
+function firstCell(match, span = 60){
+  for (let ring = 0; ring <= span; ring++)
+    for (let q = -ring; q <= ring; q++)
+      for (let r = -ring; r <= ring; r++){
+        if (Math.max(Math.abs(q), Math.abs(r)) !== ring) continue;
+        for (const fl of [0, 1, -1, 2, -2]) if (match(q, r, fl)) return { q, r, floor: fl };
+      }
+  throw new Error("no cell matched while generating vectors");
+}
+const isCorridor = (q, r) => core.cellType(q, r) === core.TYPE.CORRIDOR;
+const landmarks = [
   { q: core.CRIM.q, r: core.CRIM.r, floor: core.CRIM.floor },
-  ...sampleCells(120)
+  firstCell((q, r, fl) => isCorridor(q, r) && core.alcovesIn(q, r, fl).length === 0),
+  firstCell((q, r, fl) => isCorridor(q, r) &&
+                          core.alcovesIn(q, r, fl).some(a => a.holds === "mirror")),
+  firstCell((q, r, fl) => isCorridor(q, r) &&
+                          core.alcovesIn(q, r, fl).some(a => a.holds === "latrine")),
+  firstCell((q, r, fl) => isCorridor(q, r) && core.alcovesIn(q, r, fl).length === 2)
 ];
+const cells = [...landmarks, ...sampleCells(120)];
 
 const topology = cells.map(c => ({
   ...c,
@@ -40,6 +60,11 @@ const topology = cells.map(c => ({
   studyAnchor: core.cellType(c.q, c.r) === core.TYPE.STUDY
     ? core.studyAnchor(c.q, c.r, c.floor, core.studyKey(c.q, c.r, c.floor)) : -1,
   shelvedWalls: core.shelvedWalls(c.q, c.r, c.floor),
+  corridorAxis: core.cellType(c.q, c.r) === core.TYPE.CORRIDOR
+    ? core.corridorAxis(c.q, c.r) : -1,
+  alcoves: [0,1].map(s => core.cellType(c.q, c.r) === core.TYPE.CORRIDOR
+    ? core.alcoveAt(c.q, c.r, c.floor, s) : 0),
+  desc: core.cellDesc(c.q, c.r, c.floor),
   cellKey: core.cellKey(c.q, c.r),
   edgeKeys: [0,1,2,3,4,5].map(i => core.edgeKey(c.q, c.r, i, c.floor))
 }));
@@ -71,7 +96,9 @@ const vectors = {
   alphabet: text.ALPHABET,
   C: text.C, pages: text.PAGES, lines: text.LINES, cols: text.COLS,
   probabilities: { P_OPEN: core.P_OPEN, P_SHAFT: core.P_SHAFT,
-                   P_STAIR: core.P_STAIR, P_STUDY: core.P_STUDY },
+                   P_STAIR: core.P_STAIR, P_STUDY: core.P_STUDY,
+                   P_CORR: core.P_CORR,
+                   P_ALC_NONE: core.P_ALC_NONE, P_ALC_ONE: core.P_ALC_ONE },
   topology, content
 };
 

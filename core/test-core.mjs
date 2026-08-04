@@ -42,6 +42,22 @@ section("DRIFT -- the prototype's inlined copy vs this module");
     return (i < 0 || j < 0) ? null : html.slice(i + a.length, j);
   };
   const norm = s => s.trim().replace(/\r\n/g, "\n");
+
+  /* The whole script, not just the generated regions. The prototype is one
+     153,000-character classic <script>, and a single stray character in the
+     hand-written half takes all of it down -- silently, because a parse
+     error leaves the DOM standing and the page merely never starts. A
+     backtick inside a comment in the GLSL template literal cost three page
+     loads to find; this finds it in a millisecond. */
+  {
+    const m = html.match(/<script>([\s\S]*)<\/script>/);
+    let err = null;
+    if (!m) err = "no classic <script> block found";
+    else try { new Function(m[1]); } catch (e){ err = `${e.constructor.name}: ${e.message}`; }
+    ok("the prototype's script parses as JavaScript", err === null,
+       err ?? `${m[1].length} chars`);
+  }
+
   for (const [region, module] of [["@core", "babel-core.mjs"], ["@text", "babel-text.mjs"]]){
     const inlined = between(`/* ${region}:begin */`, `/* ${region}:end */`);
     if (inlined === null){
@@ -77,7 +93,7 @@ section("DRIFT -- the prototype's inlined copy vs this module");
     try {
       ran = new Function(`"use strict";${blob}
         return { pageLine: lineOf(walkAddress({q:15,r:94,wall:1,shelf:2,slot:17}), 0, 0),
-                 seat: walkToASeat({ route: 7 }).room.at,
+                 seat: walkToASeat({ route: 1 }).room.at,
                  stops: journey({ steps: 6, route: 7 }).stops.length,
                  here: cellAddress(15, 94, 0),
                  valid: validate(walkAddress({q:15,r:94,wall:1,shelf:2,slot:17})).ok };`)();
@@ -87,7 +103,7 @@ section("DRIFT -- the prototype's inlined copy vs this module");
     if (ran){
       eq("the inlined core agrees with the module on a page",
          ran.pageLine, text.lineOf(text.walkAddress({ q:15, r:94, wall:1, shelf:2, slot:17 }), 0, 0));
-      eq("...on where a wander finds a chair", ran.seat, text.walkToASeat({ route: 7 }).room.at);
+      eq("...on where a wander finds a chair", ran.seat, text.walkToASeat({ route: 1 }).room.at);
       eq("...on a journey's length", ran.stops, text.journey({ steps: 6, route: 7 }).stops.length);
       eq("...on a cell address", ran.here, text.cellAddress(15, 94, 0));
       ok("...and on validity", ran.valid === true);
@@ -411,7 +427,7 @@ section("WANDER -- a walk that can be followed");
 
 section("SEATS -- find a chair, sit down");
 {
-  const s = core.findSeat({ q: 0, r: 0, floor: 0, seed: 7, maxSteps: 400 });
+  const s = core.findSeat({ q: 0, r: 0, floor: 0, seed: 1, maxSteps: 400 });
   ok("a seat turns up within 400 steps", s.room !== null, `after ${s.steps} steps`);
   ok("the room it stopped in is a reading room",
      core.cellType(s.room.q, s.room.r) === core.TYPE.STUDY);
@@ -424,7 +440,7 @@ section("SEATS -- find a chair, sit down");
      [s.trail.at(-1).q, s.trail.at(-1).r, s.trail.at(-1).floor],
      [s.room.q, s.room.r, s.room.floor]);
   ok("the same route finds the same chair",
-     JSON.stringify(core.findSeat({ q: 0, r: 0, floor: 0, seed: 7 }).room) === JSON.stringify(s.room));
+     JSON.stringify(core.findSeat({ q: 0, r: 0, floor: 0, seed: 1 }).room) === JSON.stringify(s.room));
 
   /* seats agree with what the renderer would draw and collide with */
   let disagree = 0;
@@ -462,14 +478,21 @@ section("JOURNEY -- every stop is a citation");
   ok("a different route hands back different volumes",
      JSON.stringify(text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 9 })) !== JSON.stringify(j));
 
-  const seat = text.walkToASeat({ route: 7 });
+  /* Route 1, not 7: adding the corridor reshuffled every wander, and route
+     7 now spends its 400 steps without meeting a chair. Which is a real
+     answer -- walkToASeat reports "found: false" rather than inventing one
+     -- but it is not the case this assertion is for. 45 of 60 routes find
+     a seat inside 400 steps, at a median of 55. */
+  const seat = text.walkToASeat({ route: 1 });
   ok("walkToASeat reports an address for the room", /^babel:\/\/walk\//.test(seat.room.at));
   ok("and reports how far it walked to get there", seat.steps > 0, `${seat.steps} steps`);
+  ok("a route that finds nothing says so rather than inventing a chair",
+     text.walkToASeat({ route: 7 }).found === false);
 }
 
 section("PACKED DESC -- the int the shader and the CPU both read");
 {
-  let bad = 0, studies = 0, stairs = 0;
+  let bad = 0, studies = 0, stairs = 0, corridors = 0;
   for (let k = 0; k < 6000; k++){
     const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
     const d = core.cellDesc(q, r, 0);
@@ -487,9 +510,15 @@ section("PACKED DESC -- the int the shader and the CPU both read");
       if (core.descAnchor(d) !== core.studyAnchor(q, r, 0, key)) bad++;
       if (core.descKit(d) !== core.studyVisible(q, r, 0)) bad++;
     }
+    if (t === core.TYPE.CORRIDOR){
+      corridors++;
+      if (core.descCorrAxis(d) !== core.corridorAxis(q, r)) bad++;
+      for (let side = 0; side < 2; side++)
+        if (core.descAlcove(d, side) !== core.alcoveAt(q, r, 0, side)) bad++;
+    }
   }
   ok("every field round-trips through the packing", bad === 0,
-     `6000 cells, ${stairs} stairwells, ${studies} reading rooms`);
+     `6000 cells, ${stairs} stairwells, ${studies} reading rooms, ${corridors} corridors`);
   /* the culled kit is the field the shader reads instead of recomputing per
      SDF sample, so it is the one that would silently misplace furniture */
   ok("the culled kit never exceeds the room's kit",
@@ -499,10 +528,21 @@ section("PACKED DESC -- the int the shader and the CPU both read");
         const key = core.studyKey(q, r, 0);
         if (core.descKit(core.cellDesc(q, r, 0)) & ~core.studyKit(key)) return false;
       } return true; })());
-  ok("bits 18-21 hold the kit and nothing spills past them",
+  ok("the packing ends at bit 27 and nothing spills past it",
      (() => { for (let k = 0; k < 6000; k++){
         const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
-        if (core.cellDesc(q, r, 0) >>> 22) return false;
+        if (core.cellDesc(q, r, 0) >>> 28) return false;
+      } return true; })());
+  /* A cell is only ever one type, so the corridor's fields sit above the
+     study's rather than on top of them. Assert the separation, or a later
+     type will alias one of these and the shader will read furniture out of
+     an alcove. */
+  ok("a corridor's fields do not collide with a reading room's",
+     (() => { for (let k = 0; k < 6000; k++){
+        const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
+        const d = core.cellDesc(q, r, 0), t = core.cellType(q, r);
+        if (t !== core.TYPE.CORRIDOR && (d >>> 22)) return false;
+        if (t === core.TYPE.CORRIDOR && ((d >> 12) & 0x3FF)) return false;
       } return true; })());
 }
 
@@ -639,15 +679,27 @@ section("ROUTING -- a route is a promise the lattice has to keep");
      approaching a stairwell means passing through it to the far side. A
      stairwell is an edge, not a node, and this is what that costs. */
   let checked = 0, stairs = 0, unstandable = 0, fromRoom = 0, roomBad = 0, stairBad = 0;
+  let fromCorridor = 0;
   for (let k = 0; k < 900; k++){
     const q = (k * 7) % 60, r = Math.floor(k / 60) - 7, fl = (k % 5) - 2;
     const t = core.cellType(q, r);
     if (t === core.TYPE.SHAFT) continue;
-    const inRoom = t === core.TYPE.GALLERY || t === core.TYPE.STUDY;
+    /* A corridor is a room in the only sense this test cares about: you
+       stand in it and choose again, so every move out of one is reversible.
+       Only the stairwell is an edge. */
+    const inRoom = t !== core.TYPE.STAIRWELL;
+    if (t === core.TYPE.CORRIDOR) fromCorridor += core.movesFrom({ q, r, floor: fl }).length;
     for (const m of core.movesFrom({ q, r, floor: fl })){
       checked++;
       if (m.via === "stair") stairs++;
-      if (!core.isStandable(m.to.q, m.to.r, m.to.floor)) unstandable++;
+      /* Only from a room. Asking movesFrom for the moves out of a stairwell
+         is asking a question the model does not have: a stairwell is an
+         edge, you are never standing in one, and the "moves" it reports are
+         the halves of crossings that begin somewhere else. One such
+         phantom lands in a gallery whose only two exits are flights blocked
+         at their far ends -- a sealed room, correctly unstandable, and
+         genuinely unreachable, as the assertion below shows. */
+      if (inRoom && !core.isStandable(m.to.q, m.to.r, m.to.floor)) unstandable++;
       const back = core.movesFrom(m.to).some(o => core.nodeKey(o.to) === `${q},${r},${fl}`);
       if (inRoom){ fromRoom++; if (!back) roomBad++; }
       else if (back) stairBad++;
@@ -660,6 +712,37 @@ section("ROUTING -- a route is a promise the lattice has to keep");
      roomBad === 0 && fromRoom > 2000, `${fromRoom} moves out of rooms`);
   ok("a stairwell is an edge, not a node: nothing steps back into one",
      stairBad === 0, `${checked - fromRoom} moves out of stairwells, none returnable`);
+  ok("a corridor is a node: you can turn round in one",
+     fromCorridor > 50, `${fromCorridor} moves out of corridors, all reversible`);
+
+  /* A sealed room -- one with no move out of it at all -- is allowed to
+     exist: the Z panel names it as a reason for refusing. What is NOT
+     allowed is being *put* in one, and adding a fifth cell type is exactly
+     the sort of change that could open such a trap without anyone noticing.
+     So: enumerate every sealed room over a wide sample and prove that
+     nothing anywhere can move into it. */
+  {
+    let rooms = 0, sealed = 0, traps = 0;
+    for (let q = -40; q <= 40; q++) for (let r = -40; r <= 40; r++){
+      const t = core.cellType(q, r);
+      if (t === core.TYPE.SHAFT || t === core.TYPE.STAIRWELL) continue;
+      for (const fl of [0, 1, -1]){
+        rooms++;
+        if (core.movesFrom({ q, r, floor: fl }).length) continue;
+        sealed++;
+        for (let dq = -2; dq <= 2; dq++) for (let dr = -2; dr <= 2; dr++)
+          for (let df = -1; df <= 1; df++){
+            if (!dq && !dr && !df) continue;
+            const a = q + dq, b = r + dr, f = fl + df, tt = core.cellType(a, b);
+            if (tt === core.TYPE.SHAFT || tt === core.TYPE.STAIRWELL) continue;
+            if (core.movesFrom({ q: a, r: b, floor: f })
+                    .some(m => m.to.q === q && m.to.r === r && m.to.floor === fl)) traps++;
+          }
+      }
+    }
+    ok("no sealed room can be walked into", traps === 0,
+       `${sealed} sealed of ${rooms} rooms (${(sealed / rooms * 100).toFixed(2)}%), 0 reachable`);
+  }
 
   /* Which way a flight runs is decided twice -- by riseOf, and by the
      tread the shader actually builds. They have to agree, or you would be
