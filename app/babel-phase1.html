@@ -2566,20 +2566,21 @@ float marchRay(vec3 ro, vec3 rd, int steps){
       cc = c; cfl = fl; ct = cellType(c); desc = cellDesc(c, fl);
     }
     float d = mapAt(p, c, desc, ct, fl);
-    /* Return the REFINED hit, not the tolerance-satisfying one. The test
-       above stops when d is under a distance-scaled tolerance -- about 7 mm
-       at 3 m and 12 mm at 6 m -- which left the hit point that far SHORT of
-       the surface, while normalCtx samples the gradient over a fixed
-       +/-1.6 mm. A probe five times smaller than the offset it is standing
-       on reads the local shape of a composite min/max field rather than the
-       surface; and because the step count that reaches the tolerance is an
-       integer, that error came out in concentric rings -- the mottling on
-       bare stone (bug log §13). d is a lower bound on the distance
-       remaining, so t + d lies at or before the surface: closer, never
-       past it, and it costs one add once, outside the loop. Measured on the
-       reported view, pixels landing within 1.6 mm of the surface went from
-       16% to 74%, and the mean residual fell 64%. */
-    if (d < 0.0018 * t + 0.0012) return t + d;
+    /* DO NOT "refine" this by returning t + d. It was tried, it measured well
+       -- hit points within 1.6 mm of the surface went 16% -> 74% -- and it
+       put a solid BLACK RECTANGLE on the wall it was meant to clean, which
+       is worse than the defect. The reasoning behind it was that d is a
+       lower bound on the distance remaining, so t + d could not pass the
+       surface. That is true of a conservative field and this one is not:
+       §17.14 and the shelving comments below record it OVER-reporting in
+       several places, which is the whole reason the march runs at 0.80. Step
+       t + d where it over-reports and the hit point lands INSIDE solid;
+       aoCtx then probes outward from inside, s goes large, occ clamps to 0,
+       and stone albedo plus lit both collapse. Bug log §13.
+       The hit point being short of the surface is real and still open -- fix
+       it by making the probes commensurate with the tolerance, or by making
+       the field conservative, not by stepping forward on trust. */
+    if (d < 0.0018 * t + 0.0012) return t;
     t += d * 0.80;
     if (t > 70.0) break;
   }
@@ -2833,9 +2834,10 @@ const ABLATIONS = {
      remaining distance, so t + d is at or before the surface: closer, never
      past it, and no extra mapAt. Blurring the normal (normeps) treats the
      symptom; this removes the offset the normal was standing on. */
-  /* Now the inverse of what ships, so the A/B that found it stays runnable. */
-  norefine: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t \+ d;/,
-             "if (d < 0.0018 * t + 0.0012) return t;"],
+  /* Kept so the regression can be reproduced on demand rather than
+     rediscovered: this is the change that blacked out the wall. */
+  badrefine: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t;/,
+              "if (d < 0.0018 * t + 0.0012) return t + d;"],
 
   /* THE PROBE. Not a suspect -- an instrument. Renders three measurements
      instead of the scene, so "where does the field over-report, and does its

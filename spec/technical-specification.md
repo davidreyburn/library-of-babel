@@ -933,7 +933,8 @@ found and fixed below; the record of getting there is
 [`docs/BUG-LOG.md`](../docs/BUG-LOG.md) §11, because four diagnoses were wrong
 and the way each died is the useful part.
 
-**Status: fixed on the shelving; bare stone fixed separately and pending sign-off.** No longer
+**Status: fixed on the shelving; bare stone STILL OPEN after four wrong fixes,
+the fourth of which shipped and blacked out a wall before being reverted.** No longer
 "believed fixed" — the symptom was reported again on a wall at
 `floor/-3/cell/-35,-42`, and the reporter confirms the spines are now clean.
 The two mechanisms below are real and their fixes hold; they were not the whole

@@ -30,19 +30,31 @@ defects, unmeasured costs, and reach.
 
 ## Open
 
-### 1. The wall mottling — **fixed, pending your sign-off**
+### 1. The wall mottling — **still open; the fourth fix shipped and was worse**
 
-`marchRay` returned the tolerance-satisfying `t`, leaving the hit point up to
-12 mm short of the surface, while `normalCtx` sampled the gradient over a
-fixed ±1.6 mm. Two tolerances that were never reconciled; the integer step
-count that first met the threshold is what turned a scalar error into rings.
-`return t + d` — one add, outside the loop — takes pixels landing within
-1.6 mm of the surface from **16% to 74%** and costs nothing (4.26 ms against
-4.78). Bug log §13 has the probe, the numbers, and the four negatives.
+Mechanism is believed right: `marchRay` returns a hit up to 12 mm short of the
+surface while `normalCtx` samples the gradient over a fixed ±1.6 mm, and the
+integer step count that first meets the tolerance turns that mismatch into
+rings. Bug log §13 has the three-channel probe that established it and the
+four suspects it cleared.
 
-It stays here rather than moving to done until you have walked a long way
-without meeting it. Three previous announcements of "fixed" on this symptom
-were wrong, and none of them had a measurement behind it.
+**The remedy was wrong and is reverted.** `return t + d` improved the residual
+(16% → 74% of pixels within 1.6 mm) and put a **solid black rectangle** on the
+wall, because this field over-reports in places — so the refined hit landed
+inside solid, `aoCtx` probed from inside, and `occ` collapsed to 0. Reverted;
+`?ablate=badrefine` reproduces it.
+
+**The next attempt must include a black-region check.** The residual metric
+improved while the image got much worse, and no number I was watching could
+have told me. Any candidate here needs: residual down, **near-black fraction
+not up**, frame unmoved, and a look at more than one view.
+
+**Two candidates left, in order of safety:**
+- `?ablate=normeps` — scale the normal probe with the march tolerance. Safe by
+  construction: it does not move the hit point, so it cannot land inside
+  solid. Partially tested, needs a controlled baseline at matched grain.
+- Make the stone path of `mapAt` conservative — §11's route for the shelving.
+  Correct, more invasive, and §15's link budget applies.
 
 <details><summary>The state before the fix, kept for the record</summary>
 

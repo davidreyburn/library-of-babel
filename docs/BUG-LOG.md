@@ -40,7 +40,7 @@ in [`../spec/technical-specification.md`](../spec/technical-specification.md) §
 | 10 | A shader that compiled in 17 ms and would not link in 127 s | instrumenting the link step, then removing real code | closed · §17.13 |
 | 11 | Dark continents on the shelves — and then on the stone | ablation, four times, three of them wrong | **partly closed** · §17.14 |
 | 12 | Two counting conventions, and a verifier that called true citations false | cross-checking a score against a second code path | closed |
-| 13 | Wall mottling: a march tolerance and a normal probe that disagreed | a three-channel probe on a reproducible view | **FIXED**, pending sign-off |
+| 13 | Wall mottling: a march tolerance and a normal probe that disagreed | a three-channel probe; then a shipped fix that was worse | **OPEN** · 4 wrong fixes |
 | 14 | A doorway into a stairwell that arrives nowhere | reading `gapAt` after the seam called it a dead end | **OPEN** |
 | 15 | The shader is one small edit away from an 81-second link | the link timer §17.13 left behind | **OPEN** |
 | 16 | The floorboards give out 12,604 storeys up | float32 arithmetic against the reported floor number | **open, unscheduled** |
@@ -560,11 +560,47 @@ not start from zero.*
 
 ### 13. The wall mottling — two epsilons that did not agree
 
-> **FIXED, pending sign-off.** Mechanism named, fix made, fix measured by an
-> instrument rather than an eye. It stays in Open until someone has walked a
-> long way without meeting it, because this symptom has been announced fixed
-> three times already and that is the whole reason this log has a status
-> column.
+> **STILL OPEN. The fix was shipped, was worse than the defect, and is
+> reverted.** Mechanism below is believed right; the *remedy* was wrong. This
+> is the fourth wrong fix for this symptom, and the first one I shipped.
+>
+> **What I did.** `return t + d` instead of `return t`, on the argument that
+> `d` is a lower bound on the distance remaining, so `t + d` cannot pass the
+> surface.
+>
+> **Why that was wrong, and it is written down two screens further into the
+> same function.** This field is *not* conservative. §17.14 and the shelving
+> comments record it OVER-reporting in several places -- that is the entire
+> reason the march runs at 0.80 rather than 1.0. Where it over-reports,
+> `t + d` lands **inside solid**. `aoCtx` then probes outward from inside, `s`
+> goes large, `occ` clamps to 0, and both the stone albedo
+> (`mix(C_INK, C_STONE, 0.55 + 0.45*occ)`) and `lit` collapse together. The
+> result was **a solid black rectangle across the wall** -- unambiguously
+> worse than the mottling it was meant to remove.
+>
+> **How it got past me, which is the part worth keeping.** The residual
+> measurement was real and good: pixels landing within 1.6 mm of the surface
+> went 16% -> 74%. I had a number, the number improved, and I stopped. What I
+> never measured was **whether anything went black** -- and a black region is
+> the specific failure mode of moving a hit point forward, so it was the one
+> check the change itself called for. Worse, the black rectangle was visible
+> in my own verification screenshot and I labelled it "the hall doorway,"
+> because a clean fix was the answer I wanted. There *is* a hall on wall 0 of
+> that cell, which is exactly what made the rationalisation easy.
+>
+> **The lesson is not "measure".** I measured. It is that a metric chosen to
+> capture the defect says nothing about what the remedy breaks, and the
+> plausible-looking screenshot is the least reliable witness available once
+> you have a stake in the answer. The reporter's eye caught in one glance what
+> two numbers and a montage had missed.
+>
+> **What is still true.** The mechanism -- a march tolerance of ~7-12 mm
+> against a fixed +/-1.6 mm normal probe, with the integer step count turning
+> the mismatch into rings -- is unchanged and still the best explanation.
+> Fix it by making the probes commensurate (`?ablate=normeps`, safe because it
+> does not move the hit point) or by making the field conservative (§11's
+> route). **Do not** step forward on trust; `?ablate=badrefine` reproduces the
+> regression if anyone wants to see it.
 >
 > **The cause: two tolerances that were never reconciled.** `marchRay` stops
 > when `d < 0.0018*t + 0.0012` — about 7 mm at 3 m, 12 mm at 6 m — and
