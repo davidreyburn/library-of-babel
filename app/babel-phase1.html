@@ -2319,11 +2319,17 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
      march step *through* the surface: the ray lands past the spine, the
      gradient there is nonsense, and the shading paints a dark organic patch.
      That is the mottling, on shelves and -- through the same mechanism at
-     the case ends -- on the walls beside them. Measured: at the step scale
-     0.80 this shader marches with, 8.5% of surface pixels carried a normal
-     facing no wall; dropping the step to 0.30 took it to 6.1% and cost 6.7x
-     the frame. Making the field conservative gets the same result for free.
-     Clamping also costs a shade less than mod().                          */
+     the case ends -- on the walls beside them. Measured: at the step scale of
+     0.80 this shader marched with at the time, 8.5% of surface pixels carried
+     a normal facing no wall; dropping the step to 0.30 took it to 6.1% and
+     cost 6.7x the frame. Making the field conservative gets the same result
+     for free. Clamping also costs a shade less than mod().
+
+     TWO CORRECTIONS, both measured later (bug log §13). The step scale is now
+     0.60, not 0.80. And the 6.7x figure does not reproduce -- 0.25 measures
+     +28% and 0.60 measures +11% -- which matters because that number was the
+     stated reason not to touch the step for four sessions. Re-measure before
+     quoting it.                                                           */
   float shelfIdx = clamp(floor((base - 0.167) / SHELF_P + 0.5), 0.0, 4.0);
   float ys = base - (shelfIdx * SHELF_P + 0.167);
   float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centred
@@ -2581,7 +2587,23 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        it by making the probes commensurate with the tolerance, or by making
        the field conservative, not by stepping forward on trust. */
     if (d < 0.0018 * t + 0.0012) return t;
-    t += d * 0.80;
+    /* 0.60, not 0.80. Under-relaxation exists because this field over-reports
+       in places, and how far it under-relaxes decides how close the march
+       lands to the surface -- which decides how wrong normalCtx's gradient is,
+       and therefore how much the stone lift amplifies into visible shapes
+       (bug log §13). Measured on the reported view, by the share of stone
+       pixels whose n.y is more than 0.15 from the nearest of {-1, 0, +1},
+       which for axis-aligned stone is exactly the normal error:
+
+         step 0.80   7.98% bad normals   3.40 ms
+         step 0.60   2.28%               3.78 ms   <- shipped, +11%
+         step 0.25   0.35%               4.36 ms   +28%
+
+       0.60 takes 71% of the defect for 11% of a frame. Lowering the step can
+       only make the march MORE conservative, so unlike the two remedies that
+       failed before it (bug log §13) it cannot land a hit point inside solid.
+       A grazing view measures ~0.5% bad at every step scale and is unchanged. */
+    t += d * 0.60;
     if (t > 70.0) break;
   }
   return -1.0;
@@ -2815,13 +2837,13 @@ const ABLATIONS = {
              "float att = (1.0 / (1.0 + (dl / 1.35) * (dl / 1.35))) * (1.0 - smoothstep(8.0, 11.0, dl));"],
   /* The other family that draws rings on a flat surface: march precision.
      §11 found the spine version of it -- drop the step scale and see. */
-  march:    [/t \+= d \* 0\.80;/, "t += d * 0.25;"],
-  /* A step-scale sweep, because §11's "0.30 costs 6.7x the frame" does not
-     reproduce: measured here, 0.25 costs 4.08 -> 5.60 ms, +37%. If a milder
-     under-relaxation clears the artefact the trade is very different from the
-     one the record has been discouraging. */
-  march60:  [/t \+= d \* 0\.80;/, "t += d * 0.60;"],
-  march45:  [/t \+= d \* 0\.80;/, "t += d * 0.45;"],
+  /* Step-scale variants, re-pointed now that 0.60 is the shipped default.
+     march80 restores the value that produced the reported mottling, which is
+     the A/B anyone re-opening §13 will want first. §11's "0.30 costs 6.7x the
+     frame" does not reproduce at any of these: 0.25 measures +28%. */
+  march80:  [/t \+= d \* 0\.60;/, "t += d * 0.80;"],
+  march45:  [/t \+= d \* 0\.60;/, "t += d * 0.45;"],
+  march25:  [/t \+= d \* 0\.60;/, "t += d * 0.25;"],
 
   /* THE CANDIDATE FIX. marchRay stops when d < 0.0018*t + 0.0012, so the hit
      point sits up to ~7 mm off the surface at 3 m and ~12 mm at 6 m -- while

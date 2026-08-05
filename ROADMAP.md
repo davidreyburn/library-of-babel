@@ -30,7 +30,7 @@ defects, unmeasured costs, and reach.
 
 ## Open
 
-### 1. The wall mottling — **still open; the fourth fix shipped and was worse**
+### 1. The wall mottling — **71% removed at step 0.60; residual outline remains**
 
 Mechanism is believed right: `marchRay` returns a hit up to 12 mm short of the
 surface while `normalCtx` samples the gradient over a fixed ±1.6 mm, and the
@@ -49,12 +49,26 @@ improved while the image got much worse, and no number I was watching could
 have told me. Any candidate here needs: residual down, **near-black fraction
 not up**, frame unmoved, and a look at more than one view.
 
-**Two candidates left, in order of safety:**
-- `?ablate=normeps` — scale the normal probe with the march tolerance. Safe by
-  construction: it does not move the hit point, so it cannot land inside
-  solid. Partially tested, needs a controlled baseline at matched grain.
-- Make the stone path of `mapAt` conservative — §11's route for the shelving.
-  Correct, more invasive, and §15's link budget applies.
+**Shipped:** march step 0.80 → 0.60. Bad normals on the reported view
+7.98% → 2.28%, near-black 11.02% → 7.22% (down), grazing view unchanged,
+frame 3.40 → 3.88 ms (+14%). The filled crescent is now a thin outline.
+
+**Rejected, both measured:** `normeps` (moves away from the accurate render,
+doubles near-black) and `refine2` (strictly dominated — 6.38% bad for +16%,
+where step 0.60 gets 2.28% for +14%).
+
+**A severity metric now exists and is validated.** Every stone surface here is
+axis-aligned, so correct `n.y` is one of {−1, 0, +1} and the distance to the
+nearest is the normal error — no reference image needed, read off the `whatis`
+alpha channel. 0.35% on a visually clean render against 7.98% on the broken
+one. This is what makes the render gate buildable, and what any further attempt
+should be judged by.
+
+**Still open:**
+- The residual 2.28%. `?ablate=march25` reaches 0.35% for +28% frame if the
+  outline is judged worse than the cost.
+- The real fix: make the stone path of `mapAt` conservative, which would let
+  the step go back up to 0.80 and cost nothing. §15's link budget applies.
 
 <details><summary>How the mechanism was narrowed, kept for the record</summary>
 

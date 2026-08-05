@@ -40,7 +40,7 @@ in [`../spec/technical-specification.md`](../spec/technical-specification.md) §
 | 10 | A shader that compiled in 17 ms and would not link in 127 s | instrumenting the link step, then removing real code | closed · §17.13 |
 | 11 | Dark continents on the shelves — and then on the stone | ablation, four times, three of them wrong | **partly closed** · §17.14 |
 | 12 | Two counting conventions, and a verifier that called true citations false | cross-checking a score against a second code path | closed |
-| 13 | Wall mottling: a march tolerance and a normal probe that disagreed | a three-channel probe; then a shipped fix that was worse | **OPEN** · 4 wrong fixes |
+| 13 | Wall mottling: a march tolerance and a normal probe that disagreed | a validated normal-error metric off the whatis render | **OPEN** · 71% removed at step 0.60 |
 | 14 | A doorway into a stairwell that arrives nowhere | reading `gapAt` after the seam called it a dead end | **OPEN** |
 | 15 | The shader is one small edit away from an 81-second link | the link timer §17.13 left behind | **OPEN** |
 | 16 | The floorboards give out 12,604 storeys up | float32 arithmetic against the reported floor number | **open, unscheduled** |
@@ -681,6 +681,31 @@ not start from zero.*
 > handful of canonical views is a scalar with a validated threshold, no
 > reference image, and no human in the loop -- exactly what was missing when
 > four wrong fixes went by unchallenged.
+
+> **Shipped: march step 0.80 -> 0.60.** Verified on the shipped build against
+> the full bar, not on a screenshot:
+>
+> | | step 0.80 | step 0.60 shipped |
+> |---|---|---|
+> | bad normals, perpendicular view | 7.98% | **2.28%** |
+> | mean normal error | 0.0304 | **0.0099** |
+> | bad normals, grazing view | 0.51% | 0.51% unchanged |
+> | near-black share (the guard that caught the last two) | 11.02% | **7.22%** down |
+> | frame, 775x473 | 3.40 ms | 3.88 ms, **+14%** |
+>
+> **This is an improvement, not a resolution.** The filled crescent is now a
+> thin outline; 2.28% of stone pixels still carry a bad normal and they are
+> still concentrated where a wall is viewed near-perpendicular. Step 0.25
+> reaches 0.35% for +28% and is available as `?ablate=march25` if the residual
+> outline is judged worse than the frame.
+>
+> Lowering the step only makes the march more conservative, so unlike
+> `badrefine` and `refine2` it cannot land a hit point inside solid -- the
+> failure mode is excluded by construction rather than by argument.
+>
+> The right fix remains making the stone path of `mapAt` conservative, which
+> would allow the step back up. What changed is that there is now a metric to
+> judge such an attempt by.
 
 > **What is still true.** The mechanism -- a march tolerance of ~7-12 mm
 > against a fixed +/-1.6 mm normal probe, with the integer step count turning
