@@ -56,47 +56,20 @@ not up**, frame unmoved, and a look at more than one view.
 - Make the stone path of `mapAt` conservative — §11's route for the shelving.
   Correct, more invasive, and §15's link budget applies.
 
-<details><summary>The state before the fix, kept for the record</summary>
+<details><summary>How the mechanism was narrowed, kept for the record</summary>
 
-### 1 (was). The wall mottling — confirmed still present, mechanism unknown
+Ruled out by ablation on the reported view, each with a measurement: the lamps'
+hard radius cutoffs (0.02% of pixels move), the ambient term (thin creases at
+shelf edges only — and this finally tested `occ` on stone, whose albedo reads
+it at 45%, which the original AO ablation never did), the tone quantiser
+(`grain=3`, shapes survive), and the stone lift's smoothstep gate (`softlift`,
+shapes survive). The whole step-function class was ruled out on shape before
+any of that: a step draws a *line*, and the reported shapes are *filled
+regions*.
 
-No longer "not signed off": it recurred, on a wall at
-`floor/-3/cell/-35,-42`, and the reporter's priority is fixing it. The spines
-*are* fixed — the two mechanisms in bug log §11 are real and hold — so what is
-left is bare stone only.
-
-**Ruled out since, by ablation against a stored baseline (bug log §13):** the
-lamps' hard radius cutoffs (0.02% of pixels move), and the ambient term (thin
-creases at shelf edges, no filled regions — and this finally tests `occ` on
-stone, whose albedo reads it at 45%, which the original AO ablation never did).
-The whole step-function class is ruled out on shape: a step draws a *line*, and
-the reported shapes are *filled regions*.
-
-**Mechanism found.** A reproducible view arrived (`V` now copies one), the
-symptom reproduced first try, and six ablations on that view settled it:
-**ray-march overshoot on the stone field**, amplified 3× by the stone lift.
-The field over-reports, the ray lands past the surface, the normal there is
-nonsense, and that normal feeds `dot(n, L)` into `lit`. Dropping the march
-step to 0.25 removes it; forcing AO to 1, ramping the lamp cutoffs, softening
-the lift's gate and disabling the tone quantiser all do not. Bug log §13.
-
-This is §11's defect in the half of the field §11 did not audit: it made the
-*shelving* conservative and measured the result on spines. The hexagon shell
-was never looked at.
-
-**Lever:** make the stone path of `mapAt` conservative and keep the step at
-0.80 — the same trade §11 took for the shelving and got "for nothing" (6.58 ms
-against 6.27). Audit the hexagon shell, the ceiling and floor planes and the
-doorway carving for the three sins §11 found: a `mod()` repeating geometry
-that is not there, and culls that discard instead of comparing against the
-best distance so far.
-**Do not** ship the cheap fix: step 0.25 costs about what §11 measured at 0.30,
-**6.7× the frame**. §15's link budget applies to any edit in `mapAt`.
-**Done when:** the shapes are gone at step 0.80, the frame has not moved, and
-a long traverse does not meet them.
-
-*(All three conditions are now met on the reported view and on the previously
-reported cell — but the traverse is yours to walk.)*
+Dropping the march step 0.80 → 0.25 does remove them, which is what pointed at
+march precision. That is a diagnostic, not a fix — §11 measured the same trade
+at 0.30 as **6.7× the frame**.
 
 </details>
 
