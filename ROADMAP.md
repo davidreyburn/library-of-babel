@@ -44,20 +44,28 @@ stone, whose albedo reads it at 45%, which the original AO ablation never did).
 The whole step-function class is ruled out on shape: a step draws a *line*, and
 the reported shapes are *filled regions*.
 
-**Was blocked on reproduction** — 60 views at the reported cell did not show
-it, because the address said where you stood and not where you looked.
-**Unblocked:** **V** in the renderer copies `?at=…&view=x,y,z,yaw,pitch`, and
-a pasted view restores the camera bit for bit (0 of 366,575 pixels differ
-across a page load). It rides in the query string, not the `babel://`
-address, because a yaw is not checkable and an address's components all are;
-four assertions pin that.
+**Mechanism found.** A reproducible view arrived (`V` now copies one), the
+symptom reproduced first try, and six ablations on that view settled it:
+**ray-march overshoot on the stone field**, amplified 3× by the stone lift.
+The field over-reports, the ray lands past the surface, the normal there is
+nonsense, and that normal feeds `dot(n, L)` into `lit`. Dropping the march
+step to 0.25 removes it; forcing AO to 1, ramping the lamp cutoffs, softening
+the lift's gate and disabling the tone quantiser all do not. Bug log §13.
 
-**Lever, in order:** get a view URL with the symptom in it; ablate on *that*
-view with `?ablate=occ,albedo,lift,litocc`; then the two untested suspects —
-the tone ramp near the `smoothstep(0.18, 0.38, lit)` knee, and the dither at
-1:2 buffer scale.
-**Done when:** a named mechanism, an ablation that removes the shapes, and a
-long traverse that does not meet them.
+This is §11's defect in the half of the field §11 did not audit: it made the
+*shelving* conservative and measured the result on spines. The hexagon shell
+was never looked at.
+
+**Lever:** make the stone path of `mapAt` conservative and keep the step at
+0.80 — the same trade §11 took for the shelving and got "for nothing" (6.58 ms
+against 6.27). Audit the hexagon shell, the ceiling and floor planes and the
+doorway carving for the three sins §11 found: a `mod()` repeating geometry
+that is not there, and culls that discard instead of comparing against the
+best distance so far.
+**Do not** ship the cheap fix: step 0.25 costs about what §11 measured at 0.30,
+**6.7× the frame**. §15's link budget applies to any edit in `mapAt`.
+**Done when:** the shapes are gone at step 0.80, the frame has not moved, and
+a long traverse does not meet them.
 
 ### 1b. A doorway into a stairwell that arrives nowhere
 

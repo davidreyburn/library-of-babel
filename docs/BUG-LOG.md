@@ -40,7 +40,7 @@ in [`../spec/technical-specification.md`](../spec/technical-specification.md) §
 | 10 | A shader that compiled in 17 ms and would not link in 127 s | instrumenting the link step, then removing real code | closed · §17.13 |
 | 11 | Dark continents on the shelves — and then on the stone | ablation, four times, three of them wrong | **partly closed** · §17.14 |
 | 12 | Two counting conventions, and a verifier that called true citations false | cross-checking a score against a second code path | closed |
-| 13 | The wall mottling is still there, and two more mechanisms are not it | ablation against a stored baseline, twice, both negative | **OPEN** |
+| 13 | Wall mottling: march overshoot on stone, amplified by the stone lift | six ablations on a reproducible view | **OPEN** · cause found, unfixed |
 | 14 | A doorway into a stairwell that arrives nowhere | reading `gapAt` after the seam called it a dead end | **OPEN** |
 | 15 | The shader is one small edit away from an 81-second link | the link timer §17.13 left behind | **OPEN** |
 | 16 | The floorboards give out 12,604 storeys up | float32 arithmetic against the reported floor number | **open, unscheduled** |
@@ -558,7 +558,61 @@ mechanism is established and the fix is deliberately not scheduled. Each entry
 carries what has been ruled out, with the measurement, so the next attempt does
 not start from zero.*
 
-### 13. The wall mottling is still there, and two more mechanisms are not it
+### 13. The wall mottling — mechanism found: march overshoot on bare stone
+
+> **Update, after a reproducible view arrived.** The reporter sent a `?view=`
+> URL (`floor/0/cell/-1,0`), the symptom reproduced first try, and six
+> ablations on *that* view settled it. **The cause is ray-march overshoot on
+> the stone field; the stone lift is only the amplifier.** Everything below
+> this box is the record of the hunt before the view existed, kept because
+> four of the six negatives are still the useful part.
+>
+> | Ablation on the reported view | Crescent |
+> |---|---|
+> | `lift` — drop the near-vertical stone lift | **gone**, and the wall goes black |
+> | `softlift` — lift ∝ `lit`, cannot band | still there |
+> | `lampramp` — ramp the hard lamp radius cutoffs | still there |
+> | tone quantiser off (`grain=3`) | still there |
+> | `occ` — force AO to 1 | still there |
+> | **`march` — step scale 0.80 → 0.25** | **gone** |
+>
+> The chain: the stone field over-reports, so the ray lands *past* the
+> surface, where the gradient is nonsense. The wrong normal goes into
+> `dot(n, L)` and therefore into `lit`. The stone lift then multiplies that
+> error by 0.30 on a surface whose total luminance is ~0.1 — a 300% swing —
+> which is why it is violent on bare walls and invisible on books, whose
+> material is excluded from that line and whose own luminance is 5× higher.
+>
+> **This is §11's defect, in the half of the field §11 did not fix.** §11
+> found exactly this mechanism on the *shelving* — `mod()` repeating a shelf
+> that is not there, two culls dropping casework and books out of the field —
+> made those three conservative, and measured the result on spines. The
+> hexagon shell was never audited. 8.5% of surface pixels carried a bad normal
+> at step 0.80 then; nobody asked which surfaces.
+>
+> **And it is why `lift` looked like the answer twice.** Removing the
+> amplifier removes the symptom, so the lift convicts itself under ablation
+> while being innocent — the same shape of error as AO looking guilty for the
+> spines in §11. An ablation that removes a symptom has found *a* term in the
+> chain, not necessarily the first one.
+>
+> **Not fixed yet, and the cheap fix is the wrong one.** Dropping the march
+> step to 0.25 costs roughly what §11 measured at 0.30: **6.7× the frame**.
+> The precedent is to make the field conservative instead and keep the step at
+> 0.80, which §11 got "for nothing" (6.58 ms against 6.27). That means
+> auditing the stone path of `mapAt` — the hexagon shell, the ceiling and
+> floor planes, and the doorway carving — for the same three sins: a `mod()`
+> that repeats geometry that is not there, and culls that discard rather than
+> comparing against the best distance so far. Roadmap item 1; §15's link
+> budget applies to any edit in there.
+
+---
+
+**The record of getting there, before the view existed.** Two mechanisms ruled
+out below are still ruled out; the shape argument is still the reason the whole
+step-function class was never it.
+
+
 
 **The report.** Large smooth dark shapes on a bare stone wall at
 `floor/-3/cell/-35,-42`, sent as a screenshot. Books unaffected — *"the books

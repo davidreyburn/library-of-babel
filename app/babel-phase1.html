@@ -2786,14 +2786,31 @@ const ABLATIONS = {
   lift:   [/lum = min\(1\.0, lum \+ 0\.30 \* smoothstep\([\s\S]*?lit\)\);/,
            "lum = lum;"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
-           "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"]
+           "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
+  /* The candidate fix, not a suspect: lift stone in PROPORTION to how lit it
+     already is, instead of gating the lift on a narrow band of it. A ramp
+     between two thresholds still draws an iso-contour of `lit` across a wall
+     -- softer than a step, and still a shape. Multiplying cannot band. */
+  softlift: [/0\.30 \* smoothstep\(0\.80, 0\.92, horiz\)\s*\* smoothstep\(0\.18, 0\.38, lit\)/,
+             "0.42 * smoothstep(0.80, 0.92, horiz) * lit"],
+  /* Every lamp's contribution is truncated at a hard radius, and there are up
+     to 42 of them in range (7 cells x 3 storeys x 2). Each truncation is a
+     sphere, and a sphere meeting a flat wall is a CIRCLE -- several lamps,
+     several arcs. Ramp them to zero before the cull instead. */
+  lampramp: [/float att = 1\.0 \/ \(1\.0 \+ \(dl \/ 1\.35\) \* \(dl \/ 1\.35\)\);/g,
+             "float att = (1.0 / (1.0 + (dl / 1.35) * (dl / 1.35))) * (1.0 - smoothstep(8.0, 11.0, dl));"],
+  /* The other family that draws rings on a flat surface: march precision.
+     §11 found the spine version of it -- drop the step scale and see. */
+  march:    [/t \+= d \* 0\.80;/, "t += d * 0.25;"]
 };
 let FRAG_SRC = FRAG;
 window.__ablated = [];
 for (const a of ABLATE){
   const r = ABLATIONS[a];
   if (!r){ console.error("unknown ablation: " + a); continue; }
+  r[0].lastIndex = 0;                          // a /g regex carries state across .test()
   if (!r[0].test(FRAG_SRC)){ console.error("ablation did not match: " + a); continue; }
+  r[0].lastIndex = 0;
   FRAG_SRC = FRAG_SRC.replace(r[0], r[1]);
   window.__ablated.push(a);
 }
