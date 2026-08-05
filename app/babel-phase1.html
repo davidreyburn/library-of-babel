@@ -2816,6 +2816,12 @@ const ABLATIONS = {
   /* The other family that draws rings on a flat surface: march precision.
      §11 found the spine version of it -- drop the step scale and see. */
   march:    [/t \+= d \* 0\.80;/, "t += d * 0.25;"],
+  /* A step-scale sweep, because §11's "0.30 costs 6.7x the frame" does not
+     reproduce: measured here, 0.25 costs 4.08 -> 5.60 ms, +37%. If a milder
+     under-relaxation clears the artefact the trade is very different from the
+     one the record has been discouraging. */
+  march60:  [/t \+= d \* 0\.80;/, "t += d * 0.60;"],
+  march45:  [/t \+= d \* 0\.80;/, "t += d * 0.45;"],
 
   /* THE CANDIDATE FIX. marchRay stops when d < 0.0018*t + 0.0012, so the hit
      point sits up to ~7 mm off the surface at 3 m and ~12 mm at 6 m -- while

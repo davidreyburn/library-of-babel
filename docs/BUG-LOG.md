@@ -594,6 +594,51 @@ not start from zero.*
 > you have a stake in the answer. The reporter's eye caught in one glance what
 > two numbers and a montage had missed.
 >
+> **Two more candidates tested and rejected, and a negative result about
+> measurement that matters more than either.**
+>
+> `?ablate=normeps` — scale the normal probe with the march tolerance. Safe by
+> construction (it does not move the hit point) and still **wrong**: it moved
+> *away* from the accurate render and more than doubled the near-black area.
+>
+> | view A | baseline | normeps | reference (step 0.25) |
+> |---|---|---|---|
+> | distance to reference | 4.43 | **7.49** | 0 |
+> | near-black % | 11.0 | **27.9** | 15.8 |
+>
+> A step-scale sweep, using step 0.25 as a reference render because it marches
+> four times finer and is therefore the accurate one:
+>
+> | step | dist to ref (A) | near-black A | ms/frame |
+> |---|---|---|---|
+> | 0.80 shipped | 4.43 | 11.0 | 4.08 |
+> | 0.60 | 3.68 | 7.0 | 4.55 |
+> | 0.45 | **6.96** | 6.6 | 4.41 |
+> | 0.25 reference | 0 | 15.8 | 5.60 |
+>
+> **§11's "0.30 costs 6.7× the frame" does not reproduce.** Step 0.25 measured
+> at +37% here (4.08 → 5.60 ms at 775×473). That figure has been the stated
+> reason not to take the direct route, and it is wrong by an order of
+> magnitude — worth knowing before anyone rejects the cheap fix again.
+>
+> **The negative result: I have no scalar that ranks this defect's severity.**
+> Three were tried — band-passed low-frequency contrast, residual `|mapAt|` at
+> the hit point, and distance to an accurate reference — and all three are
+> **non-monotonic** in the thing being varied. 0.45 is further from the
+> reference than 0.80; near-black goes 11.0 → 7.0 → 6.6 → 15.8. The reason is
+> that finer marching does not attenuate the rings, it *moves* them, so two
+> differently-wrong images can be far apart, and a metric can improve while
+> the picture gets worse. That is exactly how the `t + d` regression passed:
+> residual improved 64% while a wall went black.
+>
+> **Consequence for anyone continuing this.** Do not accept a fix here on a
+> number alone; the only instrument that has been reliable across four wrong
+> fixes is a person looking at a wall. A metric is worth having as a *guard*
+> (near-black must not rise) and is not worth having as a target. Until a
+> monotone severity measure exists, the render gate this repository wants
+> cannot be built for *this* defect — though it can still be built for the
+> things that are monotone, like link time and frame time.
+
 > **What is still true.** The mechanism -- a march tolerance of ~7-12 mm
 > against a fixed +/-1.6 mm normal probe, with the integer step count turning
 > the mismatch into rings -- is unchanged and still the best explanation.
