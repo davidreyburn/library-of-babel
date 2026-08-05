@@ -2845,6 +2845,21 @@ const ABLATIONS = {
   badrefine: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t;/,
               "if (d < 0.0018 * t + 0.0012) return t + d;"],
 
+  /* The same idea as badrefine with the failure mode structurally excluded
+     rather than argued away. badrefine stepped to t + d on the claim that d
+     is a lower bound; this field over-reports, so that step landed inside
+     solid and occ collapsed. Here the refined point is TESTED before it is
+     accepted: if mapAt says it is still outside, take it; otherwise keep the
+     conservative hit. One extra mapAt at loop exit -- one call in ~79, not
+     one per step. The cell is reused because t2 - t is under 12 mm, so it is
+     the cell the sample at t was already resolved to. */
+  refine2: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t;/,
+            "if (d < 0.0018 * t + 0.0012){\n" +
+            "      float t2 = t + d;\n" +
+            "      if (mapAt(ro + rd * t2, c, desc, ct, fl) > 0.0) return t2;\n" +
+            "      return t;\n" +
+            "    }"],
+
   /* WHAT IS IT. The render that should have been the first experiment, not the
      twelfth. Four facts per pixel, in four channels, one link -- because at
      60-85 s per shader variant the cost of this hunt was dominated by the

@@ -639,6 +639,49 @@ not start from zero.*
 > cannot be built for *this* defect — though it can still be built for the
 > things that are monotone, like link time and frame time.
 
+> **A working severity metric, which is the real result of this session.** Two
+> turns before this I wrote that no monotone measure of this defect could be
+> built. That was wrong, and wrong in an instructive way: I had been trying to
+> derive one by *differencing images*, which fails because finer marching moves
+> the rings rather than attenuating them. The metric has to come from geometry.
+>
+> Every stone surface in this Library is axis-aligned -- walls vertical, floor
+> up, ceiling down -- so the correct `n.y` on any stone pixel is exactly one of
+> {-1, 0, +1}. **The distance from `n.y` to the nearest of those IS the normal
+> error**, needs no reference render, and is computed straight out of the
+> `whatis` alpha channel:
+>
+> ```js
+> const e = Math.min(Math.abs(ny), Math.abs(ny - 1), Math.abs(ny + 1));
+> ```
+>
+> Validated against both ends: on the visually clean render it reads 0.35% of
+> stone pixels bad, on the visually broken one 7.98% -- **23x separation** --
+> and it stays flat at ~0.5% on a grazing view that never had the defect. It
+> agrees with the eye in both directions, which none of the three earlier
+> proxies did.
+>
+> **With it, the step-scale curve is monotone and the decision is finally
+> legible:**
+>
+> | variant | % bad normals (perp) | mean normal error | ms | vs base |
+> |---|---|---|---|---|
+> | step 0.80 shipped | 7.98% | 0.0304 | 3.40 | -- |
+> | step 0.60 | 2.28% | 0.0099 | 3.78 | +11% |
+> | step 0.25 | 0.35% | 0.0042 | 4.36 | +28% |
+> | refine2 | 6.38% | 0.0258 | 3.95 | +16% |
+>
+> `refine2` -- step to `t + d` only if a second `mapAt` confirms the point is
+> still outside solid -- is **strictly dominated**: worse than step 0.60 on
+> both quality and frame. It also cost +16% rather than the +1.3% I predicted
+> from "one call in seventy-nine", which is the third time this session that
+> reasoning about cost lost to measuring it.
+>
+> **The gate this repository wanted is now buildable.** `pctBadNormals` on a
+> handful of canonical views is a scalar with a validated threshold, no
+> reference image, and no human in the loop -- exactly what was missing when
+> four wrong fixes went by unchallenged.
+
 > **What is still true.** The mechanism -- a march tolerance of ~7-12 mm
 > against a fixed +/-1.6 mm normal probe, with the integer step count turning
 > the mismatch into rings -- is unchanged and still the best explanation.
