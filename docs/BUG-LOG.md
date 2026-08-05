@@ -40,7 +40,7 @@ in [`../spec/technical-specification.md`](../spec/technical-specification.md) §
 | 10 | A shader that compiled in 17 ms and would not link in 127 s | instrumenting the link step, then removing real code | closed · §17.13 |
 | 11 | Dark continents on the shelves — and then on the stone | ablation, four times, three of them wrong | **partly closed** · §17.14 |
 | 12 | Two counting conventions, and a verifier that called true citations false | cross-checking a score against a second code path | closed |
-| 13 | Wall mottling: march overshoot on stone, amplified by the stone lift | six ablations on a reproducible view | **OPEN** · cause found, unfixed |
+| 13 | Wall mottling: a march tolerance and a normal probe that disagreed | a three-channel probe on a reproducible view | **FIXED**, pending sign-off |
 | 14 | A doorway into a stairwell that arrives nowhere | reading `gapAt` after the seam called it a dead end | **OPEN** |
 | 15 | The shader is one small edit away from an 81-second link | the link timer §17.13 left behind | **OPEN** |
 | 16 | The floorboards give out 12,604 storeys up | float32 arithmetic against the reported floor number | **open, unscheduled** |
@@ -558,14 +558,60 @@ mechanism is established and the fix is deliberately not scheduled. Each entry
 carries what has been ruled out, with the measurement, so the next attempt does
 not start from zero.*
 
-### 13. The wall mottling — mechanism found: march overshoot on bare stone
+### 13. The wall mottling — two epsilons that did not agree
 
-> **Update, after a reproducible view arrived.** The reporter sent a `?view=`
-> URL (`floor/0/cell/-1,0`), the symptom reproduced first try, and six
-> ablations on *that* view settled it. **The cause is ray-march overshoot on
-> the stone field; the stone lift is only the amplifier.** Everything below
-> this box is the record of the hunt before the view existed, kept because
-> four of the six negatives are still the useful part.
+> **FIXED, pending sign-off.** Mechanism named, fix made, fix measured by an
+> instrument rather than an eye. It stays in Open until someone has walked a
+> long way without meeting it, because this symptom has been announced fixed
+> three times already and that is the whole reason this log has a status
+> column.
+>
+> **The cause: two tolerances that were never reconciled.** `marchRay` stops
+> when `d < 0.0018*t + 0.0012` — about 7 mm at 3 m, 12 mm at 6 m — and
+> returned `t`, leaving the hit point that far **short** of the surface.
+> `normalCtx` then estimates the gradient over a **fixed ±1.6 mm**. A probe
+> five times smaller than the offset it is standing on measures the local
+> shape of a composite min/max field instead of the surface. And because the
+> step count that first satisfies the tolerance is an **integer**, the
+> residual came out in concentric rings — which is why a defect in a *scalar
+> tolerance* looked like organic shapes painted on a wall.
+>
+> From there: wrong normal → `dot(n, L)` → `lit` → and the near-vertical
+> stone lift multiplies it by 0.30 on a surface whose total is ~0.1. Violent
+> on bare stone, invisible on books, which that line excludes and whose own
+> luminance is 5× higher.
+>
+> **The fix is one add, outside the loop:** `return t + d` instead of
+> `return t`. `d` is a lower bound on the distance remaining, so `t + d` lies
+> at or before the surface — closer, never past it.
+>
+> | | before | after |
+> |---|---|---|
+> | pixels landing within 1.6 mm of the surface | 16% | **74%** |
+> | mean residual \|mapAt\| at the hit point | ~31 | **11.2** (−64%) |
+> | frame, 775×473, timed against a readPixels sync | 4.78 ms | **4.26 ms** |
+>
+> Faster, if anything — a shorter `t` is not a cheaper march, so read that as
+> free rather than as an improvement.
+>
+> **What the probe settled that argument could not.** Three channels in one
+> shader variant: `|mapAt|` at the hit point, the shelving's chosen wall
+> pair, and the doorway cull box. The overshoot came out as concentric rings;
+> the wall-pair partition came out as one near-vertical boundary; **they did
+> not coincide**, which killed the leading hypothesis in one image. Both of
+> the reporter's questions were answered by that render and neither by
+> reasoning:
+>
+> - *Why only some door gaps?* It is not the gaps. It is the **large
+>   uninterrupted expanse of bare dim stone** a gap leaves beside it — the
+>   only surface where the lift dominates and no texture hides the rings.
+> - *Why a small rectangular section?* That rectangle is the **doorway
+>   aperture** and the casework flanking it, which bound the exposed stone.
+>
+> Everything below this box is the record of the hunt before a reproducible
+> view existed, kept because four of the six negatives are still the useful
+> part — and because the first three sessions each convicted a term that was
+> merely downstream of the real one.
 >
 > | Ablation on the reported view | Crescent |
 > |---|---|

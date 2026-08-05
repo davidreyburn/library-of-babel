@@ -30,7 +30,23 @@ defects, unmeasured costs, and reach.
 
 ## Open
 
-### 1. The wall mottling — confirmed still present, mechanism unknown
+### 1. The wall mottling — **fixed, pending your sign-off**
+
+`marchRay` returned the tolerance-satisfying `t`, leaving the hit point up to
+12 mm short of the surface, while `normalCtx` sampled the gradient over a
+fixed ±1.6 mm. Two tolerances that were never reconciled; the integer step
+count that first met the threshold is what turned a scalar error into rings.
+`return t + d` — one add, outside the loop — takes pixels landing within
+1.6 mm of the surface from **16% to 74%** and costs nothing (4.26 ms against
+4.78). Bug log §13 has the probe, the numbers, and the four negatives.
+
+It stays here rather than moving to done until you have walked a long way
+without meeting it. Three previous announcements of "fixed" on this symptom
+were wrong, and none of them had a measurement behind it.
+
+<details><summary>The state before the fix, kept for the record</summary>
+
+### 1 (was). The wall mottling — confirmed still present, mechanism unknown
 
 No longer "not signed off": it recurred, on a wall at
 `floor/-3/cell/-35,-42`, and the reporter's priority is fixing it. The spines
@@ -66,6 +82,11 @@ best distance so far.
 **6.7× the frame**. §15's link budget applies to any edit in `mapAt`.
 **Done when:** the shapes are gone at step 0.80, the frame has not moved, and
 a long traverse does not meet them.
+
+*(All three conditions are now met on the reported view and on the previously
+reported cell — but the traverse is yours to walk.)*
+
+</details>
 
 ### 1b. A doorway into a stairwell that arrives nowhere
 

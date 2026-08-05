@@ -2566,7 +2566,20 @@ float marchRay(vec3 ro, vec3 rd, int steps){
       cc = c; cfl = fl; ct = cellType(c); desc = cellDesc(c, fl);
     }
     float d = mapAt(p, c, desc, ct, fl);
-    if (d < 0.0018 * t + 0.0012) return t;
+    /* Return the REFINED hit, not the tolerance-satisfying one. The test
+       above stops when d is under a distance-scaled tolerance -- about 7 mm
+       at 3 m and 12 mm at 6 m -- which left the hit point that far SHORT of
+       the surface, while normalCtx samples the gradient over a fixed
+       +/-1.6 mm. A probe five times smaller than the offset it is standing
+       on reads the local shape of a composite min/max field rather than the
+       surface; and because the step count that reaches the tolerance is an
+       integer, that error came out in concentric rings -- the mottling on
+       bare stone (bug log §13). d is a lower bound on the distance
+       remaining, so t + d lies at or before the surface: closer, never
+       past it, and it costs one add once, outside the loop. Measured on the
+       reported view, pixels landing within 1.6 mm of the surface went from
+       16% to 74%, and the mean residual fell 64%. */
+    if (d < 0.0018 * t + 0.0012) return t + d;
     t += d * 0.80;
     if (t > 70.0) break;
   }
@@ -2801,17 +2814,79 @@ const ABLATIONS = {
              "float att = (1.0 / (1.0 + (dl / 1.35) * (dl / 1.35))) * (1.0 - smoothstep(8.0, 11.0, dl));"],
   /* The other family that draws rings on a flat surface: march precision.
      §11 found the spine version of it -- drop the step scale and see. */
-  march:    [/t \+= d \* 0\.80;/, "t += d * 0.25;"]
+  march:    [/t \+= d \* 0\.80;/, "t += d * 0.25;"],
+
+  /* THE CANDIDATE FIX. marchRay stops when d < 0.0018*t + 0.0012, so the hit
+     point sits up to ~7 mm off the surface at 3 m and ~12 mm at 6 m -- while
+     normalCtx samples the gradient over a FIXED +/-1.6 mm. The probe is far
+     smaller than the positional error it is standing on, so it reads the
+     local shape of a composite min/max field rather than the surface, and
+     the step count that reached the tolerance is an integer, which is why
+     the error comes out in rings. Scale the probe with the same tolerance
+     the march used and the two are commensurate again. */
+  normeps: [/vec2 e = vec2\(1\.0, -1\.0\) \* 0\.0016;/,
+            "vec2 e = vec2(1.0, -1.0) * (0.0016 + 1.20 * (0.0018 * distance(p, uCam) + 0.0012));"],
+
+  /* The same mismatch attacked at the other end, and for one add. The march
+     stops when d is under tolerance and returns t -- leaving the hit point
+     up to a tolerance SHORT of the surface. d is a lower bound on the
+     remaining distance, so t + d is at or before the surface: closer, never
+     past it, and no extra mapAt. Blurring the normal (normeps) treats the
+     symptom; this removes the offset the normal was standing on. */
+  /* Now the inverse of what ships, so the A/B that found it stays runnable. */
+  norefine: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t \+ d;/,
+             "if (d < 0.0018 * t + 0.0012) return t;"],
+
+  /* THE PROBE. Not a suspect -- an instrument. Renders three measurements
+     instead of the scene, so "where does the field over-report, and does its
+     boundary coincide with anything" stops being a judgement about a
+     screenshot. One variant, three channels, one link:
+       R  |mapAt| at the converged hit point. Zero on a real surface; bright
+          wherever the march landed PAST one. This is the defect itself.
+       G  which two walls the shelving picked, encoded. Draws the selection
+          partition, so its edges can be compared against R's.
+       B  inside the doorway cull box (|u|<=1.6, |v|<=1.9) for any gap.
+     mapAt writes globals and normalCtx/aoCtx call it again, so the pair has
+     to be snapshotted the way key0 already is. */
+  probe: [
+    [/float gTgt;/, "float gTgt;\nvec3 gDbg = vec3(0.0);"],
+    /* \s*\n\s* rather than \n: the working tree is CRLF, and a literal \n
+       silently matches nothing inside the template literal. */
+    [/(else if \(pr > p2\)\{ p2 = pr; w2 = i; \}\s*\n\s*\})/,
+     "$1\n  gDbg.g = float((w1 + 1) * 8 + (w2 + 1)) / 64.0;"],
+    [/    mapAt\(hp, c, d2, ct2, fl\);/,
+     "    float dbgOver = abs(mapAt(hp, c, d2, ct2, fl));\n" +
+     "    float dbgPair = gDbg.g;"],
+    [/    matOut = mat; nOut = n; pOut = hp;/,
+     "    float dbgBox = 0.0;\n" +
+     "    for (int i = 0; i < 6; i++){\n" +
+     "      if (((d2 >> (i * 2)) & 3) == 0) continue;\n" +
+     "      vec2 dbgDir = dirW(i);\n" +
+     "      vec2 dbgRel = (hp.xz - worldOf(c)) - dbgDir * HALF_D;\n" +
+     "      float du = dot(dbgRel, dbgDir), dvv = dot(dbgRel, vec2(-dbgDir.y, dbgDir.x));\n" +
+     "      if (abs(du) <= 1.6 && abs(dvv) <= 1.9) dbgBox = 1.0;\n" +
+     "    }\n" +
+     "    gDbg = vec3(clamp(dbgOver * 40.0, 0.0, 1.0), dbgPair, dbgBox);\n" +
+     "    matOut = mat; nOut = n; pOut = hp;"],
+    [/  outColor = vec4\(final, 1\.0\);/, "  outColor = vec4(gDbg, 1.0);"]
+  ]
 };
 let FRAG_SRC = FRAG;
 window.__ablated = [];
 for (const a of ABLATE){
-  const r = ABLATIONS[a];
-  if (!r){ console.error("unknown ablation: " + a); continue; }
-  r[0].lastIndex = 0;                          // a /g regex carries state across .test()
-  if (!r[0].test(FRAG_SRC)){ console.error("ablation did not match: " + a); continue; }
-  r[0].lastIndex = 0;
-  FRAG_SRC = FRAG_SRC.replace(r[0], r[1]);
+  const spec = ABLATIONS[a];
+  if (!spec){ console.error("unknown ablation: " + a); continue; }
+  /* one [regex, replacement] pair, or an array of them for an ablation that
+     has to touch several places at once -- the debug probe needs four, and
+     four separate page loads would cost four links (§15). */
+  const pairs = Array.isArray(spec[0]) ? spec : [spec];
+  let ok = true;
+  for (const [re] of pairs){
+    re.lastIndex = 0;                          // a /g regex carries state across .test()
+    if (!re.test(FRAG_SRC)){ console.error(`ablation "${a}" did not match: ${re}`); ok = false; break; }
+  }
+  if (!ok) continue;
+  for (const [re, rep] of pairs){ re.lastIndex = 0; FRAG_SRC = FRAG_SRC.replace(re, rep); }
   window.__ablated.push(a);
 }
 if (window.__ablated.length) console.log("ablated: " + window.__ablated.join(","));
