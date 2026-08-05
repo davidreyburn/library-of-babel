@@ -2766,7 +2766,36 @@ function compile(type, src){
 }
 const prog = gl.createProgram();
 gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
-gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+/* TEMPORARY, for the mottling hunt. Ablation by SOURCE SUBSTITUTION rather
+   than a runtime branch: ?ablate=occ,albedo,lift rewrites the term out of
+   the shader before it is compiled, so every variant is the same size or
+   smaller than the shipped one. A `uniform int` guard was tried first and
+   cost 81 s of link time -- which is §17.13's own lesson learned twice:
+   guarding code at runtime does not remove it, and this shader has very
+   little inliner headroom left. Patterns are regexes so no multi-line GLSL
+   has to survive being a JS string literal. */
+const ABLATE = (new URLSearchParams(location.search).get("ablate") || "")
+  .split(",").map(a => a.trim()).filter(Boolean);
+const ABLATIONS = {
+  occ:    [/float occ = aoCtx\([^;]*\);/, "float occ = 1.0;"],
+  albedo: [/base = mix\(C_INK, C_STONE, 0\.55 \+ 0\.45 \* occ\);/,
+           "base = mix(C_INK, C_STONE, 1.0);"],
+  lift:   [/lum = min\(1\.0, lum \+ 0\.30 \* smoothstep\([\s\S]*?lit\)\);/,
+           "lum = lum;"],
+  litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
+           "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"]
+};
+let FRAG_SRC = FRAG;
+window.__ablated = [];
+for (const a of ABLATE){
+  const r = ABLATIONS[a];
+  if (!r){ console.error("unknown ablation: " + a); continue; }
+  if (!r[0].test(FRAG_SRC)){ console.error("ablation did not match: " + a); continue; }
+  FRAG_SRC = FRAG_SRC.replace(r[0], r[1]);
+  window.__ablated.push(a);
+}
+if (window.__ablated.length) console.log("ablated: " + window.__ablated.join(","));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG_SRC));
 /* A link can fail slowly, and silently. The corridor's first axis rule
    asked a neighbouring flight for its own axis, from inside gapAt, which
    cellDesc calls six times, which the shader calls for every cell a ray

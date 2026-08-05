@@ -30,17 +30,68 @@ defects, unmeasured costs, and reach.
 
 ## Open
 
-### 1. The mottling, not signed off
+### 1. The wall mottling — confirmed still present, mechanism unknown
 
-Two real mechanisms were found and fixed — an over-reporting distance field on
-the spines, a step function on bare stone (spec §17.14, bug log §11) — but two
-earlier fixes for the same symptom had been announced prematurely, and the
-reporter's verdict on the third was *"I don't know if this fully got it."*
+No longer "not signed off": it recurred, on a wall at
+`floor/-3/cell/-35,-42`, and the reporter's priority is fixing it. The spines
+*are* fixed — the two mechanisms in bug log §11 are real and hold — so what is
+left is bare stone only.
 
-**Lever:** somebody walks a long way and looks. If it recurs, look for a
-*third* mechanism; the two named are established, not suspected.
-**Done when:** a long traverse across several floors turns up nothing, or a
-third mechanism is named and measured.
+**Ruled out since, by ablation against a stored baseline (bug log §13):** the
+lamps' hard radius cutoffs (0.02% of pixels move), and the ambient term (thin
+creases at shelf edges, no filled regions — and this finally tests `occ` on
+stone, whose albedo reads it at 45%, which the original AO ablation never did).
+The whole step-function class is ruled out on shape: a step draws a *line*, and
+the reported shapes are *filled regions*.
+
+**Blocked on reproduction.** 60 views at the reported cell on the reporter's
+own GPU do not show it. The missing variable is where the camera was looking.
+
+**Lever, in order:** add a `look/<yaw>,<pitch>` component to the walk address
+so a screenshot becomes a replayable coordinate — this is the citation
+discipline the environment already enforces everywhere except its own bug
+reports; then ablate on the reported view with `?ablate=`; then the two
+untested suspects, the tone ramp near the `smoothstep(0.18, 0.38, lit)` knee
+and the dither at 1:2 buffer scale.
+**Done when:** a named mechanism, an ablation that removes the shapes, and a
+long traverse that does not meet them.
+
+### 1b. A doorway into a stairwell that arrives nowhere
+
+**7.3% of stairwells are one-ended** (127 of 1,741 sampled): open to a gallery,
+solid rock at the far end, because the corridor beyond runs on a disagreeing
+axis and `gapAt` walls that edge by design. The renderer draws the doorway and
+an unlit pocket behind it — reported at `floor/307/cell/313,306` as a black
+rectangle. Bug log §14.
+
+**The real cost is not visual.** `apply()` refuses the move as a dead end while
+the renderer's collision walks through it, so the seam and the renderer
+disagree about where you can go — the §17.10 twin-drift class, on a doorway
+7.3% of stairwells have.
+
+**Lever:** in `gapAt`'s stairwell branch, do not open an axis end unless the
+opposite end is open. This lands on the hottest path in the shader
+(`cellDesc` → `gapAt` ×6, per cell per ray), so measure link and frame before
+and after — see 1c. Cheaper half: leave the topology and stop *drawing* a
+doorway whose far side is rock.
+**Done when:** no gallery advertises a passage into a stair that cannot be
+crossed, and the seam and renderer agree on every such edge.
+
+### 1c. The shader has almost no link-time headroom left
+
+Adding three `uniform`-guarded branches to the shading path took the link from
+instant to **81.2 s**; a source-substitution variant that *removes* three
+`mapAt` calls still took 66.7 s. Link time is not monotonic in source size.
+§17.13 reads as solved; the margin it bought is much thinner than the record
+implies, and nothing measures it. Bug log §15.
+
+**Why it gates other work:** items 1, 1b and 3 all touch the shading or gap
+path. A 60–80 s link presents as a hung page, and three reloads make Chrome
+disable WebGL for the session.
+**Lever:** assert on it — link the shipped shader headlessly in the test suite
+and fail when the budget is spent. The timer exists; nothing checks it.
+**Done when:** a change that narrows the margin breaks a test instead of a
+session.
 
 ### 2. A 160 ms worst frame, uncharacterised
 
@@ -143,7 +194,21 @@ meets a mirror on 189 routes in 200, median step 56.
 `babel-core.mjs`; moving them moves nothing else.
 **Done when:** somebody decides what rate they want and says why.
 
-### 9. A Three.js port, if a durable build is ever wanted
+### 9. The floorboards give out 12,604 storeys up — understood, not scheduled
+
+Explained rather than fixed, at the reporter's request. Above y = 2¹⁵ m the
+float32 ULP exceeds the normal-probe epsilon, `p.y + 0.0016 == p.y`, and the
+floor's vertical normal collapses — so the one surface identified by `n.y`
+loses its material while everything else, keyed on x/z, carries on. Exact
+threshold and table in bug log §16.
+
+**No floor cap should be enforced:** LIB-A-013 and LIB-A-020 require unbounded
+floors, and the lattice genuinely is — this is a renderer coordinate choice.
+**If it is ever wanted:** march in camera-relative Y, and precision tracks
+distance from the viewer rather than altitude. Hard ceiling either way is floor
+6,452,775, where y reaches 2²⁴.
+
+### 10. A Three.js port, if a durable build is ever wanted
 
 Not scheduled. Recorded so the question does not have to be re-asked: the
 lattice and the corpus are already portable — `core/` has no renderer in it,
@@ -152,6 +217,12 @@ would prove it agrees. The work is the SDF, not the Library.
 
 ---
 
-*Items 1, 2 and 4 are defects. 3 and 7 are debts with a known price. 5 has
-started returning numbers, and is the only one that tells us something the
-Library itself does not.*
+*Items 1, 1b, 2 and 4 are live defects, and 1 is the reporter's priority. 1c
+gates the first three: they all touch the shading or gap path, and the link
+budget is nearly spent. 3 and 7 are debts with a known price. 9 is understood
+and deliberately parked. 5 has started returning numbers, and is the only one
+that tells us something the Library itself does not.*
+
+*Every defect here has an entry in [`docs/BUG-LOG.md`](docs/BUG-LOG.md) carrying
+what has already been ruled out and with what measurement. Start there, or the
+first two theories will be ones that have already died.*

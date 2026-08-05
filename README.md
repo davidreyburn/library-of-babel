@@ -158,8 +158,8 @@ MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the stor
 - [`spec/technical-specification.md`](spec/technical-specification.md) — the
   requirements, and §17 for every departure
 - [`ROADMAP.md`](ROADMAP.md) — what is open, in rough order of value
-- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — twelve defects, and how each was
-  actually found
+- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — sixteen defects and how each was
+  actually found; twelve closed, four open with what has been ruled out
 - [`docs/CASE-STUDY.md`](docs/CASE-STUDY.md) — how it was built, weighted toward
   what went wrong
 - [`core/RUN.md`](core/RUN.md) — the agent environment, its six gates, and the

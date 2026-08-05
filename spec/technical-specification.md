@@ -933,12 +933,15 @@ found and fixed below; the record of getting there is
 [`docs/BUG-LOG.md`](../docs/BUG-LOG.md) §11, because four diagnoses were wrong
 and the way each died is the useful part.
 
-**Status: believed fixed, not signed off.** Two of the three fixes claimed here
-were claimed prematurely, and the reporter's verdict on the third was *"I don't
-know if this fully got it."* Treat it as open until someone has walked a long
-way without seeing it. If it recurs, the two mechanisms below are known to have
-been real, so look for a third rather than re-litigating these.
-*(Roadmap item 1.)*
+**Status: fixed on the shelving, NOT fixed on bare stone.** No longer
+"believed fixed" — the symptom was reported again on a wall at
+`floor/-3/cell/-35,-42`, and the reporter confirms the spines are now clean.
+The two mechanisms below are real and their fixes hold; they were not the whole
+defect. A third mechanism is being looked for, and two further candidates have
+since been ruled out by ablation — the lamps' hard radius cutoffs (0.02% of
+pixels) and the ambient term (thin creases only, no filled regions). Bug log
+§13 carries the measurements and the shape argument that rules out the whole
+step-function class. *(Roadmap item 1.)*
 
 **On book spines: the distance field over-reported, so the march stepped
 through the surface.** Three places in the shelving took geometry out of the
