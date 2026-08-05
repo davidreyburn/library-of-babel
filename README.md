@@ -88,13 +88,13 @@ reporting it, and say what you went looking for.
 ## Test it
 
 ```sh
-npm test          # 124 core assertions + 41 gates
+npm test          # 138 core assertions + 41 gates
 npm run check     # non-zero if app/ is stale relative to core/
 npm run harness   # run policies over a corpus of episodes, print the readout
 ```
 
 For the GPU half, `npm start` and open `core/conformance.html`: it runs the
-shader's own copy of the lattice against the CPU's and compares 484 integers.
+shader's own copy of the lattice against the CPU's and compares 500 integers.
 
 ## Layout
 
@@ -105,9 +105,14 @@ core/         the lattice and the corpus: one implementation, three consumers
   RUN.md      what one agent excursion is, and what number says it went well
 spec/         the technical and design specifications, and the headless-twin pattern
 tools/        a static server and a command-line Library
-docs/         the case study, and screenshots of the build
+docs/         the case study, the bug log, and screenshots of the build
 notes/        the PDF-to-Markdown converter used on the source text
+ROADMAP.md    what is open, and in what order
 ```
+
+Each document has one job: the specification says what the Library **is**, the
+roadmap says what is **next**, the bug log says how each defect was **found**,
+and the case study says how the whole thing was **made**.
 
 ## Two things worth knowing before reading the code
 
@@ -133,8 +138,11 @@ MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the stor
 
 ## Reading further
 
-- [`docs/CASE-STUDY.md`](docs/CASE-STUDY.md) — how it was built, weighted toward
-  what went wrong
 - [`spec/technical-specification.md`](spec/technical-specification.md) — the
   requirements, and §17 for every departure
+- [`ROADMAP.md`](ROADMAP.md) — what is open, in rough order of value
+- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — eleven defects, and how each was
+  actually found
+- [`docs/CASE-STUDY.md`](docs/CASE-STUDY.md) — how it was built, weighted toward
+  what went wrong
 - [`core/RUN.md`](core/RUN.md) — the agent environment and its four gates

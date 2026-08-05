@@ -3,7 +3,7 @@
 **Document ID:** LIB-BABEL-DESIGN-001
 **Status:** Direction resolved (§6), consequences in §7, and §9 records where the built prototype has since departed from both
 **Derived from:** Borges, "The Library of Babel" (1941) — not included in this repository, see [`SOURCE.md`](../SOURCE.md)
-**Companion:** [`library-of-babel-technical-specification.md`](./library-of-babel-technical-specification.md)
+**Companion:** [`technical-specification.md`](./technical-specification.md)
 
 ---
 

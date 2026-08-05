@@ -1,8 +1,9 @@
 # Screenshots
 
 Captured through Chrome while building, 1–2 August 2026. The numbered images are
-the milestones referenced from `docs/CASE-STUDY.md`; `archive/` holds every shot
-taken, chronologically by the timestamp in the filename, unlabelled.
+the milestones referenced from `docs/CASE-STUDY.md` and `docs/BUG-LOG.md`;
+`archive/` holds every shot taken, chronologically by the timestamp in the
+filename, unlabelled.
 
 | | what it shows |
 |---|---|

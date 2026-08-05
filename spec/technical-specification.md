@@ -5,6 +5,22 @@
 **Derived from:** Borges, "The Library of Babel" (1941; trans. J. E. I.) — not included in this repository, see [`SOURCE.md`](../SOURCE.md)
 **Requirement language:** RFC 2119 — MUST, MUST NOT, SHOULD, MAY
 
+**What this document is not.** It states requirements and records what was
+built against them. It does not schedule work and it does not narrate
+debugging. Those live elsewhere and are kept out of here deliberately, so that
+a reader can tell what the Library *is* from what someone intends to do about
+it next:
+
+| | |
+|---|---|
+| What is open, and in what order | [`ROADMAP.md`](../ROADMAP.md) |
+| How each defect was actually found | [`docs/BUG-LOG.md`](../docs/BUG-LOG.md) |
+| How the whole thing was built | [`docs/CASE-STUDY.md`](../docs/CASE-STUDY.md) |
+
+Where a section below records an unresolved gap, it states the gap and its
+measurement — that is the state of the build, which is this document's job —
+and the roadmap carries the decision about what to do with it.
+
 ---
 
 ## 1. Purpose and Scope
@@ -626,7 +642,7 @@ alcoves 25-28) — inlined into the prototype by
 inlined copy against the module byte for byte **and evaluates it**, because an
 aliased import survives a byte-identical comparison and still throws in a
 browser; and `core/conformance.html` runs the GLSL on the GPU over
-`core/vectors.json` and compares 484 integers against the CPU. The first run of that harness found a live instance of
+`core/vectors.json` and compares 500 integers against the CPU. The first run of that harness found a live instance of
 exactly this bug: the reading lamp's light was positioned by a *first blank
 wall* rule while the furniture was placed by *best fit*, so in any room where
 those differ the lamp lit from a wall it was not standing against. There is
@@ -637,8 +653,8 @@ which slots the Purifiers emptied lives inside the shader's `mapAt`, too
 entangled with the SDF to extract as it stands, so `volumePresent()` in
 `core/babel-core.mjs` is a hand-written twin of it. A statistical test
 (3.52% empty over 1.8 million slots) is the only guard, and it would catch a
-broken mirror rather than a subtly different one. Extract it the next time
-`mapAt` is opened.
+broken mirror rather than a subtly different one. *(Scheduled in the
+roadmap.)*
 
 ### 17.11 Two Navigation Affordances the Text Does Not Have
 
@@ -913,14 +929,16 @@ reflection was verified, is below.
 **The symptom** was large, smooth, dark organic shapes lying across walls and
 across book spines, reported at `floor/-1/cell/-1,3`, `floor/-1/cell/0,3` and
 `floor/0/cell/-11,0`. It looked like one bug and it was at least two. Both are
-found and fixed below; the record of getting there is in the case study,
-because four diagnoses were wrong and the way each died is the useful part.
+found and fixed below; the record of getting there is
+[`docs/BUG-LOG.md`](../docs/BUG-LOG.md) §11, because four diagnoses were wrong
+and the way each died is the useful part.
 
 **Status: believed fixed, not signed off.** Two of the three fixes claimed here
 were claimed prematurely, and the reporter's verdict on the third was *"I don't
 know if this fully got it."* Treat it as open until someone has walked a long
 way without seeing it. If it recurs, the two mechanisms below are known to have
 been real, so look for a third rather than re-litigating these.
+*(Roadmap item 1.)*
 
 **On book spines: the distance field over-reported, so the march stepped
 through the surface.** Three places in the shelving took geometry out of the
@@ -967,14 +985,14 @@ the margin widened in §17.4 is a real inconsistency and worth keeping, but it
 was never the fix. **An ablation proves what it proves in the view you ran it
 in**, and that one was run on a shelf.
 
-*Also open:* ripples torn out of a volume's cover seen edge-on at a grazing
-angle. Possibly the same overshoot as the spine case and therefore possibly
-already gone — unverified either way, so it stays on the list.
-
-*And a cost that was not there before:* raising corridors to 10% and restoring
-the richer axis rule took a gallery from 6.58 ms to 7.45 ms at 1550×945,
-**+13%**, and the reporter's own panel showed a 160 ms worst frame that has not
-been characterised. The mean is understood; the spike is not.
+**Two further symptoms are recorded rather than resolved**, and the roadmap
+carries what to do about them. Ripples torn out of a volume's cover seen
+edge-on at a grazing angle: possibly the same overshoot as the spine case and
+therefore possibly already gone, unverified either way. And a cost that was
+not there before — raising corridors to 10% and restoring the richer axis rule
+took a gallery from 6.58 ms to 7.45 ms at 1550×945, **+13%**, with a 160 ms
+worst frame on the reporter's own panel that has not been characterised. The
+mean is understood; the spike is not.
 
 **What you can get into.** The alcoves are void in the collision field, not
 just in the render, and the fixtures are solid. Probing the field along the
@@ -1010,20 +1028,29 @@ goal: an agent should be able to walk the same Library, meet the same rooms
 in the same places, and read the same volume from the same shelf, with no
 3D at all.
 
-That requires pinning, to the bit:
+That requires pinning, to the bit. Each item below is a requirement on any
+implementation claiming to be the same Library, followed by where this one
+pins it:
 
-1. The integer hash and every constant fed to it.
-2. Cell-type thresholds and the axial hex lattice mapping.
-3. Gap resolution, including the stairwell's and the corridor's always-open
-   axis rules, the reading room's kit and anchor rules, and which alcove of a
-   corridor holds what.
-4. The address ordering — which volume is "shelf 2, slot 17" — and the
-   base-25 expansion that turns an address into text (§6.2).
-5. A table of test vectors, so any implementation can prove it agrees.
+| # | Must be pinned | Pinned in |
+|---|---|---|
+| 1 | The integer hash and every constant fed to it | `core/babel-core.mjs` (`u32`, `uhash`, `cellKey`) |
+| 2 | Cell-type thresholds and the axial hex lattice mapping | `core/babel-core.mjs` (`cellType`, `P_*` constants) |
+| 3 | Gap resolution — the stairwell's and the corridor's always-open axis rules, the reading room's kit and anchor rules, and which alcove of a corridor holds what | `core/babel-core.mjs` (`gapAt`, `cellDesc`) |
+| 4 | The address ordering — which volume is "shelf 2, slot 17" — and the expansion that turns an address into text (§6.2, §17.6) | `core/babel-text.mjs` (`walkKey`, `symbolAt`) |
+| 5 | A table of test vectors, so any implementation can prove it agrees | `core/vectors.json`, checked against the GPU by `core/conformance.html` |
 
-Until those are pinned in one place, two implementations will drift. The
-prototype is currently the only reference, and its GLSL and JavaScript
-already have to be kept in step by hand.
+The prototype is no longer a second implementation of any of this: §17.10
+records the single-sourcing, and `core/build.mjs` inlines the same text into
+the renderer rather than restating it. **One mirror remains hand-written** —
+`volumePresent()` against the shader's `mapAt` — and is the one place where an
+implementation could agree with the vectors and still disagree with the
+Library; §17.10 says why, and the roadmap says when.
+
+Anything reproducing the layout MUST also declare the `CORE_VERSION` it
+targets. The lattice is not frozen — §17.13 moved 3.1% of wall slots between
+shelved and doorway — so a transcript, a citation or a test vector is
+meaningful only against the version that produced it.
 
 ---
 
