@@ -26,68 +26,25 @@ stairs got their own cells in the first place (§17.1, T-4).
 Nothing in the specification is now specified-and-unbuilt. What follows is
 defects, unmeasured costs, and reach.
 
+**The wall mottling is fixed** and item 1 has closed after four sessions on the
+wrong knob. `marchRay`'s termination tolerance was ten times too loose — the
+step scale, which every previous attempt adjusted, controls how fast the march
+*approaches*; the tolerance controls where it *stops*, and the residual the
+normal probe stands on is set by that. One literal, `0.0018 * t + 0.0012` →
+`0.00018 * t + 0.00012`, with the step restored from the interim 0.60 to 0.80.
+Bad normals on the reported wall **46.04% → 0.34%**, cost neutral within ±2%.
+`?ablate=looseeps` brings the defect back. Bug log §13 is now in Closed, with
+the two harness faults that made its earlier numbers untrustworthy and the
+retraction of a "−30% frame time" that was one of them.
+
+It also turned out that both views reported as mottling look through a doorway
+into a stairwell, which makes item 1b what a walker now notices first.
+
 ---
 
 ## Open
 
-### 1. The wall mottling — **71% removed at step 0.60; residual outline remains**
-
-Mechanism is believed right: `marchRay` returns a hit up to 12 mm short of the
-surface while `normalCtx` samples the gradient over a fixed ±1.6 mm, and the
-integer step count that first meets the tolerance turns that mismatch into
-rings. Bug log §13 has the three-channel probe that established it and the
-four suspects it cleared.
-
-**The remedy was wrong and is reverted.** `return t + d` improved the residual
-(16% → 74% of pixels within 1.6 mm) and put a **solid black rectangle** on the
-wall, because this field over-reports in places — so the refined hit landed
-inside solid, `aoCtx` probed from inside, and `occ` collapsed to 0. Reverted;
-`?ablate=badrefine` reproduces it.
-
-**The next attempt must include a black-region check.** The residual metric
-improved while the image got much worse, and no number I was watching could
-have told me. Any candidate here needs: residual down, **near-black fraction
-not up**, frame unmoved, and a look at more than one view.
-
-**Shipped:** march step 0.80 → 0.60. Bad normals on the reported view
-7.98% → 2.28%, near-black 11.02% → 7.22% (down), grazing view unchanged,
-frame 3.40 → 3.88 ms (+14%). The filled crescent is now a thin outline.
-
-**Rejected, both measured:** `normeps` (moves away from the accurate render,
-doubles near-black) and `refine2` (strictly dominated — 6.38% bad for +16%,
-where step 0.60 gets 2.28% for +14%).
-
-**A severity metric now exists and is validated.** Every stone surface here is
-axis-aligned, so correct `n.y` is one of {−1, 0, +1} and the distance to the
-nearest is the normal error — no reference image needed, read off the `whatis`
-alpha channel. 0.35% on a visually clean render against 7.98% on the broken
-one. This is what makes the render gate buildable, and what any further attempt
-should be judged by.
-
-**Still open:**
-- The residual 2.28%. `?ablate=march25` reaches 0.35% for +28% frame if the
-  outline is judged worse than the cost.
-- The real fix: make the stone path of `mapAt` conservative, which would let
-  the step go back up to 0.80 and cost nothing. §15's link budget applies.
-
-<details><summary>How the mechanism was narrowed, kept for the record</summary>
-
-Ruled out by ablation on the reported view, each with a measurement: the lamps'
-hard radius cutoffs (0.02% of pixels move), the ambient term (thin creases at
-shelf edges only — and this finally tested `occ` on stone, whose albedo reads
-it at 45%, which the original AO ablation never did), the tone quantiser
-(`grain=3`, shapes survive), and the stone lift's smoothstep gate (`softlift`,
-shapes survive). The whole step-function class was ruled out on shape before
-any of that: a step draws a *line*, and the reported shapes are *filled
-regions*.
-
-Dropping the march step 0.80 → 0.25 does remove them, which is what pointed at
-march precision. That is a diagnostic, not a fix — §11 measured the same trade
-at 0.30 as **6.7× the frame**.
-
-</details>
-
-### 1b. A doorway into a stairwell that arrives nowhere
+### 1b. A doorway into a stairwell that arrives nowhere — **now the visible one**
 
 **7.3% of stairwells are one-ended** (127 of 1,741 sampled): open to a gallery,
 solid rock at the far end, because the corridor beyond runs on a disagreeing
@@ -108,6 +65,26 @@ doorway whose far side is rock.
 **Done when:** no gallery advertises a passage into a stair that cannot be
 crossed, and the seam and renderer agree on every such edge.
 
+**Closing item 1 promoted this to the visible defect, and split it in two.**
+Both views reported as "wall mottling" face a `passage → stairwell` (bearing dot
+0.849 and 0.789 against `describeCell`) — the rings had been painted across a
+stairwell interior, so §13 and this item were always one location. With the
+rings gone the interior shows as it is: nearly black.
+
+The stairwells at those two views are **two-ended and crossable**, so that
+darkness is not the one-ended pocket above — it is that *every* stairwell
+doorway is unlit. Lamp attenuation is `1/(1+(d/1.35)²)`, the visible surfaces
+are metres past the opening, and the `ct == 2` spill is
+`vec3(0.055, 0.047, 0.033)` against a shaft's `vec3(0.155, 0.130, 0.092)`, which
+exists because *"without this the well is unreadably black."* Measured out:
+ambient occlusion (`?ablate=occ`, still dark), lost rays (zero misses), and
+`lit == 0` (it is 0.19).
+
+**So take the lighting half first.** It is one constant rather than a branch on
+the hot path, it needs no link-budget headroom, it affects every stairwell
+doorway rather than 7.3% of them, and it is what a walker actually sees. The
+topology half is the serious one and is unchanged. Bug log §14 carries both.
+
 ### 1c. The shader has almost no link-time headroom left
 
 Adding three `uniform`-guarded branches to the shading path took the link from
@@ -116,7 +93,7 @@ instant to **81.2 s**; a source-substitution variant that *removes* three
 §17.13 reads as solved; the margin it bought is much thinner than the record
 implies, and nothing measures it. Bug log §15.
 
-**Why it gates other work:** items 1, 1b and 3 all touch the shading or gap
+**Why it gates other work:** items 1b and 3 both touch the shading or gap
 path. A 60–80 s link presents as a hung page, and three reloads make Chrome
 disable WebGL for the session.
 **Lever:** assert on it — link the shipped shader headlessly in the test suite
@@ -248,9 +225,9 @@ would prove it agrees. The work is the SDF, not the Library.
 
 ---
 
-*Items 1, 1b, 2 and 4 are live defects, and 1 is the reporter's priority. 1c
-gates the first three: they all touch the shading or gap path, and the link
-budget is nearly spent. 3 and 7 are debts with a known price. 9 is understood
+*Items 1b, 2 and 4 are live defects, and 1b is now what a walker notices first.
+1c gates 1b and 3: both touch the shading or gap path, and the link budget is
+nearly spent — though 1b's lighting half is a constant and needs none of it. 3 and 7 are debts with a known price. 9 is understood
 and deliberately parked. 5 has started returning numbers, and is the only one
 that tells us something the Library itself does not.*
 

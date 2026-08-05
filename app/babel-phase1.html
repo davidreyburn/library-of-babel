@@ -2572,6 +2572,30 @@ float marchRay(vec3 ro, vec3 rd, int steps){
       cc = c; cfl = fl; ct = cellType(c); desc = cellDesc(c, fl);
     }
     float d = mapAt(p, c, desc, ct, fl);
+    /* THE TOLERANCE IS THE MOTTLING, and it was the last knob anyone turned.
+       It used to read 0.0018 * t + 0.0012 -- about 5.5 mm at 2.4 m, 12 mm at
+       6 m. The residual offset it leaves at the hit point is what corrupts
+       normalCtx's gradient, and because the step count that first satisfies
+       it is an integer, the error came out as CONCENTRIC RINGS centred on
+       wherever the view is perpendicular to a surface. Rendered as a
+       normal-error map it is a bullseye, which is what finally identified it
+       (bug log §13).
+       Four sessions went at the step scale instead. That controls how fast
+       the march approaches; this controls where it stops, and the residual is
+       set by this. 10x tighter, measured over the wall the reporter
+       photographed by the share of stone pixels whose n.y is more than 0.15
+       from the nearest of {-1, 0, +1}:
+
+                                       bad normals   mean error
+         step 0.60, tolerance 0.0018      46.04%       0.1669
+         step 0.80, tolerance 0.00018      0.34%       0.0178
+
+       A factor of 135 on that surface, and 0.36% on a plain stone wall.
+       Frame cost is NEUTRAL -- within +/-2% across three views at a matched
+       775x445 buffer. An earlier draft of this comment claimed -30%, and that
+       was an artefact of the probe rather than the shader: bug log §13 records
+       the two harness faults behind it. Do not restate this as free speed.
+       The step scale went back to 0.80 with it. */
     /* DO NOT "refine" this by returning t + d. It was tried, it measured well
        -- hit points within 1.6 mm of the surface went 16% -> 74% -- and it
        put a solid BLACK RECTANGLE on the wall it was meant to clean, which
@@ -2583,27 +2607,17 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        t + d where it over-reports and the hit point lands INSIDE solid;
        aoCtx then probes outward from inside, s goes large, occ clamps to 0,
        and stone albedo plus lit both collapse. Bug log §13.
-       The hit point being short of the surface is real and still open -- fix
-       it by making the probes commensurate with the tolerance, or by making
-       the field conservative, not by stepping forward on trust. */
-    if (d < 0.0018 * t + 0.0012) return t;
-    /* 0.60, not 0.80. Under-relaxation exists because this field over-reports
-       in places, and how far it under-relaxes decides how close the march
-       lands to the surface -- which decides how wrong normalCtx's gradient is,
-       and therefore how much the stone lift amplifies into visible shapes
-       (bug log §13). Measured on the reported view, by the share of stone
-       pixels whose n.y is more than 0.15 from the nearest of {-1, 0, +1},
-       which for axis-aligned stone is exactly the normal error:
-
-         step 0.80   7.98% bad normals   3.40 ms
-         step 0.60   2.28%               3.78 ms   <- shipped, +11%
-         step 0.25   0.35%               4.36 ms   +28%
-
-       0.60 takes 71% of the defect for 11% of a frame. Lowering the step can
-       only make the march MORE conservative, so unlike the two remedies that
-       failed before it (bug log §13) it cannot land a hit point inside solid.
-       A grazing view measures ~0.5% bad at every step scale and is unchanged. */
-    t += d * 0.60;
+       The residual offset that motivated it is now gone -- the tolerance above
+       is 10x tighter and the hit point sits on the surface. If a future change
+       reopens this, make the probes commensurate or make the field
+       conservative; do not step forward on trust. */
+    if (d < 0.00018 * t + 0.00012) return t;
+    /* 0.80, restored. Four sessions treated this as the mottling knob; it is
+       not. It sets how fast the march approaches, and the tolerance above sets
+       where it stops -- and the residual offset the tolerance leaves is what
+       corrupts the normal. Tightening the tolerance 10x beat step 0.25 on
+       quality while being faster than step 0.60, so the step came back up. */
+    t += d * 0.80;
     if (t > 70.0) break;
   }
   return -1.0;
@@ -2634,6 +2648,16 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     float detail = clamp(1.0 - (hit - 2.5) / 7.0, 0.0, 1.0);
     tint0 = mix(0.5, tint0, detail);
     vec3 n = normalCtx(hp, c, d2, ct2, fl);
+    /* No bias term here, and that was measured rather than assumed. The old
+       loose tolerance left the hit point up to 5.5 mm SHORT of the surface,
+       so every ambient probe started outside it, mapAt over-reported, and
+       occ clamped to 1 -- AO was effectively OFF wherever the march stopped
+       early. Tightening the tolerance switched it on, which is why walls
+       that used to be uniformly bright now carry real occlusion. A 4 mm
+       explicit bias was tried on the theory that a flat wall was reading
+       its own surface: it moved occ by 0.006 and was reverted. Flat stone
+       already reads occ 0.946 unbiased -- the low readings are real
+       occlusion in enclosed places, not self-occlusion. */
     float occ = aoCtx(hp, n, c, d2, ct2, fl);
 
     float lit;
@@ -2817,6 +2841,13 @@ const ABLATE = (new URLSearchParams(location.search).get("ablate") || "")
   .split(",").map(a => a.trim()).filter(Boolean);
 const ABLATIONS = {
   occ:    [/float occ = aoCtx\([^;]*\);/, "float occ = 1.0;"],
+  /* The ambient probe with an explicit 4 mm bias off the surface. Kept as
+     the negative result it is: the loose tolerance used to supply this
+     offset by accident, so the theory was that tightening it made a flat
+     wall read its own surface as occlusion. It moved occ from 0.335 to
+     0.341. Flat stone reads 0.946 unbiased. Do not re-derive it. */
+  aobias: [/float occ = aoCtx\(hp, n, c, d2, ct2, fl\);/,
+           "float occ = aoCtx(hp + n * 0.004, n, c, d2, ct2, fl);"],
   albedo: [/base = mix\(C_INK, C_STONE, 0\.55 \+ 0\.45 \* occ\);/,
            "base = mix(C_INK, C_STONE, 1.0);"],
   lift:   [/lum = min\(1\.0, lum \+ 0\.30 \* smoothstep\([\s\S]*?lit\)\);/,
@@ -2837,13 +2868,15 @@ const ABLATIONS = {
              "float att = (1.0 / (1.0 + (dl / 1.35) * (dl / 1.35))) * (1.0 - smoothstep(8.0, 11.0, dl));"],
   /* The other family that draws rings on a flat surface: march precision.
      §11 found the spine version of it -- drop the step scale and see. */
-  /* Step-scale variants, re-pointed now that 0.60 is the shipped default.
-     march80 restores the value that produced the reported mottling, which is
-     the A/B anyone re-opening §13 will want first. §11's "0.30 costs 6.7x the
-     frame" does not reproduce at any of these: 0.25 measures +28%. */
-  march80:  [/t \+= d \* 0\.60;/, "t += d * 0.80;"],
-  march45:  [/t \+= d \* 0\.60;/, "t += d * 0.45;"],
-  march25:  [/t \+= d \* 0\.60;/, "t += d * 0.25;"],
+  /* THE A/B THAT MATTERS. Put the loose tolerance back and the mottling
+     returns at the shipped step scale -- run this first if §13 is reopened.
+     The step-scale variants are kept only because four sessions were spent on
+     that knob and someone will reasonably want to check it again; §11's
+     "0.30 costs 6.7x the frame" reproduces at none of them. */
+  looseeps: [/if \(d < 0\.00018 \* t \+ 0\.00012\) return t;/,
+             "if (d < 0.0018 * t + 0.0012) return t;"],
+  march60:  [/t \+= d \* 0\.80;/, "t += d * 0.60;"],
+  march25:  [/t \+= d \* 0\.80;/, "t += d * 0.25;"],
 
   /* THE CANDIDATE FIX. marchRay stops when d < 0.0018*t + 0.0012, so the hit
      point sits up to ~7 mm off the surface at 3 m and ~12 mm at 6 m -- while
@@ -2864,8 +2897,8 @@ const ABLATIONS = {
      symptom; this removes the offset the normal was standing on. */
   /* Kept so the regression can be reproduced on demand rather than
      rediscovered: this is the change that blacked out the wall. */
-  badrefine: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t;/,
-              "if (d < 0.0018 * t + 0.0012) return t + d;"],
+  badrefine: [/if \(d < 0\.00018 \* t \+ 0\.00012\) return t;/,
+              "if (d < 0.00018 * t + 0.00012) return t + d;"],
 
   /* The same idea as badrefine with the failure mode structurally excluded
      rather than argued away. badrefine stepped to t + d on the claim that d
@@ -2875,7 +2908,7 @@ const ABLATIONS = {
      conservative hit. One extra mapAt at loop exit -- one call in ~79, not
      one per step. The cell is reused because t2 - t is under 12 mm, so it is
      the cell the sample at t was already resolved to. */
-  refine2: [/if \(d < 0\.0018 \* t \+ 0\.0012\) return t;/,
+  refine2: [/if \(d < 0\.00018 \* t \+ 0\.00012\) return t;/,
             "if (d < 0.0018 * t + 0.0012){\n" +
             "      float t2 = t + d;\n" +
             "      if (mapAt(ro + rd * t2, c, desc, ct, fl) > 0.0) return t2;\n" +

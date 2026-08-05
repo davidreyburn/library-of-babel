@@ -551,14 +551,94 @@ and still calls a genuinely wrong claim wrong.
 
 ---
 
-## Open
+### 13. The wall mottling — the tolerance, after four sessions on the step scale
 
-*Reported and reproducible, mechanism not established — except §16, where the
-mechanism is established and the fix is deliberately not scheduled. Each entry
-carries what has been ruled out, with the measurement, so the next attempt does
-not start from zero.*
+> **FIXED.** `marchRay`'s termination tolerance was ten times too loose. One
+> literal:
+>
+> ```glsl
+> if (d < 0.0018  * t + 0.0012)  return t;   // was
+> if (d < 0.00018 * t + 0.00012) return t;   // is
+> ```
+>
+> with the march step restored from the interim 0.60 to **0.80**.
+>
+> | over the wall the reporter photographed | loose eps, step 0.60 | tight eps, step 0.80 |
+> |---|---|---|
+> | bad normals | **46.04%** | **0.34%** |
+> | mean normal error | 0.1669 | 0.0178 |
+> | bad normals, plain stone wall | — | 0.36% |
+> | frame at 775×445, matched buffer | 2.74 / 3.43 / 3.26 ms | 2.80 / 3.37 / 3.32 ms |
+>
+> Cost-neutral within ±2% across three views. `?ablate=looseeps` restores the
+> old tolerance and the mottling with it; `?ablate=march60,march25` keep the
+> step-scale variants, because four sessions went at that knob and someone will
+> reasonably want to check it again.
+>
+> **Why it took four sessions.** The tolerance controls *where the march stops*;
+> the step scale controls *how fast it approaches*. The residual that feeds the
+> normal probe is set by the first and only weakly by the second, so every
+> attempt at the step scale bought a partial improvement and none of them could
+> finish the job. §11's spine mottling was a step-scale defect, and that
+> precedent is what kept the search on the wrong knob — the earlier entries in
+> this section are a record of that, kept deliberately.
+>
+> **The severity metric earned its keep, and then misled me anyway.** It ranked
+> the fix correctly (46.04% → 0.34%). But two harness faults made its absolute
+> numbers meaningless for several turns, and both are worth writing down because
+> they are generic to this kind of work:
+>
+> 1. **`readPixels` after the compositor has run returns a cleared buffer.** The
+>    drawing buffer is discarded after compositing unless the context asks for
+>    `preserveDrawingBuffer`, so a probe that calls `frame()` in one tool call
+>    and reads pixels in the *next* reads zeros. Zeros decode as material 0 with
+>    `n.y = -1`, which the metric scores as a **perfect normal** — so the
+>    contamination silently *improved* the score. `frame()` and `readPixels` must
+>    happen in the same synchronous block.
+> 2. **Setting `cv.width` after `resize()` desynchronises the GL viewport from
+>    the buffer.** Two reads of the same config disagreed (mean luma 12.75 vs
+>    13.00, max luma 105 vs 55), which is what exposed fault 1.
+>
+> Under those faults I measured "0.84% bad normals and −30.4% frame time" and
+> was one commit from shipping that claim. **The frame time is neutral, not
+> −30%.** Corrected here rather than quietly dropped, because the whole value of
+> this log is that its numbers can be trusted.
+>
+> **The near-black guard fired, and it was right to, for the wrong reason.**
+> After `badrefine` this entry required that any candidate keep near-black from
+> rising. This one raised it (17.3% → 28.1%), which stopped the commit — and the
+> investigation that followed found the rise was *correct*: see below.
+>
+> **The finding nobody was looking for: §13 and §14 are the same place.** Both
+> views the reporter sent are aimed at a doorway into a **stairwell** — checked
+> against the topology rather than the picture, `describeCell` plus a bearing dot
+> product, 0.849 at one view and 0.789 at the other. The loose tolerance had
+> been painting its rings *across an unlit stairwell interior*, which is why the
+> defect read as "mottling on a wall": there was no wall there. Fix the normals
+> and the rings are replaced by the interior's true appearance, which is nearly
+> black — **§14's black doorway, unmasked rather than caused.** The two reports
+> arrived in the same message and are one location.
+>
+> **Two mechanisms proposed here and refuted by measurement, kept so they are
+> not re-derived:**
+>
+> - *"The loose tolerance was acting as the ambient probe's bias, so a flat wall
+>   now reads its own surface as occlusion."* Coherent, and it explains why
+>   `occ` fell 0.975 → 0.335 when the tolerance tightened. An explicit 4 mm
+>   bias, `aoCtx(hp + n*0.004, …)`, moved `occ` by **0.006**. Refuted: plain
+>   stone reads `occ` 0.946 unbiased, so the low readings are real occlusion in
+>   enclosed places. Available as `?ablate=aobias`; do not ship it.
+> - *"The darkness is the AO collapse from `badrefine` again."* `?ablate=occ`
+>   forces `occ = 1.0` and the region stays dark, and `whatis` reports zero
+>   misses and no `lit == 0`. It is neither AO nor a lost ray: lamp attenuation
+>   is `1/(1+(d/1.35)²)` and the stairwell interior is metres past the doorway.
+>
+> **What actually got the answer**, after four sessions of image-differencing:
+> asking the topology what the camera was pointed at. Every earlier attempt
+> reasoned about a wall that was not there.
 
-### 13. The wall mottling — two epsilons that did not agree
+<details><summary>The four wrong fixes and the whole hunt, in the order it happened</summary>
+
 
 > **STILL OPEN. The fix was shipped, was worse than the defect, and is
 > reverted.** Mechanism below is believed right; the *remedy* was wrong. This
@@ -877,6 +957,15 @@ that **the view is the missing variable**.
 
 **Do not ablate with a runtime `uniform` guard.** See §15.
 
+</details>
+
+## Open
+
+*Reported and reproducible, mechanism not established — except §16, where the
+mechanism is established and the fix is deliberately not scheduled. Each entry
+carries what has been ruled out, with the measurement, so the next attempt does
+not start from zero.*
+
 ### 14. A doorway into a stairwell that arrives nowhere
 
 **The report.** At `floor/307/cell/313,306` a stairwell opening renders as a
@@ -913,6 +1002,29 @@ cell a ray enters, so this lands on the hottest path there is — and §15 is th
 measurement of how little headroom is left. Measure the link and the frame
 before and after, or take the cheaper half: leave the topology alone and stop
 *drawing* a doorway whose far side is rock.
+
+**This is now the dominant visual defect, and it is a wider problem than
+one-endedness.** Closing §13 removed the rings that had been painted over these
+openings; a stairwell doorway now reads as a clean black rectangle. Both views
+the reporter sent for the mottling turn out to face one — `describeCell` plus a
+bearing dot product gives 0.849 and 0.789 onto a `passage → stairwell`. The two
+reports arrived in the same message and are one location.
+
+And the stairwells in those two views are **two-ended and crossable** (`climbs`
++1), so the blackness there is not the one-ended pocket above: it is that a
+stairwell interior receives almost nothing. Lamp attenuation is
+`1/(1+(d/1.35)²)` and the visible surfaces sit metres past the doorway; the
+`ct == 2` spill is `vec3(0.055, 0.047, 0.033)`, against `vec3(0.155, 0.130,
+0.092)` for a shaft, which was raised precisely because *"without this the well
+is unreadably black."* Ruled out by measurement, so nobody repeats them:
+ambient occlusion (`?ablate=occ` forces `occ = 1.0`; still dark), lost rays
+(`whatis` reports **zero** misses), and `lit == 0` (it is 0.19, not 0).
+
+**So this entry now has two halves.** The topology half — 7.3% of stairwells
+open onto rock, and the seam and renderer disagree there — is unchanged and is
+the serious one. The lighting half is new, affects *every* stairwell doorway
+rather than 7.3% of them, is a constant rather than a branch, and is the one the
+reporter will see first.
 
 ### 15. The shader is one small edit away from an 81-second link
 
@@ -959,6 +1071,14 @@ next run and `node core/build.mjs` restored it. The staleness gate exists for
 drift between `core/` and `app/`; it caught a corruption it was not designed
 for, which is the second time a tool in this repository has been saved by a
 check aimed at something else.
+
+*And a third time, from a different tool:* an editor that rewrites a file with
+uniform CRLF also converts the five bare `\n` separators that sit immediately
+after each `:begin` marker, because `build.mjs` writes `"\n" + body` there. The
+file looks untouched, `git diff` shows only the intended lines, and `--check`
+reports STALE. `node core/build.mjs` restores it. Worth knowing before
+diagnosing a phantom drift: **check the line endings around the markers before
+suspecting `core/`.**
 
 ### 16. The floorboards give out 12,604 storeys up
 

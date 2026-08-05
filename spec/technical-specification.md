@@ -933,16 +933,41 @@ found and fixed below; the record of getting there is
 [`docs/BUG-LOG.md`](../docs/BUG-LOG.md) §11, because four diagnoses were wrong
 and the way each died is the useful part.
 
-**Status: fixed on the shelving; bare stone STILL OPEN after four wrong fixes,
-the fourth of which shipped and blacked out a wall before being reverted.** No longer
-"believed fixed" — the symptom was reported again on a wall at
-`floor/-3/cell/-35,-42`, and the reporter confirms the spines are now clean.
-The two mechanisms below are real and their fixes hold; they were not the whole
-defect. A third mechanism is being looked for, and two further candidates have
-since been ruled out by ablation — the lamps' hard radius cutoffs (0.02% of
-pixels) and the ambient term (thin creases only, no filled regions). Bug log
-§13 carries the measurements and the shape argument that rules out the whole
-step-function class. *(Roadmap item 1.)*
+**Status: fixed — all three mechanisms.** The two below are real and their fixes
+hold, but they were not the whole defect; the symptom kept being reported on
+bare stone through four wrong fixes, the fourth of which shipped and blacked out
+a wall before being reverted.
+
+**The third mechanism, and the one that closed it: `marchRay`'s termination
+tolerance was ten times too loose.**
+
+```glsl
+if (d < 0.0018  * t + 0.0012)  return t;   // was: stops ~5.5 mm short at 2.4 m
+if (d < 0.00018 * t + 0.00012) return t;   // is
+```
+
+with the march step restored from an interim 0.60 to **0.80**. The hit point
+used to sit up to 5.5 mm short of the surface while `normalCtx` estimates the
+gradient over a fixed ±1.6 mm — a probe smaller than the offset it stands on
+measures the local shape of a composite min/max field instead of the surface.
+And because the step count that first satisfies the tolerance is an **integer**,
+the residual came out in concentric rings, which is why a defect in a scalar
+tolerance looked like organic shapes painted on a wall. Bad normals over the
+reported wall **46.04% → 0.34%**; cost neutral within ±2% at a matched buffer.
+
+Four sessions went at the *step scale* instead, because §17.4's spine mottling
+genuinely was a step-scale defect. The step controls how fast the march
+approaches; the tolerance controls where it stops, and the residual is set by
+the latter.
+
+Two consequences worth carrying forward. Tightening the tolerance switched
+**ambient occlusion on** for the first time on surfaces where the march used to
+stop early: the probe had been starting outside the surface, `mapAt`
+over-reported, and `occ` clamped to 1. Walls that were uniformly bright now
+carry real occlusion. And the rings had been painted across **stairwell
+interiors** — both reported views face a `passage → stairwell` — so removing
+them reveals §17.13's black doorway underneath. Bug log §13 (closed) and §14
+(open) carry both. *(Roadmap item 1b.)*
 
 **On book spines: the distance field over-reported, so the march stepped
 through the surface.** Three places in the shelving took geometry out of the
