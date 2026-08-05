@@ -1026,6 +1026,67 @@ the serious one. The lighting half is new, affects *every* stairwell doorway
 rather than 7.3% of them, is a constant rather than a branch, and is the one the
 reporter will see first.
 
+> **The lighting half, found and fixed — and the diagnosis above was wrong.**
+> It is not that a stairwell interior is dim. **Downward-facing stone has no
+> path to light at all**, anywhere in the Library, and a stairwell doorway is
+> simply where you are forced to look at some. Measured through the opening the
+> reporter photographed: `n.y` between **−0.86 and −0.99**, `mat` 0, `occ`
+> 0.24–0.31, `lit` 0.10–0.16, final RGB **(1, 2, 1)** — while the wall a few
+> pixels away reads `n.y` 0.004, `occ` 1.000, `lit` 1.000.
+>
+> Three gates, and an underside fails all three:
+>
+> 1. Every lamp in a stairwell sits **above** the flight (`ly = … + 1.78`), so
+>    `max(dot(n, L), 0.0)` gives the soffit nothing. `lighting()` predicted this
+>    in its own comment — *"a downward-facing ceiling then takes dot(n,L) < 0"* —
+>    and the fix made then moved the lamps without giving undersides a source.
+> 2. The near-vertical stone lift, which its comment calls *"most of what makes
+>    a wall visible at all"*, is gated on `horiz > 0.80`. An underside's `horiz`
+>    is ~0.01.
+> 3. **`main()` quantises luminance to six levels.** This is the one that turns a
+>    dim surface into a black one: `q = floor(lum*5 + 0.5 + dither)/5`, and
+>    `final = sub * (0.050 + 1.35*q)`. Below `lum ≈ 0.1` everything floors to
+>    step 0, and step 0 is `sub * 0.05`. **There is no dim.** A surface is
+>    legible or it is a black rectangle, and nothing in between exists.
+>
+> Gate 3 is why this reads as a defect rather than as atmosphere, and it is worth
+> carrying forward to anything else in this renderer that looks "too dark": the
+> quantiser has no low end, so *any* surface that falls off the bottom of the
+> lighting model renders as a hole rather than as shadow.
+>
+> **Two changes, both measured:**
+>
+> - a floor bounce on downward-facing stone —
+>   `lum += 0.40 * smoothstep(0.70, 0.95, -n.y) * (1.0 - lum)` — tapered on
+>   `(1 - lum)` so it is worth most where the surface is darkest and fades out on
+>   an underside that is already lit, which is what stops it flattening a lit
+>   gallery's ceiling. `?ablate=nobounce`.
+> - the stairwell spill raised to the shaft's magnitude and biased the other way:
+>   `vec3(0.155, 0.130, 0.092) * (0.40 + 0.60 * max(-n.y, 0.0))`, from a flat
+>   `vec3(0.055, 0.047, 0.033)`. The shaft's term favours up-facing surfaces
+>   because a well is lit from the openings around it; a stairwell's problem is
+>   exactly inverted. `?ablate=dimstair`.
+>
+> | at the reported views | before | after |
+> |---|---|---|
+> | doorway interior RGB | (1, 2, 1) | 15–24 |
+> | frame below luma 6, `cell/-1,0` | 21.21% | 5.15% |
+> | frame below luma 6, `cell/0,0` | 29.18% | 1.09% |
+> | largest connected black region | 164×418 px, 11.5% of frame | none above threshold |
+>
+> Gallery ceilings, which were also black bands, now read as dim stone. Walls,
+> shelves, floor and the lit reference pixels are unchanged.
+>
+> **What is NOT established, and should not be assumed.** A large downward-facing
+> stone surface fills the middle of the frame at eye height in both views. That
+> is consistent with the soffit of an ascending flight seen through a doorway,
+> and it is *not* confirmed — the stairwell spill barely moved those pixels,
+> which suggests the hit is not in a stairwell cell at all. **This fix makes that
+> surface legible; it does not establish that the surface belongs there.** If it
+> turns out not to, this is a geometry defect wearing a lighting defect's coat,
+> and the entry stays open until somebody identifies the geometry rather than
+> its shading.
+
 ### 15. The shader is one small edit away from an 81-second link
 
 **Found while building the harness for §13**, which makes it a defect the

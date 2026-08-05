@@ -80,10 +80,31 @@ exists because *"without this the well is unreadably black."* Measured out:
 ambient occlusion (`?ablate=occ`, still dark), lost rays (zero misses), and
 `lit == 0` (it is 0.19).
 
-**So take the lighting half first.** It is one constant rather than a branch on
-the hot path, it needs no link-budget headroom, it affects every stairwell
-doorway rather than 7.3% of them, and it is what a walker actually sees. The
-topology half is the serious one and is unchanged. Bug log §14 carries both.
+**The lighting half is done, and the diagnosis above was wrong.** It was never
+that a stairwell is dim. **Downward-facing stone had no path to light at all** —
+every stairwell lamp sits above the flight so `max(dot(n,L), 0)` gives a soffit
+nothing; the near-vertical stone lift is gated on `horiz > 0.80` and an
+underside's is ~0.01; and `main()` quantises luminance to **six levels**, so
+below `lum ≈ 0.1` everything floors to step 0 and step 0 is `sub * 0.05`. There
+is no dim setting in this renderer: a surface is legible or it is a hole.
+
+Fixed with a floor bounce on downward-facing stone, tapered on `(1 - lum)` so it
+cannot flatten a lit ceiling, plus the stairwell spill raised to the shaft's
+magnitude and biased toward down-facing surfaces instead of up. Doorway interior
+RGB (1,2,1) → 15–24; frame below luma 6, 21.2% → 5.2% and 29.2% → 1.1%; the
+164×418 black region is gone. `?ablate=nobounce,dimstair` restores it.
+
+**Still open here, and it is the reason this item has not closed:** a large
+downward-facing stone surface fills the middle of the frame at eye height in
+both reported views. That is consistent with the soffit of an ascending flight
+seen through a doorway and it is **not confirmed** — the stairwell spill barely
+moved those pixels, which suggests the hit is not in a stairwell cell. The fix
+makes the surface legible; it does not establish that the surface belongs there.
+**Identify the geometry before assuming the shading was the whole story.**
+
+The topology half — 7.3% of stairwells opening onto rock, and the seam and
+renderer disagreeing there — is unchanged and is still the serious one. Bug log
+§14 carries all three.
 
 ### 1c. The shader has almost no link-time headroom left
 
