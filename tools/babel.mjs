@@ -109,12 +109,29 @@ case "verify": {
   const [uri, page, line, column, ...rest] = positional;
   if (!uri || rest.length === 0)
     die("verify <address> <page> <line> <col> <quote>   -- pages, lines and columns are 1-based here");
+  const quote = rest.join(" ");
   const claim = { uri, page: Number(page) - 1, line: Number(line) - 1,
-                  column: Number(column) - 1, quote: rest.join(" ") };
+                  column: Number(column) - 1, quote };
   const r = run.verifyClaim(claim);
-  if (JSONOUT) return out({ claim, ...r });
+
+  /* This command is 1-based and everything else that shows you a page is
+     0-based: the reading pane draws the grid from 0, and so does the
+     observation an agent is given (core/policy-model.mjs). So the most
+     likely reason a true citation fails here is that it was written down
+     from a 0-based page -- and the damage is not the failed check, it is
+     an agent "correcting" a claim that was right. Say so rather than
+     letting it fail silently and wrong. */
+  const offBy = !r.accurate && run.verifyClaim({
+    uri, page: Number(page), line: Number(line), column: Number(column), quote
+  }).accurate;
+
+  if (JSONOUT) return out({ claim, ...r, ...(offBy ? { zeroBasedWouldVerify: true } : {}) });
   out(r.accurate ? `verified: those symbols are at that address`
                  : `NOT VERIFIED: ${r.why}`);
+  if (offBy)
+    out(`  ...but it verifies read as 0-based. This command counts pages, lines and\n` +
+        `  columns from 1; the reading pane and the agent's page both count from 0.\n` +
+        `  Your citation is probably right -- try ${Number(page) + 1} ${Number(line) + 1} ${Number(column) + 1}.`);
   if (!r.accurate) process.exitCode = 2;
   break;
 }

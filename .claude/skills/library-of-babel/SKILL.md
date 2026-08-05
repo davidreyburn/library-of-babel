@@ -86,6 +86,14 @@ Exit code 0 means the symbols really are at that offset; 2 means they are not,
 with the reason. Run it on every claim you intend to make. If it fails, fix the
 citation or drop the claim — do not report it with a caveat.
 
+> **Count from 1 here.** This command is 1-based; every page you *read* is
+> 0-based — the reading pane's gutter and ruler, and the page an agent is handed.
+> So a citation you took correctly off a page needs `page+1 line+1 column+1` on
+> this command line. Get it wrong and a true citation is reported false, and the
+> tempting next move — "correcting" it — turns a good claim into a fabricated
+> one. The command now notices this case and tells you, but expect it rather
+> than rely on it. (Bug log §12; it caught the author of this file.)
+
 **Say what you searched for.** The corpus contains every string, so anything
 you go looking for is there somewhere. Finding a word you brought with you is
 not the Library speaking, and a report that hides the word list is misleading

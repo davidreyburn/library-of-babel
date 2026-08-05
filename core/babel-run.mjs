@@ -209,17 +209,14 @@ function score(transcript){
 /* ---- running one episode ------------------------------------------- *
  * The transcript is version-stamped, because a rules change must not
  * silently invalidate a replay -- it must break it loudly.             */
-function runEpisode(policy, opts = {}){
-  let s = initialState(opts);
-  const decisions = [];
-  while (!isTerminal(s)){
-    const choice = policy(s, actions(s, opts));
-    if (!choice) break;
-    const next = apply(s, choice);
-    decisions.push({ step: s.steps, at: { ...s.at }, action: choice,
-                     refused: next.refused ?? null });
-    s = next;
-  }
+function stepInto(s, choice, decisions){
+  const next = apply(s, choice);
+  decisions.push({ step: s.steps, at: { ...s.at }, action: choice,
+                   refused: next.refused ?? null });
+  return next;
+}
+
+function transcriptOf(s, decisions, opts, policy){
   return {
     version: s.version,
     run: { q: opts.q ?? 0, r: opts.r ?? 0, floor: opts.floor ?? 0,
@@ -229,6 +226,36 @@ function runEpisode(policy, opts = {}){
               seated: s.seated, ending: s.ending ?? "budget",
               at: cellAddress(s.at.q, s.at.r, s.at.floor, s.seed) }
   };
+}
+
+function runEpisode(policy, opts = {}){
+  let s = initialState(opts);
+  const decisions = [];
+  while (!isTerminal(s)){
+    const choice = policy(s, actions(s, opts));
+    if (!choice) break;
+    s = stepInto(s, choice, decisions);
+  }
+  return transcriptOf(s, decisions, opts, policy);
+}
+
+/* The same episode, for a policy that has to go somewhere to decide -- a
+   language model over the network, or a human at a prompt. The loop differs
+   from runEpisode by one `await` and nothing else: the step, the transcript
+   and the version stamp are shared, because two episode loops that drift
+   produce two transcript formats and the replay gate stops meaning anything.
+   A model policy is NOT reproducible from its seed, and that is a property
+   of the model rather than a defect here -- what makes the run evidence is
+   the transcript, which replays exactly through transcriptPolicy(). */
+async function runEpisodeAsync(policy, opts = {}){
+  let s = initialState(opts);
+  const decisions = [];
+  while (!isTerminal(s)){
+    const choice = await policy(s, actions(s, opts));
+    if (!choice) break;
+    s = stepInto(s, choice, decisions);
+  }
+  return transcriptOf(s, decisions, opts, policy);
 }
 
 /* ---- policies ------------------------------------------------------ */
@@ -343,6 +370,6 @@ function transcriptPolicy(transcript){
 
 export {
   initialState, isTerminal, actions, apply, pullableSlots,
-  verifyClaim, score, runEpisode,
+  verifyClaim, score, runEpisode, runEpisodeAsync,
   randomPolicy, honestReader, fabricator, adversary, transcriptPolicy
 };

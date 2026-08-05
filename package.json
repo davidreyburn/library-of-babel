@@ -14,6 +14,9 @@
     "check": "node core/build.mjs --check",
     "vectors": "node core/gen-vectors.mjs",
     "harness": "node core/harness.mjs",
-    "babel": "node tools/babel.mjs"
-  }
+    "babel": "node tools/babel.mjs",
+    "play": "node core/agent-play.mjs",
+    "model": "node core/run-model.mjs"
+  },
+  "//dependencies": "None, on purpose: `npm install` here installs nothing. core/run-model.mjs is the one entry point that needs @anthropic-ai/sdk, and it says so when you run it without one."
 }

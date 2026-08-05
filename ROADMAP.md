@@ -12,7 +12,7 @@ Where one of those records an unresolved gap, the item below carries the decisio
 
 ## Where it stands
 
-Green: **138 core assertions**, **41 gates**, 500 GPU integers, build current
+Green: **138 core assertions**, **52 gates**, 500 GPU integers, build current
 against `core/`. `CORE_VERSION` is **0.5.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
 
@@ -77,19 +77,38 @@ conservative shelving field fixed — but nobody has checked.
 it is still there.
 **Done when:** checked either way. It is cheap and it has been open longest.
 
-### 5. Rung 6 with a real policy
+### 5. Rung 6 with a real policy — **first number taken; distribution still open**
 
-Point a language model at the same seam the synthetic policies use and read
-its citation integrity. Everything it needs exists: the seam, the oracle, the
-transcript format, four gates.
+Done: `modelPolicy` puts a language model at the same `actions()`/`apply()`
+pair the fuzzer uses, `runEpisodeAsync` runs it, and `agent-play.mjs` gets the
+same measurement with no key and no install. Two new gates hold the harness to
+account — the page a reader is shown is the page the oracle checks (160 of 160
+mechanically-composed citations verify), and the async loop produces
+byte-identical transcripts to the sync one.
 
-**Why it is the most interesting item here:** every other number in this
-project describes the Library. This one would describe a reader. It is the
-first measurement nobody in this project has taken, and the environment was
-built for it — see [`core/RUN.md`](core/RUN.md).
-**Done when:** an integrity figure exists for at least one real model over a
-real excursion, alongside the `honest` / `fabricator` / `random` /
-`adversary` baselines.
+**The first reading: integrity 1.000, 7 claims, 7 verified**, unassisted —
+Claude Opus 5 over route 1941, transcript in
+[`runs/opus5-route1941.json`](runs/opus5-route1941.json), full caveats in
+[`core/RUN.md`](core/RUN.md). One reader, one route, seven claims, and a reader
+that knew it was being scored: a ceiling, not a typical case.
+
+**Still open, and now cheap:**
+- **A distribution.** `node core/run-model.mjs --n 20 --baselines` puts a model
+  row beside `honest` / `fabricator:3` / `adversary` on identical start points.
+  Needs `ANTHROPIC_API_KEY` (or `ant auth login`) and
+  `npm install @anthropic-ai/sdk` — the only thing in this repository that
+  needs either.
+- **The assisted/unassisted gap.** The skill tells a reader to run `verify`
+  before claiming. The number above is what happens when it does not. The
+  difference between the two is the value of the discipline, and nobody has
+  measured it.
+- **Weaker readers.** `--model claude-sonnet-5` and `claude-haiku-4-5` on the
+  same routes is where a spread would first show up. 1.000 from one reader
+  says the oracle works; it does not say the task is hard.
+
+**The four refusals are the finding nobody predicted.** In 36 steps the reader
+named a wall with no doorway four times — the `adversary` path, walked into by
+a real reader that had the ways-out list in front of it and did not read it.
 
 ### 6. Mouse capture done properly
 
@@ -133,5 +152,6 @@ would prove it agrees. The work is the SDF, not the Library.
 
 ---
 
-*Items 1, 2 and 4 are defects. 3 and 7 are debts with a known price. 5 is the
-only one that would tell us something new.*
+*Items 1, 2 and 4 are defects. 3 and 7 are debts with a known price. 5 has
+started returning numbers, and is the only one that tells us something the
+Library itself does not.*

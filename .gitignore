@@ -12,6 +12,10 @@ tmp/
 *.tmp
 runs.json
 
+# An excursion in progress. The episode lives in this file between shell
+# calls; the transcript that is worth keeping is written by `score --save`.
+core/.play-state.json
+
 # The Borges story is under copyright and is not redistributed here. Keep a
 # local copy at source/ if you want it beside the traceability notes. SOURCE.md
 source/

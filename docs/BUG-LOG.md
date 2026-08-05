@@ -1,6 +1,6 @@
 # Bug log
 
-Eleven defects, and how each was actually found. Written from the assistant's
+Twelve defects, and how each was actually found. Written from the assistant's
 side of the collaboration, in the sessions that produced them.
 
 In every case the method that found it was the same: **measure the thing, or
@@ -26,6 +26,7 @@ in [`../spec/technical-specification.md`](../spec/technical-specification.md) §
 | 9 | The walkable Library was 32 bits wide | being asked a question from outside | §17.12 |
 | 10 | A shader that compiled in 17 ms and would not link in 127 s | instrumenting the link step, then removing real code | §17.13 |
 | 11 | Dark continents on the shelves — and then on the stone | ablation, four times, three of them wrong | §17.14 |
+| 12 | Two counting conventions, and a verifier that called true citations false | cross-checking a score against a second code path | — |
 
 ---
 
@@ -470,6 +471,54 @@ started there rather than arriving there. And having finally used the right
 method, I stopped one view too early — the ablation proved AO caused *the
 blotches in front of me*, and I generalised it to *the blotches*. The
 instrument was right and the sample was too small.
+
+### 12. Two counting conventions, and a verifier that called true citations false
+
+Found while scoring the first real reader (rung 6, `core/RUN.md`). The excursion
+came back at integrity 1.000, seven of seven — and a perfect score is exactly
+what a broken oracle also produces, so before believing it I re-checked the same
+seven claims through a different code path: `node tools/babel.mjs verify`.
+
+**All seven failed.** One reported `NOT VERIFIED: the page reads "xdb" there`
+for a citation the scorer had just accepted.
+
+Two things could be true: the score was wrong, or the check was. It was neither,
+and that is the interesting part. `tools/babel.mjs verify` counts pages, lines
+and columns **from 1** — it says so, in the usage string you only see if you get
+the argument count wrong — and subtracts one before calling the oracle. Every
+other surface that shows you a page counts **from 0**: the reading pane's gutter
+and ruler (§17.9), and the observation an agent is handed. Re-run with 1-based
+numbers and all seven verify. Both code paths had been right the whole time
+about different questions.
+
+**Why this is worse than an ordinary off-by-one.** The repository's one stated
+rule is *verify every citation before you report it.* Follow it exactly — read a
+0-based page, verify against the 1-based command — and the environment tells you
+a true citation is false. The obvious next move is to "fix" the claim, which
+converts a correct citation into a fabricated one. **The discipline the
+environment rewards was, in this one place, a trap that manufactured the exact
+failure the metric exists to catch.**
+
+**The fix is not renumbering.** Changing the CLI to 0-based would silently
+invalidate every citation anyone has already written down against it. Instead
+the failure is made loud: when a claim fails, the verifier now re-checks it
+under the other convention, and if *that* verifies it says so and prints the
+corrected coordinates. A claim that is simply wrong is still reported simply
+wrong, so the signal is not diluted.
+
+```
+NOT VERIFIED: the page reads "xdb" there
+  ...but it verifies read as 0-based. This command counts pages, lines and
+  columns from 1; the reading pane and the agent's page both count from 0.
+  Your citation is probably right -- try 204 6 33.
+```
+
+**What I would keep.** The bug was found only because a perfect score was
+treated as a reason for suspicion rather than a result. That is the same move
+as §8 — when the harness and the thing disagree, suspect the harness — run
+one step earlier, before there was any disagreement to investigate. Three gates
+now hold it: the CLI verifies in its own terms, catches the 0-based reading,
+and still calls a genuinely wrong claim wrong.
 
 ---
 

@@ -81,6 +81,23 @@ node tools/babel.mjs verify <address> <page> <line> <col> "<quote>"
 `--json` on any command for machine-readable output. To import the modules
 instead, see [`core/README.md`](core/README.md).
 
+## Score a reader
+
+The Library is also a decision environment with an exact readout: **citation
+integrity**, the fraction of a reader's claims about text that survive checking.
+No judge model — the corpus is a pure function of the address.
+
+```sh
+node core/harness.mjs                                    # the synthetic baselines
+node core/agent-play.mjs start --route 1941 --budget 40   # walk it yourself, one step at a time
+node core/run-model.mjs --n 5 --baselines                 # a real model, at scale
+```
+
+`agent-play.mjs` hands you one observation and takes one action back, and needs
+nothing installed. `run-model.mjs` is the only thing here that does — a key and
+`npm install @anthropic-ai/sdk`. First reading: **1.000 over 7 claims**, with the
+caveats, in [`core/RUN.md`](core/RUN.md).
+
 An agent skill is included at `.claude/skills/library-of-babel/`, which is mostly
 about the discipline the environment rewards: verify every citation before
 reporting it, and say what you went looking for.
@@ -88,7 +105,7 @@ reporting it, and say what you went looking for.
 ## Test it
 
 ```sh
-npm test          # 138 core assertions + 41 gates
+npm test          # 138 core assertions + 52 gates
 npm run check     # non-zero if app/ is stale relative to core/
 npm run harness   # run policies over a corpus of episodes, print the readout
 ```
@@ -141,8 +158,9 @@ MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the stor
 - [`spec/technical-specification.md`](spec/technical-specification.md) — the
   requirements, and §17 for every departure
 - [`ROADMAP.md`](ROADMAP.md) — what is open, in rough order of value
-- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — eleven defects, and how each was
+- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — twelve defects, and how each was
   actually found
 - [`docs/CASE-STUDY.md`](docs/CASE-STUDY.md) — how it was built, weighted toward
   what went wrong
-- [`core/RUN.md`](core/RUN.md) — the agent environment and its four gates
+- [`core/RUN.md`](core/RUN.md) — the agent environment, its six gates, and the
+  first scored reading by a real model

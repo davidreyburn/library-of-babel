@@ -67,10 +67,72 @@ that cite must construct the claim themselves, which is exactly the behaviour un
 | `random(route)` | the fuzzer. Uniform over the menu, plus occasional malformed actions. Holds `report` back until the budget is nearly spent, or it quits on move one and covers nothing. |
 | `adversary(route)` | names its own coordinates, mostly wrong. The only policy that reaches the refusal paths, because the menu never offers an illegal move. |
 | `transcript(t)` | a recorded run, replayed. The regression suite and the debugger. |
+| `model(id)` | **rung 6.** A real language model, one tool call per step, over the network. Not reproducible from a seed — see below. |
+
+## Rung 6 — a real reader
+
+Every policy above is a program, and every number they produce is a number about
+a program. `modelPolicy` in `core/policy-model.mjs` puts a language model at the
+same `actions()`/`apply()` pair, one tool call per step, and scores it with the
+same oracle.
+
+**What it measures.** Not whether the model finds anything — whether a page
+*relates* to your situation is still a judgement no core makes. What is measured
+is whether its claims about text are true. To cite, the reader is shown the page
+with the grid drawn on it (line numbers down the side, a column ruler across the
+top, exactly as the reading pane draws them in §17.9) and must name a volume, a
+page, a line, a column and the symbols. That needs two things it can fail at
+independently: transcribing exactly, and counting to the right offset.
+
+**Reproducibility, honestly.** A model is not a pure function of its seed, so a
+model run cannot be re-derived the way `honest(1941)` can. What makes it evidence
+is the transcript: recorded, version-stamped, and replayable through
+`transcriptPolicy()` to the same score forever. That is what the transcript
+format was for.
+
+**Two ways to run it**, because the measurement should not be gated on a credential:
+
+```sh
+node core/run-model.mjs --n 5 --budget 40 --baselines   # needs a key + the SDK
+node core/agent-play.mjs start --route 1941 --budget 40 # needs neither
+```
+
+`agent-play.mjs` hands one observation at a time to whoever runs it — an agent
+with a shell, or a person — and takes one action back. Same seam, same
+observation, same oracle, same transcript. It is the only way to get this number
+from a clean clone with nothing installed, which is the promise the rest of the
+environment makes.
+
+### The first real reading, and what it does and does not say
+
+| | |
+|---|---|
+| reader | Claude Opus 5, driven through `agent-play.mjs`, **unassisted** |
+| route | 1941 — set down at `floor/2/cell/-227,-164` |
+| **integrity** | **1.000** — 7 claims, 7 verified |
+| steps / refusals | 36 of 40 / **4** |
+| rooms / volumes | 17 / 2, five pages read |
+| ending | reported, seated in a reading room two cells away |
+| transcript | [`runs/opus5-route1941.json`](../runs/opus5-route1941.json) |
+
+Unassisted is the load-bearing word: the reader did **not** run
+`babel.mjs verify` before making a claim, which the skill's own discipline tells
+it to do. The point was to measure transcription and counting, not the verifier.
+Two of the seven were chosen to be awkward — one span runs off the end of a line
+and continues on the next, and one is 19 symbols long.
+
+**What it does not say.** It is one reader, one route, seven claims. It is a
+*ceiling*, not a typical case: the reader knew it was being scored and counted
+columns in chunks of ten to do it. And 7 claims is a small denominator — one
+error would have shown 0.857, so the test has resolution, but a distribution
+needs `run-model.mjs --n 20` and a key. **The four refusals are the more
+interesting number**: naming walls without checking the ways-out list first is
+exactly the failure mode `adversary` was written to reach, and a real reader
+walked into it four times in 36 steps.
 
 ## The gates
 
-`node core/test-run.mjs` — 41 assertions in four groups:
+`node core/test-run.mjs` — 52 assertions in six groups:
 
 - **Fuzz** — 1,200 episodes, ~47,000 decisions. `apply` never throws, never mutates its
   input, never puts anyone in a shaft, never exceeds the budget; the floor changes only
@@ -84,6 +146,14 @@ that cite must construct the claim themselves, which is exactly the behaviour un
 - **Metric sensitivity** — the honest reader scores 1.000, and injecting fabrication at
   1-in-2, 1-in-3 and 1-in-5 yields 0.500 / 0.667 / 0.750, monotonically. This is the gate
   the headless-twin spec lists as its own open TODO.
+- **Observation** — the page a reader is *shown* is the page the oracle *checks*.
+  Citations composed mechanically out of the rendered block — including one that runs
+  past the end of its line — must all verify (160 of 160), so a bad integrity score is
+  the reader's and not the harness's. That distinction cost a session once (bug log §8).
+  Also: the tool grammar names exactly the actions `apply()` handles, no more and no less.
+- **Async** — `runEpisodeAsync` and `runEpisode` produce byte-identical transcripts for
+  the same policy, because two episode loops that drift produce two transcript formats
+  and the replay gate stops meaning anything.
 
 ## Running it
 
@@ -108,6 +178,6 @@ the thing being tested.
 - **Whether a passage means anything.** That is the agent's problem, and the interesting
   one. The harness only guarantees that its answer can be checked.
 
-One honest gap: `core/test-core.mjs` (124 assertions) sits *below* the decision level.
+One honest gap: `core/test-core.mjs` (138 assertions) sits *below* the decision level.
 Those are the right tests for a deterministic core, but they are not this harness and
 should not be counted as it.

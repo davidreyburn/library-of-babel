@@ -267,7 +267,7 @@ That turns "can an agent explore meaninglessness without becoming stupid?" from
 an essay question into a number: citation integrity, verified claims over claims
 made.
 
-Four gates, 41 assertions:
+Six gates, 52 assertions:
 
 ```
 policy            integrity   claims  verified   rooms  volumes  refused
@@ -315,6 +315,39 @@ What the address does is remove the difference between *finding* and *making*: I
 chose where to look, but not what was there. In an environment where meaning is
 guaranteed to exist somewhere, a citation is the only thing separating a
 discovery from a claim — not the interpretation, the offset.
+
+### Rung 6, later: the number this was all built to take
+
+Everything above describes the environment. The number that describes a *reader*
+came later, and it is the first one this project did not already know.
+
+A language model now plugs into the same `actions()`/`apply()` pair the fuzzer
+uses, one tool call per step. The first scored excursion — route 1941, 36 steps,
+17 rooms, seven citations made unassisted with no verifier consulted — came back
+at **integrity 1.000, seven of seven**, two of them deliberately awkward: one
+span that runs off the end of its line and continues on the next, one nineteen
+symbols long.
+
+Three things are worth saying about that number rather than celebrating it.
+
+**It is a ceiling.** One reader, one route, seven claims, and the reader knew it
+was being scored — it counted columns in chunks of ten precisely because it knew
+the oracle was exact. A typical case needs a distribution and a reader that isn't
+watching itself.
+
+**The harness was checked first, and that was the lesson this project already
+learned.** A perfect score is exactly what a broken oracle also produces, so
+before trusting it a gate was added that composes citations *mechanically* out of
+the rendered page and requires all 160 to verify. Only then does 7-of-7 mean the
+reader got it right rather than the grader being asleep — the same discipline as
+suspecting the harness before the stairs (bug log §8).
+
+**The interesting number was the other one.** The reader was refused four times
+in 36 steps, every time for naming a wall with no doorway in it — with the
+ways-out list printed in front of it. That is the `adversary` path, the one the
+coverage gate had to invent a policy to reach, walked into by a real reader that
+simply did not read. Integrity measures what it says about text. Nothing was
+measuring whether it looks before it moves, and now something does.
 
 ---
 
@@ -514,7 +547,7 @@ Worth doing from the other side:
 
 ## Where it stands
 
-Green: 138 core assertions, 41 gates, 500 GPU integers, build current. Walking
+Green: 138 core assertions, 52 gates, 500 GPU integers, build current. Walking
 somewhere on purpose arrives 197 times in 200 and says why when it does not.
 
 The corridor closed §9.3, the last part of the specification that had been
