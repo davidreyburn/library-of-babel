@@ -178,6 +178,6 @@ the thing being tested.
 - **Whether a passage means anything.** That is the agent's problem, and the interesting
   one. The harness only guarantees that its answer can be checked.
 
-One honest gap: `core/test-core.mjs` (138 assertions) sits *below* the decision level.
+One honest gap: `core/test-core.mjs` (144 assertions) sits *below* the decision level.
 Those are the right tests for a deterministic core, but they are not this harness and
 should not be counted as it.

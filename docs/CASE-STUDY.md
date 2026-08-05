@@ -547,7 +547,7 @@ Worth doing from the other side:
 
 ## Where it stands
 
-Green: 138 core assertions, 52 gates, 500 GPU integers, build current. Walking
+Green: 144 core assertions, 52 gates, 500 GPU integers, build current. Walking
 somewhere on purpose arrives 197 times in 200 and says why when it does not.
 
 The corridor closed §9.3, the last part of the specification that had been

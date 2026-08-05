@@ -60,6 +60,12 @@ off, walks you there through the doorways and up or down the stairs, and hands y
 a volume open at a page; X again stops it, and so does touching WASD. Destination,
 volume and page all come from one seed, so a journey is repeatable and citable.
 
+**V** copies the exact view — `?at=<address>&view=x,y,z,yaw,pitch` — which
+restores the camera bit for bit, so a screenshot in a bug report is a thing
+someone else can stand in front of. The camera lives in the page's query string
+and never in the `babel://` address: every part of an address is checkable, and
+where you happen to be looking is not.
+
 Two addresses open things directly:
 
 ```
@@ -105,7 +111,7 @@ reporting it, and say what you went looking for.
 ## Test it
 
 ```sh
-npm test          # 138 core assertions + 52 gates
+npm test          # 144 core assertions + 52 gates
 npm run check     # non-zero if app/ is stale relative to core/
 npm run harness   # run policies over a corpus of episodes, print the readout
 ```

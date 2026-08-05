@@ -595,12 +595,30 @@ screenshot. Non-reproduction is not evidence of absence here; it is evidence
 that **the view is the missing variable**.
 
 **What would close it, in order.**
-1. **Orientation in the address.** The HUD cites floor and cell but not where
-   you are looking, so a screenshot is not a reproducible coordinate. A
-   `look/<yaw>,<pitch>` component on the `babel://` walk address turns a bug
-   report into something replayable. This project already believes a claim
-   without coordinates is not checkable (§12, and the whole citation oracle);
-   the renderer's own bug reports are the one place it is not applied.
+1. ~~Orientation in the address.~~ **Done, and not in the address.** The HUD
+   cited floor and cell but not where you were looking, so a screenshot was
+   not a reproducible coordinate — which is why 60 views could be swept
+   without hitting the reported one. **V** now copies
+   `?at=<address>&view=x,y,z,yaw,pitch`, and a pasted view restores the
+   camera bit for bit: 0 of 366,575 pixels differ across a page load.
+
+   It went in the renderer's query string rather than the `babel://` address
+   on purpose. Every component of an address is checkable — `validate()`
+   refuses a doorway, a shaft, a slot out of range — and that falsifiability
+   is what the citation oracle rests on. A yaw is not checkable: every yaw is
+   legal and `core/` has no camera in it. Putting it in the address would
+   also have broken every older holder, since `parseAddress` whitelists
+   components and *throws* on anything else, so a new address would be
+   rejected rather than degraded. Four assertions now pin the separation so
+   that moving it later is a decision rather than a drift.
+
+   Position is carried as well as direction, and that is not padding: the
+   ambient term and both lamps are distance functions, so where you stood
+   changes the frame. Full precision rather than rounded, too — a tenth of a
+   degree looked tidier and measured as a third of a pixel of shift, which
+   moves ~75% of pixel values across dithered spines. Harmless for looking at
+   a wall; not harmless when the next step is an A/B between two page loads,
+   where that jitter would land in the diff beside the ablation.
 2. Then ablate on the *reported* view rather than a guessed one. The harness
    exists: `?ablate=occ,albedo,lift,litocc` substitutes a term out of the
    shader source before compilation.

@@ -13,7 +13,7 @@ policy-model.mjs    rung 6: a real language model at that seam, and what it is s
 agent-play.mjs      the same seam one step at a time, for a reader with a shell
 run-model.mjs       N model excursions, scored beside the synthetic baselines
 build.mjs           inlines the modules into app/babel-phase1.html
-test-core.mjs       138 assertions: drift, vectors, cost, meaning, key width, routing
+test-core.mjs       144 assertions: drift, vectors, cost, meaning, key width, routing
 test-run.mjs        52 assertions: six gates plus the CLI convention check (fuzz,
                     coverage, replay, metric,
                     observation, async)
@@ -57,6 +57,17 @@ A **text** address is a volume chosen for what it says, and is invertible by
 construction: you find a phrase by writing its address down. Two text addresses under
 one seed share their filler, so a one-symbol edit to the phrase gives a volume
 differing in exactly one symbol.
+
+**What is deliberately not in either.** Where a viewer is *looking*. Every
+component of an address is checkable, and that is the property the citation
+oracle rests on; a yaw is not — every yaw is legal, and there is no camera in
+this directory at all. The renderer carries its own in its own query string
+(`?at=<address>&view=x,y,z,yaw,pitch`, copied with **V**), which keeps old
+links parsing, keeps `CORE_VERSION` still, and changes no volume's text —
+`walkKey` reads six fields and none of them is a camera. `parseAddress`
+whitelists components and throws on anything else, so this separation is also
+what lets a *new* link keep parsing on an *older* core. Four assertions in
+`test-core.mjs` hold it in place.
 
 The parser is lenient — a missing seed means the default, a missing wall means the
 first shelved wall of that gallery, and `book` is accepted for `slot` — so a citation

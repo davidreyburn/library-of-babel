@@ -302,6 +302,30 @@ section("ADDRESSES -- the babel:// scheme");
      (() => { try { text.parseAddress("http://example.com"); return false; } catch { return true; } })());
   ok("an unknown component is refused",
      (() => { try { text.parseAddress("babel://walk/00001594/hexagon/4"); return false; } catch { return true; } })());
+
+  /* WHERE THE CAMERA IS NOT. An address names a place and every component of
+     one is checkable -- validate() refuses a doorway, a shaft, a slot out of
+     range -- and that falsifiability is what the citation oracle rests on.
+     Where a viewer happens to be looking is not checkable: every yaw is
+     legal, and there is no camera in core/ at all. So the renderer carries
+     it in its own query string (?view=x,y,z,yaw,pitch) and the scheme stays
+     out of it. These two assertions exist so that adding it here later is a
+     decision someone has to make on purpose rather than by drifting into. */
+  for (const camera of ["look", "view", "yaw", "pitch"])
+    ok(`"${camera}" is not an address component`,
+       (() => { try { text.parseAddress(`babel://walk/00001594/floor/0/cell/5,-4/${camera}/1.9`);
+                      return false; } catch { return true; } })());
+  {
+    /* and the belt to that brace: whatever the renderer stores alongside an
+       address, the corpus is a function of six fields and none of them is a
+       camera. A stray property must not move a single symbol. */
+    const plain = text.walkAddress({ q: 5, r: -4, floor: 7, wall: 2, shelf: 1, slot: 8 });
+    const withCamera = { ...plain, yaw: 1.9137, pitch: -0.2412, x: -145.8, z: -289.1 };
+    eq("a camera riding along changes no symbol",
+       text.sliceOf(withCamera, 203 * text.PAGE_LEN, 80),
+       text.sliceOf(plain, 203 * text.PAGE_LEN, 80));
+    eq("and no spine label", text.spineLabel(withCamera), text.spineLabel(plain));
+  }
 }
 
 /* ---- MEANING: coordinates are falsifiable -------------------------- */

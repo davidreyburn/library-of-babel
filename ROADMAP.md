@@ -12,7 +12,7 @@ Where one of those records an unresolved gap, the item below carries the decisio
 
 ## Where it stands
 
-Green: **138 core assertions**, **52 gates**, 500 GPU integers, build current
+Green: **144 core assertions**, **52 gates**, 500 GPU integers, build current
 against `core/`. `CORE_VERSION` is **0.5.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
 
@@ -44,15 +44,18 @@ stone, whose albedo reads it at 45%, which the original AO ablation never did).
 The whole step-function class is ruled out on shape: a step draws a *line*, and
 the reported shapes are *filled regions*.
 
-**Blocked on reproduction.** 60 views at the reported cell on the reporter's
-own GPU do not show it. The missing variable is where the camera was looking.
+**Was blocked on reproduction** — 60 views at the reported cell did not show
+it, because the address said where you stood and not where you looked.
+**Unblocked:** **V** in the renderer copies `?at=…&view=x,y,z,yaw,pitch`, and
+a pasted view restores the camera bit for bit (0 of 366,575 pixels differ
+across a page load). It rides in the query string, not the `babel://`
+address, because a yaw is not checkable and an address's components all are;
+four assertions pin that.
 
-**Lever, in order:** add a `look/<yaw>,<pitch>` component to the walk address
-so a screenshot becomes a replayable coordinate — this is the citation
-discipline the environment already enforces everywhere except its own bug
-reports; then ablate on the reported view with `?ablate=`; then the two
-untested suspects, the tone ramp near the `smoothstep(0.18, 0.38, lit)` knee
-and the dither at 1:2 buffer scale.
+**Lever, in order:** get a view URL with the symptom in it; ablate on *that*
+view with `?ablate=occ,albedo,lift,litocc`; then the two untested suspects —
+the tone ramp near the `smoothstep(0.18, 0.38, lit)` knee, and the dither at
+1:2 buffer scale.
 **Done when:** a named mechanism, an ablation that removes the shapes, and a
 long traverse that does not meet them.
 

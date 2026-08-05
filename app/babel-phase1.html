@@ -285,6 +285,8 @@
   <div class="aimed" id="a-aim"><span class="none">nothing shelved</span></div>
   <div class="k" style="margin-top:.4rem">You are here</div>
   <div class="uri" id="a-uri" title="Click to select, then copy. Open the page with ?at=&lt;address&gt; to stand anywhere -- this is how an agent's coordinates and yours are the same coordinates."></div>
+  <div class="k" style="margin-top:.4rem" id="a-viewk" hidden>This exact view <span id="a-viewnote" class="cr"></span></div>
+  <div class="uri" id="a-view" hidden title="x, y, z, yaw, pitch -- metres and radians, at full precision so the camera is restored exactly. It rides in the page's own query string rather than in the babel:// address, because every part of an address is checkable (a wall that is a doorway is refused) and where you happen to be looking is not. Paste this into a bug report and the screenshot becomes reproducible."></div>
 </div>
 
 <div id="perf" class="panel">
@@ -311,7 +313,8 @@
   &middot; <b>E</b> <span class="t">read the volume you face</span>
   &middot; <b>Q</b> <span class="t">let the mouse go</span> &middot; <b>R</b> <span class="t">if stuck</span><br>
   <b>Z</b> <span class="t">go to a floor and cell</span> &middot;
-  <b>X</b> <span class="t">be walked to a shelf and handed a book &mdash; X again to stop</span><br>
+  <b>X</b> <span class="t">be walked to a shelf and handed a book &mdash; X again to stop</span> &middot;
+  <b>V</b> <span class="t">copy this exact view, for a bug report</span><br>
   <span class="t">Gaps are passages or halls. Through them: another gallery, a stairwell
   with flights up and down, or a shaft you can look into but not cross.</span>
 </div>
@@ -3015,6 +3018,72 @@ function goTo(uri){
   if (cellType(a.q, a.r) === TYPE.SHAFT) return placeInNetwork(a.floor, a.q, a.r);
   return standAt(a.q, a.r, a.floor);          // hoisted; see "standing somewhere on purpose"
 }
+/* ---- the view, as a query parameter --------------------------------- *
+ * WHY THIS IS NOT PART OF THE ADDRESS. Every component of a babel://
+ * address is checkable: validate() refuses a wall that is a doorway, a
+ * shaft, a slot out of range, and that falsifiability is the property the
+ * citation oracle rests on (§17.7). Where a camera happens to be pointing
+ * is not checkable -- every yaw is legal, and core/ has no camera in it at
+ * all. Putting it in the address would put unfalsifiable data in the one
+ * namespace whose whole point is falsifiability, and would break every
+ * older holder of the core besides: parseAddress() whitelists components
+ * and throws on anything it does not know, so a new address would be
+ * rejected rather than degraded.
+ *
+ * Here instead, where it costs nothing: old links are untouched, new links
+ * still parse on any older core, CORE_VERSION does not move, and no
+ * volume's text changes -- walkKey() reads six fields and none of them is
+ * this. What it buys is that a screenshot becomes reproducible, which is
+ * what the mottling hunt needed and did not have (bug log §13).
+ *
+ * Five numbers, not two: reproducing a frame needs where you stood as well
+ * as where you looked, because the ambient term and both lamps are
+ * distance functions.                                                    */
+/* x,y,z,yaw,pitch -- metres and RADIANS, written at full precision rather
+   than rounded prettily. Number -> String -> Number is exact for a double
+   in JavaScript, so a pasted view restores the camera bit for bit and two
+   loads of the same URL render identically.
+   Rounding to a tenth of a degree looked tidier and was measured first: it
+   shifts the frame by about a third of a pixel, which moves ~75% of pixel
+   values slightly across dithered spines. Harmless for looking at a wall,
+   and not harmless for an A/B between two page loads -- the camera jitter
+   would land in the diff next to whatever was being ablated. Exact costs
+   nothing but a longer URL. */
+function viewParam(){
+  return [st.x, st.y, st.z, st.yaw, st.pitch].map(String).join(",");
+}
+function applyViewParam(v){
+  const n = String(v).split(",").map(Number);
+  if (n.length !== 5 || n.some(x => !Number.isFinite(x))) return false;
+  st.x = n[0]; st.y = n[1]; st.z = n[2];
+  st.yaw = n[3];
+  /* the same clamp the mouse and the arrows use, so a hand-edited pitch
+     cannot put the camera somewhere the controls could never reach */
+  st.pitch = Math.max(-1.45, Math.min(1.45, n[4]));
+  return true;
+}
+function viewURL(){
+  const [q, r] = cellOf(st.x, st.z);
+  const u = new URL(location.href);
+  u.hash = "";
+  u.searchParams.delete("read");               // a view is a place, not an open book
+  u.searchParams.set("at", cellAddress(q, r, storeyOf(st.y)));
+  u.searchParams.set("view", viewParam());
+  return u.toString();
+}
+/* Shown as well as copied: clipboard access can be refused, and a URL you
+   cannot select is a URL you cannot report. */
+function copyView(){
+  const url = viewURL();
+  el.viewk.hidden = false; el.view.hidden = false;
+  el.view.textContent = url;
+  const note = s => { el.viewnote.textContent = s; };
+  note("");
+  if (navigator.clipboard) navigator.clipboard.writeText(url)
+    .then(() => note("· copied"), () => note("· select it and copy"));
+  else note("· select it and copy");
+}
+
 /* Called at the foot of this script, not here: openBook() reaches into the
    input section's consts, and running before those are initialised threw a
    temporal-dead-zone error that left the pane silently shut. ?at= worked
@@ -3026,6 +3095,10 @@ function arriveFromURL(){
           || (location.hash.startsWith("#babel://") ? location.hash.slice(1) : null);
   if (at && !goTo(decodeURIComponent(at)))
     console.warn("could not stand at " + at);
+  /* after ?at=, which places you in the room -- this refines where in it */
+  const view = p.get("view");
+  if (view && !applyViewParam(view))
+    console.warn('could not read view="' + view + '" -- expected x,y,z,yaw,pitch');
   const read = p.get("read");
   if (!read) return;
   try {
@@ -3713,6 +3786,7 @@ addEventListener("keydown", e => {
   if (e.code === "ArrowDown")  st.pitch = Math.max(-1.45, st.pitch - k);
   if (e.code === "KeyE" && entered) pullVolume();
   if (e.code === "KeyQ")       release();
+  if (e.code === "KeyV")       copyView();
   if (e.code === "KeyR"){      stopAuto(); placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z)); }
   /* preventDefault, or the z that opened the panel is typed into the field
      it just focused and "floor z" is the first thing you see */
@@ -3744,6 +3818,8 @@ const el = {
   shelf: document.getElementById("a-shelf"), vol:  document.getElementById("a-vol"),
   gaps:  document.getElementById("gaps"),    note: document.getElementById("a-note"),
   uri:   document.getElementById("a-uri"),
+  viewk: document.getElementById("a-viewk"), view: document.getElementById("a-view"),
+  viewnote: document.getElementById("a-viewnote"),
   fps:   document.getElementById("fps"),     res:  document.getElementById("res"),
   ms:    document.getElementById("ms")
 };
