@@ -1319,6 +1319,42 @@ something is unverified it says so.*
 
 ---
 
+### 17. A corridor that ends in rock and puts you somewhere else
+
+**The report**, and it is not reproducible: *"a corridor terminating in a dead
+end, that warped me into a different corridor, but I can't reproduce."*
+
+**Not reproduced, and recorded anyway** because the mechanism for it is already
+open and measured in §14. `gapAt` walls off any corridor/stairwell edge whose
+axes disagree, so **7.3% of stairwells are one-ended** — open at one end, solid
+rock at the other. The renderer carves the doorway and the flight regardless,
+because the gap rule says `PASSAGE`; `apply()` refuses the move as a dead end;
+and the renderer's own collision does not.
+
+That last disagreement is the part that would displace someone. `resolve()`
+pushes a walker out of solid geometry, and a walker who has been let into a
+pocket the seam says is not there has to come out somewhere. Coming out in a
+different corridor is exactly what a resolve does when the nearest open space is
+on the far side of a wall.
+
+**So the two halves of §14 are not independent.** The visual half — the black
+pocket — is fixed. The topology half was filed as "the seam and the renderer
+disagree about where you can go", which sounds abstract; this report is what
+that abstraction feels like from inside, and it is worse than a rendering
+artefact because it moves you somewhere you did not walk.
+
+**What would close it** is unchanged from §14: in `gapAt`'s stairwell branch,
+do not open an axis end unless the opposite end is open. What this report adds
+is that the cheaper half — leave the topology and stop *drawing* the doorway —
+**is not sufficient**. An undrawn doorway you can still walk into displaces you
+just as effectively; it merely stops advertising itself first.
+
+**To reproduce**, walk every one-ended stairwell in a sample and compare where
+`apply()` says you end up against where `resolve()` puts you. 127 of 1,741 were
+one-ended in a 121x121 sample, so a few hundred crossings should find it. Until
+somebody does that, this is one report and a plausible mechanism, not a
+diagnosis.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every

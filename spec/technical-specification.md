@@ -989,34 +989,44 @@ remained after the tolerance was two more defects, and neither was brightness:
 green than Verdigris Damp specifies.** Recorded as an intentional palette
 change rather than a shading fix; `?ablate=tintgreen` restores the original.
 
-**§17.16 One orientation rule, after four holes in three.** The shading had
-three gates keyed on which way a surface faced: floorboards for up-facing
-stone at floor level, a lift for near-vertical stone (horiz > 0.80), and a
-bounce for near-horizontal stone (|n.y| > 0.70). Between the last two sat
-every surface inclined more than 12 degrees off vertical and less than 45,
-which got neither. Four separate reports of black regions were surfaces in
-that gap or just outside a gate: a stairwell soffit, a ledge inside a
-doorway, the treads of a flight, and the wall inside a gap. Each fix closed
-one hole and left the shape that produced it.
+**§17.16 One orientation rule: attempted three ways, reverted, and what it cost
+to learn.** The shading has three gates keyed on which way a surface faces —
+floorboards for up-facing stone at floor level, a lift for near-vertical stone
+(`horiz > 0.80`), a bounce for near-horizontal (`|n.y| > 0.70`). Between the
+last two sits every surface inclined more than 12° off vertical and less than
+45°, which gets **neither**, and four separate black-region reports were
+surfaces in that gap or just outside a gate.
 
-**Orientation was always a proxy.** What the lifts compensate for is that the
-lamp model under-serves a surface -- two lamps a cell, no bounce, no shadow --
-and which way a thing faces only correlates with that. The two lighting gates
-are now one rule that does not mention orientation:
+The gap is real. Three attempts to close it by unifying the lifts all made the
+render **worse**, measured down a flight as luminance against screen height:
 
-```glsl
-if (mat < 0.5 || mat > 2.5) lum = min(1.0, lum + 0.30);
-```
+| | worst deviation from the shipped look |
+|---|---|
+| flat `lum + 0.30` for all stone | 23.9 |
+| tapered `lum + 0.45·(1 − lum)` | 52.9 |
+| one weight partitioning orientation, old amounts at each end | 54.1 |
 
-Additive rather than proportional, because that is what the vertical lift was
-and it is most of what makes a wall legible; a proportional lift dims every
-wall in the Library to fix a staircase. Measured across eight views, including
-all five that were ever reported dark: **near-black 2.32% -> 0.46%**, mean luma
-25.2 -> 26.9. It is removing black rather than brightening everything.
+Each put the sloped treads at 45–74 luma against walls at 20 — a bright band
+with ramps either side, where the shipped build is flat at 19–26. Reported
+immediately, correctly, as a regression.
 
-`floorish` remains separate and is not a fourth gate: it chooses an albedo
-(boards or stone), which is a question about what a surface is made of, not
-about how much light reached it. `?ablate=threegates` restores the old pair.
+**Why it does not work.** The two failures are not interchangeable and no
+single amount serves both. A near-vertical wall is dim because stone is dim and
+wants a *flat* boost; that lift is most of what makes a wall visible at all. A
+near-horizontal surface is dark because no lamp points at it and wants a lift
+that *fades out* if the surface turns out to be lit. A taper makes it worse
+rather than better, because a taper gives dark surfaces more and the treads are
+the dark ones.
+
+**And the black was hiding something.** Lifting the treads at all reveals a hot
+spot: the lamp falloff `1/(1+(d/1.35)²)` across a flight is a genuine ramp, and
+the previous behaviour clipped it to step 0 so nobody saw it. Any future
+attempt to close the gap has to fix **the stairwell's lamp placement**, not the
+lifts — the lifts are compensating for a lighting model that puts a hot spot in
+the middle of every flight, and no amount of compensation downstream turns that
+into an even one.
+
+Reverted. The gates and their gap stay until the lamps are dealt with.
 
 **The rule underneath all of it, and the one to carry to any future "too dark"
 report:** `main()` quantises luminance to **six levels**
