@@ -3495,8 +3495,56 @@ function goTo(uri){
    and not harmless for an A/B between two page loads -- the camera jitter
    would land in the diff next to whatever was being ablated. Exact costs
    nothing but a longer URL. */
+/* The shortest decimal that survives a round trip through float32, which is
+   all the renderer can carry: gl.uniform3f() and uniformMatrix3fv() convert to
+   float32 before the shader sees anything. Every digit past ~7 significant
+   figures was being copied into a bug report and discarded on arrival --
+   -2.2753815852954458 reaches the GPU as -2.2753816 either way.
+
+   This halves the URL (83 chars to 43 on a real report) WITHOUT giving up the
+   property the parameter exists for. Verified the way the original precision
+   was: restore from the shortened form and diff the buffer. Older links carry
+   more digits and still parse -- applyViewParam() has always used Number(). */
+function f32(v){
+  const f = Math.fround(v);
+  for (let p = 1; p <= 9; p++){
+    const s = f.toPrecision(p);
+    if (Math.fround(parseFloat(s)) === f) return String(parseFloat(s));
+  }
+  return String(f);
+}
+/* THE ANGLES ARE ROUNDED AGAINST THE MATRIX THEY BUILD, and nothing less will
+   do. yaw and pitch never reach the GPU; the nine entries of uView do, and
+   those are PRODUCTS -- fx = -sin(yaw)*cos(pitch) and so on -- evaluated in
+   float64 and converted once at upload.
+
+   Two weaker rules were tried and measured. Rounding each angle to float32
+   moved 40 pixels of 336,126. Rounding until sin and cos individually matched
+   still moved 23, because matching two factors does not make their product
+   match. So build the matrix and compare all nine entries: round both angles
+   together, since they multiply into each other, and stop at the first
+   precision that reproduces every one. */
+function viewMatrix(yaw, pitch){
+  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const sy = Math.sin(yaw),   cy = Math.cos(yaw);
+  const fx = -sy * cp, fy = sp, fz = -cy * cp;
+  const rx = cy,       ry = 0,  rz = -sy;
+  return [rx, ry, rz,
+          ry * fz - rz * fy, rz * fx - rx * fz, rx * fy - ry * fx,
+          fx, fy, fz].map(Math.fround);
+}
+function f32angles(yaw, pitch){
+  const want = viewMatrix(yaw, pitch);
+  for (let p = 1; p <= 17; p++){
+    const y = parseFloat(yaw.toPrecision(p)), q = parseFloat(pitch.toPrecision(p));
+    const got = viewMatrix(y, q);
+    if (want.every((v, i) => v === got[i])) return [String(y), String(q)];
+  }
+  return [String(yaw), String(pitch)];
+}
 function viewParam(){
-  return [st.x, st.y, st.z, st.yaw, st.pitch].map(String).join(",");
+  const [y, p] = f32angles(st.yaw, st.pitch);
+  return [f32(st.x), f32(st.y), f32(st.z), y, p].join(",");
 }
 function applyViewParam(v){
   const n = String(v).split(",").map(Number);
