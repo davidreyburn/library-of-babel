@@ -103,17 +103,21 @@ wearing one coat. None was "a stairwell is dim", which is what it looked like:
    and the rejected settings as `knee50,kneelow,kneeboth`.
 
 **Shipped after all: the reveal as its own material (option A).** I measured it
-at 16-36% of a frame, judged it visually indistinguishable from my own
+at 16-36% of a frame — **a figure the performance review later showed was
+harness, not shader: it is free** — judged it visually indistinguishable from my own
 screenshots, and moved it to a branch. The reporter had been looking at the
 running build while it was live, and it was the version they signed off:
 *"the gaps were finally looking good and you changed them back."* Restored to
-main. The cost is real and accepted knowingly; the judgement that it made no
-visible difference was mine and it was wrong. `?ablate=noreveal` switches it
-off.
+main. Both halves of my reasoning were wrong: the cost was a harness artefact,
+and the judgement that it made no visible difference was mine to make from a
+screenshot and should not have been. `?ablate=noreveal` switches it off.
 
-Its findings stand either way, and are in bug log 14 -- particularly that
-hoisting the test out of `mapAt` into `shadeHit` made it *dearer*, at the call
-site that runs fifty times less often.
+Its findings stand either way, and are in bug log §14 — particularly that
+hoisting the test out of `mapAt` into `shadeHit` measured *dearer*, at the call
+site that runs fifty times less often. That comparison was taken with the same
+faulty harness, so treat it as an open question rather than a result; what is
+solid is that removing the loop entirely, A/B'd inside one page load, changes
+nothing.
 
 **What actually located it:** the reporter saying that every screenshot had been
 of the same surface. Four sessions of image-differencing never established what
@@ -154,6 +158,63 @@ view with a long sightline — everything measured so far is under 6 m, so the
 crossover region has never actually been sampled.
 **Done when:** the curve has a named cause, or a longer sightline shows the rise
 is an artefact of what happens to be at 3–6 m in that one view.
+
+### P1. Bound the shelving and the furniture before evaluating them
+
+**The two biggest costs in the renderer, and the same shape.** Measured by
+ablation: the shelving case is **41.3% of a gallery frame** and 21.1% of the
+mean; furniture and fixtures are **30.1% of a reading room** and 19.2% of a
+corridor. Both are evaluated on *every* `mapAt` sample inside a cell, and
+`mapAt` runs 18–29 times a pixel — so the multiplier is ~25.
+
+Neither needs to run for most of those samples. A ray crossing the middle of a
+gallery is nowhere near a shelved wall, and one crossing a reading room is
+usually nowhere near the furniture group, which is anchored to a single wall.
+
+**Lever:** a cheap conservative bound first, the exact case only inside it.
+The shelving already has the shape of this — the `dh > 0.24` early-out returns
+distance-to-the-front-of-the-case — so the question is why the exact path still
+costs what it does; instrument which samples take which branch before widening
+anything. For furniture, the group's extent is known per cell and could go in
+`desc` (§17.13's packed int) as a bounding radius about the anchor wall.
+
+**Caution, and it is the whole difficulty:** `?ablate=onelamp` *removed* six of
+seven lamp cells and made every view except the stairwell **slower**. Removing
+work from this shader is not reliably cheaper. Any change here is a hypothesis
+until A/B'd inside one page load, and §15's link budget applies to all of it.
+**Done when:** a gallery and a reading room are measurably cheaper at a pinned
+`st.div`, with the render unchanged pixel-for-pixel outside the intended area.
+
+### P2. The auto-scaler's floor, not the shader, is what fails on a weak device
+
+Frame time is linear in pixels with a negligible intercept — **4.81 ns/px plus
+0.39 ms** on the development GPU, so ~4.8 ms at 720p and ~10.4 ms at 1080p at
+1:1. The auto-scaler trades resolution against frame time between 1:1 and 1:3.
+
+A device 3× slower therefore holds 60 fps at 1080p by dropping to 1:2, and one
+8× slower needs 1:3, which is the current bound. **Below that the scaler has
+nothing left to give**, and the bound was chosen so the dither never lands
+between pixels rather than for any performance reason.
+
+**Lever:** allow 1:4, and check what the ordered dither does there — the
+constraint is integer divisors, which 4 satisfies. Also worth measuring on
+something that is not this GPU before assuming the curve holds.
+**Done when:** the scaler has been exercised on a genuinely slow device, or the
+floor is raised and the dither is verified at 1:4.
+
+### P3. A conservative stone field would cut march steps ~20%
+
+The march averages 18.6 `mapAt` calls a pixel in a gallery and 20.8 in a
+reading room, against a fixed 8 for the normal, ambient probe and material. It
+runs under-relaxed at `t += d * 0.80` because the field over-reports, so roughly
+a fifth of those steps are the safety margin.
+
+This is the same "make the stone path of `mapAt` conservative" that §13 has
+wanted twice. What the review adds is the size of the prize: **~20% fewer
+`mapAt` calls everywhere**, which compounds with P1 rather than competing.
+
+**Done when:** the step scale is back at 1.0 with no overshoot, measured by the
+bad-normal share from §13's metric, not by eye.
 
 ### 2. A 160 ms worst frame, uncharacterised
 

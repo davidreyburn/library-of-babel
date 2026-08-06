@@ -1146,21 +1146,29 @@ reporter will see first.
 > concluding that something is unlit.
 >
 > **Option A — the reveal as its own material — SHIPPED, after I wrongly
-> rejected it.** Every measurement below is correct. The judgement built on top
-> of them was not: I compared my own screenshots, called the change visually
+> rejected it.** I compared my own screenshots, called the change visually
 > indistinguishable, and moved it to a branch. The reporter had been looking at
 > the running build while it was live — the server serves the working tree — and
 > it was the version they signed off. Taking it out mid-session read as: *"the
-> gaps were finally looking good and you changed them back."* Restored to main,
-> and the 16–36% is accepted knowingly.
+> gaps were finally looking good and you changed them back."* Restored to main.
 >
-> **The lesson is not "measure".** I measured, and the numbers were right. It is
-> that a **cost is a measurement and worth is a judgement**, and the judgement
-> was not mine to make from a screenshot when the person who had actually walked
-> the build was one question away. I had written exactly that a message earlier —
-> *"you've walked it and I haven't"* — and then decided anyway.
+> **The cost I agonised over was not real either.** The performance review at
+> the end of this file A/Bs `?ablate=noreveal` against the shipped build inside
+> a single page load: removing the entire reveal loop moves the frame by
+> **−1%**, which is noise. The 16–36% below was measured with a `readPixels`
+> stall on every frame, and across page loads at different canvas sizes. **The
+> feature is free.** The trade did not exist in either direction — it costs
+> nothing, and the reporter wanted it.
 >
-> **Option A — the reveal as its own material — was built and rejected on
+> **So the lesson is not "measure".** I measured — badly, and then reasoned
+> confidently on top of the bad number. **A cost is a measurement and worth is a
+> judgement**, and neither was mine to settle from a screenshot when the person
+> who had actually walked the build was one question away. I had written exactly
+> that a message earlier — *"you've walked it and I haven't"* — and decided
+> anyway.
+>
+> *(Superseded, kept for the reasoning that died with it:)* **Option A — the
+> reveal as its own material — was built and rejected on
 > cost.** It lives on branch `reveal-material`, not on main. It tags the wall
 > inside a gap as material 4 and shades it as dressed stone with a luminance
 > floor, so it reads as a flat plane at any range instead of falling off the
@@ -1308,3 +1316,74 @@ stop being exactly representable in float32.
 
 *Every figure in this document was measured in the session it describes. Where
 something is unverified it says so.*
+
+---
+
+## The performance review, Aug 2026
+
+*Not a defect: a measurement of where the frame goes, kept here because every
+number in it was produced by the same ablation harness the entries above use.*
+
+### Where the frame actually goes
+
+**Method.** Five canonical views, one per cell type, three yaws each, at a
+pinned `st.div = 2` (315,350 px). Each subsystem is removed by source
+substitution and the frame re-timed, so every share below is a stopwatch
+reading rather than an attribution.
+
+**The harness matters more than any single result here.** Timing `frame()` with
+a `gl.readPixels` after *every* frame pays a GPU pipeline stall each time, and
+that stall presents as **1.4 ms of fixed cost that does not exist**. Amortise
+one sync over a batch of 14 and the real fixed cost is **0.39 ms**. Two
+published numbers died to this: the "−30% frame time" retracted in §13, and the
+"16–36%" cost accepted for the reveal material in §14. **A/B two ablations
+inside one page load; never compare across loads or canvas sizes.**
+
+**The shape of the cost.** It is `mapAt` calls, and almost nothing else.
+
+| per pixel | `mapAt` calls |
+|---|---|
+| the march (`?ablate=steps`) | 10.0 shaft · 14.3 stairwell · 15.1 corridor · 18.6 gallery · 20.8 reading |
+| the normal (`normalCtx`) | 4, fixed |
+| ambient occlusion (`aoCtx`) | 3, fixed |
+| the material at the hit | 1, fixed |
+
+18–29 evaluations a pixel, and the measured subsystem shares track that count
+almost exactly — AO's 3 calls out of a gallery's ~27 predicts 11%, and measures
+12%. **Anything that makes `mapAt` cheaper is multiplied by ~25.**
+
+**Cost of each subsystem, as a share of the frame:**
+
+| removed | mean | gallery | reading | corridor |
+|---|---|---|---|---|
+| the shelving case (`noshelf`) | **21.1%** | **41.3%** | 11.2% | 14.0% |
+| furniture and fixtures (`nofurn`) | **18.0%** | 10.7% | **30.1%** | **19.2%** |
+| ambient occlusion (`occ`) | 9.1% | 12.0% | 8.8% | 6.8% |
+| the mirror's second bounce (`uBounce = 1`) | 1.4% | 6.1% | −0.4% | 0.1% |
+| the reveal material (`noreveal`) | −1.0% | −2.4% | 0.0% | −0.9% |
+| six of seven lamp cells (`onelamp`) | **−3.0%** | −7.6% | −6.5% | −4.5% |
+
+Two of those are worth reading twice. **The mirror costs 1.4%**, which is the
+`uBounce` loop working as designed — it early-outs on anything that is not a
+mirror, so the second bounce is paid only where there is one. **The reveal
+material is free**, which retracts the cost this repository accepted for it.
+
+And `onelamp` is *negative*: cutting the lamp loop from seven cells to one made
+every view except the stairwell **slower**. That is the third sighting of
+§17.13's non-monotonic inlining, and the rule it implies is now firm — **in this
+shader, removing work is not reliably cheaper, and no cost may be claimed
+without an A/B.**
+
+**Scaling, which is what "across devices" means.** Frame time is linear in
+pixels with a negligible intercept:
+
+```
+ms = 0.39 + 4.81e-6 × pixels        (on the development GPU)
+```
+
+That is **4.81 ns per pixel**, giving ~4.8 ms at 720p and ~10.4 ms at 1080p at
+1:1. The auto-scaler already trades resolution for frame time between 1:1 and
+1:3, so a device 3× slower holds 60 fps at 1080p by dropping to 1:2, and one 8×
+slower needs 1:3 — which is the current floor. **The floor, not the shader, is
+what would fail first on a weak device**, and raising it to 1:4 is a one-line
+change to a bound that was chosen when the dither was the concern.

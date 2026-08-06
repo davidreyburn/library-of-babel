@@ -2673,12 +2673,19 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        fails: at a hit point both are ~0 and the march stops a fraction short,
        so noise decides and the tag spread over 43-98% of a frame.
 
-       The cost is why it is here. The same six-way test inside mapAt measured
-       2x the frame -- 5.8 ms against 3.3 -- because mapAt runs thirty to
-       seventy times a pixel while this runs once. Isolated by ablating the
-       tag's USE and finding the cost unchanged, which put it in the march
-       rather than the shading. That is §17.13's rule, learned again: per-cell
-       work does not belong in the SDF. ?ablate=noreveal removes it.
+       The cost is why it is here rather than in mapAt, which runs 10-21 times
+       a pixel on the march against this once. In its current place it is
+       FREE: ?ablate=noreveal removes the whole loop and the frame does not
+       move (-1% mean, i.e. noise, across five cell types).
+
+       An earlier note here claimed "2x the frame, 5.8 ms against 3.3" and a
+       commit message accepted 16-36% knowingly. **Both were harness, not
+       shader.** Those figures paid a gl.readPixels stall on EVERY frame and
+       compared across page loads at different canvas sizes; the stall alone
+       presented as 1.4 ms of fixed cost that does not exist. Amortise the
+       sync over the batch and A/B two ablations of one build, and the cost
+       disappears. Same lesson as the 30% frame-time claim retracted in bug
+       log §13: in this renderer, measure by ablation within a single load.
 
        It runs AFTER the normal because it has to exclude the floor. The
        threshold under a doorway is boards like the rest of the floor, and
@@ -3021,10 +3028,43 @@ const ABLATIONS = {
              "(0.55 + 0.45 * smoothstep(0.06, 0.28, lit))"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
            "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
+
+  /* ---- the perf review's instruments, Aug 2026 ------------------------
+     Each removes one subsystem so its share of the frame can be read off a
+     stopwatch instead of guessed. They make the render WRONG on purpose --
+     none of them is a candidate fix. Measure at a pinned st.div with the
+     readPixels sync amortised over the batch, or the stall lands in the
+     number: paying it per frame reported 1.4 ms of fixed cost that did not
+     exist. */
+  /* The shelving case, out. It is the longest straight-line block in mapAt
+     and runs for every gallery sample. */
+  noshelf: [/  \/\* ---- shelving ------/, "  return d;\n  /* ---- shelving ------"],
+  /* Reading-room furniture and corridor fixtures, out. */
+  nofurn:  [[/    float f = furniture\(lp, fy, studyKey\(c, fl\), desc\);/,
+             "    float f = 1e5;"],
+            [/    float f = alcoveFixtures\(lp, fy, desc\);/,
+             "    float f = 1e5;"]],
+  /* Lamps from the cell you are standing in only, instead of it and its six
+     neighbours -- seven cellType/worldOf lookups a shaded pixel become one. */
+  onelamp: [/  for \(int i = -1; i < 6; i\+\+\)\{\s*\n\s*ivec2 c = \(i < 0\) \? c0 : c0 \+ dirOf\(i\);/,
+            "  for (int i = -1; i < 0; i++){\n    ivec2 c = c0;"],
+  /* How hard the march worked, as a picture: green is cheap, red is at the
+     72-step ceiling. Answers "is the march the cost, and where" directly. */
+  steps: [
+    [/float gTgt;/, "float gTgt;\nfloat gSteps = 0.0;"],
+    [/(    float d = mapAt\(p, c, desc, ct, fl\);)/, "$1\n    gSteps += 1.0;"],
+    [/  outColor = vec4\(final, 1\.0\);/,
+     "  outColor = vec4(clamp(gSteps / 72.0, 0.0, 1.0),\n" +
+     "                  1.0 - clamp(gSteps / 72.0, 0.0, 1.0), 0.0, 1.0);"]
+  ],
   /* The reveal tag removed, so the wall inside a gap goes back to being shaded
      as open wall. The A/B for option A. */
-  noreveal: [/abs\(dot\(rrel, vec2\(-rdir\.y, rdir\.x\)\)\) <= 1\.9\)\{ mat = 4\.0; break; \}/,
-             "abs(dot(rrel, vec2(-rdir.y, rdir.x))) <= 1.9){ break; }"],
+  /* The reveal gone entirely -- the six-way loop as well as the tag. The
+     earlier version of this ablation removed only the assignment and left the
+     loop running, which measured the downstream shading (free) and said
+     nothing about the feature's real cost. */
+  noreveal: [/    if \(mat < 0\.5 && n\.y <= 0\.62\)\{[\s\S]*?\n    \}\n/,
+             "\n"],
   /* NORMAL AGAINST DISTANCE. The march tolerance is 0.00018*t + 0.00012 --
      PROPORTIONAL to range -- while normalCtx probes a fixed +/-1.6 mm, so the
      ratio that decides whether a normal is trustworthy gets worse the further
