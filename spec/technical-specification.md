@@ -989,6 +989,35 @@ remained after the tolerance was two more defects, and neither was brightness:
 green than Verdigris Damp specifies.** Recorded as an intentional palette
 change rather than a shading fix; `?ablate=tintgreen` restores the original.
 
+**§17.16 One orientation rule, after four holes in three.** The shading had
+three gates keyed on which way a surface faced: floorboards for up-facing
+stone at floor level, a lift for near-vertical stone (horiz > 0.80), and a
+bounce for near-horizontal stone (|n.y| > 0.70). Between the last two sat
+every surface inclined more than 12 degrees off vertical and less than 45,
+which got neither. Four separate reports of black regions were surfaces in
+that gap or just outside a gate: a stairwell soffit, a ledge inside a
+doorway, the treads of a flight, and the wall inside a gap. Each fix closed
+one hole and left the shape that produced it.
+
+**Orientation was always a proxy.** What the lifts compensate for is that the
+lamp model under-serves a surface -- two lamps a cell, no bounce, no shadow --
+and which way a thing faces only correlates with that. The two lighting gates
+are now one rule that does not mention orientation:
+
+```glsl
+if (mat < 0.5 || mat > 2.5) lum = min(1.0, lum + 0.30);
+```
+
+Additive rather than proportional, because that is what the vertical lift was
+and it is most of what makes a wall legible; a proportional lift dims every
+wall in the Library to fix a staircase. Measured across eight views, including
+all five that were ever reported dark: **near-black 2.32% -> 0.46%**, mean luma
+25.2 -> 26.9. It is removing black rather than brightening everything.
+
+`floorish` remains separate and is not a fourth gate: it chooses an albedo
+(boards or stone), which is a question about what a surface is made of, not
+about how much light reached it. `?ablate=threegates` restores the old pair.
+
 **The rule underneath all of it, and the one to carry to any future "too dark"
 report:** `main()` quantises luminance to **six levels**
 (`q = floor(lum * 5.0 + 0.5 + dither) / 5.0`, `final = sub * (0.050 + 1.35*q)`).

@@ -1080,72 +1080,40 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     }
 
     float horiz = 1.0 - abs(n.y);
-    /* A near-vertical stone face gets a lift, or the walls read as fog. This
-       used to be a step function -- horiz > 0.86 and lit > 0.28 -- on two
-       continuous quantities, and on dim stone the lift is most of what makes
-       the wall visible at all, so the pixels that fell the wrong side of
-       0.28 went almost black. The boundary is an iso-contour of the lighting
-       times the ambient term, which is why it came out as smooth-edged
-       shapes following the geometry: the mottling on bare walls, and the one
-       thing in this hunt that was never the distance field. Ramp both. */
-    /* The lit gate has a FLOOR now, and that floor is the fix for the patch
-       of wall standing in a gap between two galleries -- the one thing every
-       report of this defect was actually a picture of.
-
-       A wall inside an opening is lit obliquely and from further away, so it
-       measures lit ~0.135 where the wall on either side of the opening
-       measures 1.0. The old gate was smoothstep(0.18, 0.38, lit): the wall
-       in the gap fell BELOW the knee and got none of the lift, its
-       neighbours sat far above it and got all of it. Since this lift is, by
-       its own comment, most of what makes stone visible, that is a cliff
-       between two surfaces a few centimetres apart -- and main()'s six-level
-       quantiser then rounds the unlit side down to step 0, which is black.
-       Hence a dark rectangle in the doorway with clean bright wall around it.
-
-       0.35 + 0.65 * gate keeps bright walls exactly as they were and gives
-       dim stone a third of the lift instead of nothing. ?ablate=hardknee
-       restores the cliff. */
+    /* ---- ONE RULE ---------------------------------------------------
+     * Stone gets a lift. That is the whole of it.
+     *
+     * There used to be two, keyed on which way the surface faced: one for
+     * near-vertical stone (horiz > 0.80, so |n.y| < 0.20) and one for
+     * near-horizontal (|n.y| > 0.70). Between them sat every surface
+     * inclined more than 12 degrees off vertical and less than 45 -- and
+     * those got NEITHER. Four separate reports of black regions were
+     * surfaces in that gap or just outside one of the gates:
+     *
+     *   a stairwell soffit          n.y -0.86 to -0.99   caught by neither
+     *                                                    until the second
+     *                                                    lift was added
+     *   a ledge inside a doorway    n.y  0.88 to 0.96    painted as floor
+     *                                                    boards instead
+     *   the treads of a flight      n.y  0.83 to 0.95    up-facing, so the
+     *                                                    -n.y bounce read 0
+     *   the wall inside a gap       n.y  0.00            below the lit knee
+     *
+     * Each fix closed one hole and left the shape that made it. The shape
+     * is that ORIENTATION WAS ALWAYS A PROXY. What the lifts were really
+     * compensating for is that the lamp model under-serves a surface --
+     * two lamps a cell, no bounce, no shadow -- and which way a thing faces
+     * only correlates with that. Compensate for the thing itself and there
+     * is nothing left to fall between.
+     *
+     * It is additive rather than proportional because that is what the old
+     * vertical lift was, and that lift is, by its own note, "most of what
+     * makes a wall visible at all". A proportional lift dims every wall in
+     * the Library to fix a staircase.
+     *
+     * ?ablate=threegates puts the orientation gates back. */
     if (mat < 0.5 || mat > 2.5)
-      lum = min(1.0, lum + 0.30 * smoothstep(0.80, 0.92, horiz)
-                                * (0.35 + 0.65 * smoothstep(0.18, 0.38, lit)));
-
-    /* And stone that faces DOWN gets nothing from any path, which is what
-       made a stairwell doorway read as a hole cut in the wall. The lift
-       above is gated on horiz > 0.80 and an underside's horiz is ~0.01; the
-       lamps are no help either, because in a stairwell they all sit ABOVE
-       it -- lighting() says so itself: "a downward-facing ceiling then takes
-       dot(n,L) < 0". Measured through the doorway the reporter photographed:
-       n.y between -0.86 and -0.99, lit 0.10-0.27, final RGB (1,2,1).
-
-       It matters far more than a ceiling normally would, because the
-       underside of a flight FILLS the opening when a stairwell is seen from
-       a gallery, and because the six-level quantiser in main() has no dim
-       setting: under lum ~0.1 it floors to step 0, and step 0 is sub*0.05.
-       A surface is legible or it is a black rectangle; there is no between.
-
-       This is the floor bounce that lights a stair's underside in a real
-       building -- no lamp is below it, the floor is. Not gated on lit, which
-       would switch it off exactly where it is needed; gated on (1 - lum)
-       instead, so it is worth most where the surface is darkest and fades to
-       nothing on an underside that is already lit. That taper is what keeps
-       it from flattening the ceilings of a bright gallery. ?ablate=nobounce
-       removes it.
-
-       AND IT IS abs(n.y), NOT -n.y, which is the same defect found a second
-       time from the other side. The near-vertical lift above covers
-       horiz > 0.80; anything flatter than that gets nothing from it. Floors
-       escape through floorish, which gives them boards. Undersides escape
-       through this. UP-FACING stone that is not a floor -- the treads of a
-       flight, where they run past the stairwell's own cell and shade as
-       stone rather than wood -- escaped through neither, and measured RGB
-       (2,2,1) against a jamb at (20,20,13) three metres away.
-
-       So the rule is: whatever the vertical lift excludes, this catches.
-       floorish is excluded because the floor already has an answer, and
-       lifting it too would flatten the one surface in the room that reads
-       correctly. */
-    if ((mat < 0.5 || mat > 2.5) && !floorish)
-      lum = min(1.0, lum + 0.40 * smoothstep(0.70, 0.95, abs(n.y)) * (1.0 - lum));
+      lum = min(1.0, lum + 0.30);
 
     /* And the reveal gets a FLOOR rather than a lift. Everything above is a
        lighting model, and the reveal is the one surface where the lighting
