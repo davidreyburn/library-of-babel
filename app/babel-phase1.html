@@ -351,6 +351,11 @@
   <div class="row"><span class="k">Floor</span><span class="v" id="a-floor">+0</span></div>
   <div class="row"><span class="k">Cell</span><span class="v" id="a-cell">0, 0</span></div>
   <div class="note" id="a-note"></div>
+  <!-- The citation. It went out with the eleven-row panel and came straight
+       back: this is the whole premise -- an agent's coordinates and yours are
+       the same coordinates -- and it cannot do that job from inside a
+       keystroke. Click selects the whole thing. -->
+  <div class="uri" id="a-uri"></div>
 </div>
 
 <!-- THE ENGINEER'S PANEL. Hidden until F1. Everything here is an instrument;
@@ -2961,9 +2966,23 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        instead, so it is worth most where the surface is darkest and fades to
        nothing on an underside that is already lit. That taper is what keeps
        it from flattening the ceilings of a bright gallery. ?ablate=nobounce
-       removes it. */
-    if (mat < 0.5 || mat > 2.5)
-      lum = min(1.0, lum + 0.40 * smoothstep(0.70, 0.95, -n.y) * (1.0 - lum));
+       removes it.
+
+       AND IT IS abs(n.y), NOT -n.y, which is the same defect found a second
+       time from the other side. The near-vertical lift above covers
+       horiz > 0.80; anything flatter than that gets nothing from it. Floors
+       escape through floorish, which gives them boards. Undersides escape
+       through this. UP-FACING stone that is not a floor -- the treads of a
+       flight, where they run past the stairwell's own cell and shade as
+       stone rather than wood -- escaped through neither, and measured RGB
+       (2,2,1) against a jamb at (20,20,13) three metres away.
+
+       So the rule is: whatever the vertical lift excludes, this catches.
+       floorish is excluded because the floor already has an answer, and
+       lifting it too would flatten the one surface in the room that reads
+       correctly. */
+    if ((mat < 0.5 || mat > 2.5) && !floorish)
+      lum = min(1.0, lum + 0.40 * smoothstep(0.70, 0.95, abs(n.y)) * (1.0 - lum));
 
     /* And the reveal gets a FLOOR rather than a lift. Everything above is a
        lighting model, and the reveal is the one surface where the lighting
@@ -3083,7 +3102,7 @@ const ABLATIONS = {
      black stairwell doorway. Without it, an underside's only light is the
      0.045 ambient floor in `shaded`, which the six-level quantiser rounds
      to step 0. */
-  nobounce: [/lum = min\(1\.0, lum \+ 0\.40 \* smoothstep\(0\.70, 0\.95, -n\.y\) \* \(1\.0 - lum\)\);/,
+  nobounce: [/lum = min\(1\.0, lum \+ 0\.40 \* smoothstep\(0\.70, 0\.95, abs\(n\.y\)\) \* \(1\.0 - lum\)\);/,
              "lum = lum;"],
   /* The stairwell spill back to the flat 0.055 it shipped with, for the A/B
      on the black doorway. With both this and nobounce, a stairwell doorway
@@ -4392,7 +4411,7 @@ resize();
 /* ---- HUD ------------------------------------------------------------ */
 const el = {
   floor: document.getElementById("a-floor"), cell: document.getElementById("a-cell"),
-  note:  document.getElementById("a-note"),
+  note:  document.getElementById("a-note"),  uri: document.getElementById("a-uri"),
   fps:   document.getElementById("fps"),     res:  document.getElementById("res"),
   ms:    document.getElementById("ms"),      grainv: document.getElementById("grainv"),
   perf:  document.getElementById("perf"),    help: document.getElementById("help"),
@@ -4504,6 +4523,7 @@ function hud(){
   }
   el.floor.textContent = (fl >= 0 ? "+" : "") + fl;
   el.cell.textContent  = q + ", " + r;
+  el.uri.textContent   = cellAddress(q, r, fl);
 
   /* ---- the room, as a sentence ---------------------------------------
    * The panel used to carry the same facts three times: a count of shelved

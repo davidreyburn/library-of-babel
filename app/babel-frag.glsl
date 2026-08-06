@@ -1129,9 +1129,23 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        instead, so it is worth most where the surface is darkest and fades to
        nothing on an underside that is already lit. That taper is what keeps
        it from flattening the ceilings of a bright gallery. ?ablate=nobounce
-       removes it. */
-    if (mat < 0.5 || mat > 2.5)
-      lum = min(1.0, lum + 0.40 * smoothstep(0.70, 0.95, -n.y) * (1.0 - lum));
+       removes it.
+
+       AND IT IS abs(n.y), NOT -n.y, which is the same defect found a second
+       time from the other side. The near-vertical lift above covers
+       horiz > 0.80; anything flatter than that gets nothing from it. Floors
+       escape through floorish, which gives them boards. Undersides escape
+       through this. UP-FACING stone that is not a floor -- the treads of a
+       flight, where they run past the stairwell's own cell and shade as
+       stone rather than wood -- escaped through neither, and measured RGB
+       (2,2,1) against a jamb at (20,20,13) three metres away.
+
+       So the rule is: whatever the vertical lift excludes, this catches.
+       floorish is excluded because the floor already has an answer, and
+       lifting it too would flatten the one surface in the room that reads
+       correctly. */
+    if ((mat < 0.5 || mat > 2.5) && !floorish)
+      lum = min(1.0, lum + 0.40 * smoothstep(0.70, 0.95, abs(n.y)) * (1.0 - lum));
 
     /* And the reveal gets a FLOOR rather than a lift. Everything above is a
        lighting model, and the reveal is the one surface where the lighting
