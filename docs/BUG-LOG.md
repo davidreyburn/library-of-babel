@@ -1145,6 +1145,46 @@ reporter will see first.
 > and one was a hue ramp. Measure the colour, not just the luminance, before
 > concluding that something is unlit.
 >
+> **Option A — the reveal as its own material — was built and rejected on
+> cost.** It lives on branch `reveal-material`, not on main. It tags the wall
+> inside a gap as material 4 and shades it as dressed stone with a luminance
+> floor, so it reads as a flat plane at any range instead of falling off the
+> bottom of the lighting model.
+>
+> It works, and the tag lands where it should: rendered as a coverage map, a
+> view of a solid wall shows two tall vertical bands at the frame edges — the
+> two doorways — and nothing between them. But:
+>
+> | | wall2 view | stone wall view |
+> |---|---|---|
+> | baseline | 4.73 ms | 3.95 ms |
+> | tagged in `mapAt` | 5.82 (+23%) | 4.58 (+16%) |
+> | tagged in `shadeHit` | 5.99 (+27%) | 5.39 (+36%) |
+>
+> and the render is visually near-indistinguishable from the baseline at the
+> views it was built for. 16–36% of a frame for a change nobody can see is not
+> a trade worth making.
+>
+> **Three findings worth more than the feature.**
+>
+> *The tag has to be positional.* Asking which primitive the field says is
+> nearest fails: at a hit point both are ~0 and the march stops a fraction
+> short of the surface, so noise decides and the tag spread over **43–98% of a
+> frame**. The wall between two cells spans `|u| < HALF_D - APO_ROOM` = 0.600 m
+> about a gap centre, and that test has nothing to go wrong at any angle.
+>
+> *Hoisting work out of `mapAt` made it dearer, not cheaper.* `mapAt` runs 30–70
+> times a pixel and `shadeHit` once, so moving the six-way test should have been
+> ~50× cheaper. It measured **worse** — +36% against +16%. Third sighting of
+> §17.13's non-monotonic inlining, and the sharpest: in this shader, where code
+> lives predicts its cost badly and only measurement settles it. Any future plan
+> that reasons "this call site is hotter, therefore it will be cheaper there"
+> should cite this line before it is believed.
+>
+> *The cost was not the branch.* Ablating the tag's **use** while leaving it
+> computed left the frame unchanged, which is what located the cost in the march
+> rather than in the shading.
+>
 > **Still visible, and honestly so.** The patch is lighter and no longer
 > hard-edged; it has not gone. The remaining headroom is in the two knee
 > constants and in `occ` ~0.32 over that surface, and both are look decisions
