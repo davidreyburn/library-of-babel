@@ -37,25 +37,34 @@ Bad normals on the reported wall **46.04% → 0.34%**, cost neutral within ±2%.
 the two harness faults that made its earlier numbers untrustworthy and the
 retraction of a "−30% frame time" that was one of them.
 
-It also turned out that both views reported as mottling look through a doorway
-into a stairwell, which makes item 1b what a walker now notices first.
+**And the wall patch is signed off too** — *"what I am seeing currently looks
+pretty good; the gaps appear dark."* It took two further mechanisms after the
+tolerance, neither of them brightness: downward-facing stone had no path to
+light at all, and the reveal differed from the wall beside it in **hue** rather
+than luminance (contrast 1.12, but green against warm-grey). What finally
+located it was the reporter saying which surface every screenshot had been of.
+`?ablate=where` and `?ablate=nydist` now render geometry instead of shading, so
+that question costs one page load.
 
 ---
 
 ## Open
 
-### 1b. A doorway into a stairwell that arrives nowhere — **now the visible one**
+### 1b. A doorway into a stairwell that arrives nowhere
+
+**The visual half is signed off; the topology half is untouched and is the
+serious one.**
 
 **7.3% of stairwells are one-ended** (127 of 1,741 sampled): open to a gallery,
 solid rock at the far end, because the corridor beyond runs on a disagreeing
 axis and `gapAt` walls that edge by design. The renderer draws the doorway and
-an unlit pocket behind it — reported at `floor/307/cell/313,306` as a black
-rectangle. Bug log §14.
+an unlit pocket behind it — reported at `floor/307/cell/313,306`.
 
 **The real cost is not visual.** `apply()` refuses the move as a dead end while
-the renderer's collision walks through it, so the seam and the renderer
+the renderer's collision walks you through it, so the seam and the renderer
 disagree about where you can go — the §17.10 twin-drift class, on a doorway
-7.3% of stairwells have.
+7.3% of stairwells have. An agent's transcript and a human's walk diverge at the
+same opening, and the citation environment's whole premise is that they do not.
 
 **Lever:** in `gapAt`'s stairwell branch, do not open an axis end unless the
 opposite end is open. This lands on the hottest path in the shader
@@ -65,46 +74,46 @@ doorway whose far side is rock.
 **Done when:** no gallery advertises a passage into a stair that cannot be
 crossed, and the seam and renderer agree on every such edge.
 
-**Closing item 1 promoted this to the visible defect, and split it in two.**
-Both views reported as "wall mottling" face a `passage → stairwell` (bearing dot
-0.849 and 0.789 against `describeCell`) — the rings had been painted across a
-stairwell interior, so §13 and this item were always one location. With the
-rings gone the interior shows as it is: nearly black.
+<details><summary>The visual half, closed 6 Aug 2026 — three mechanisms, none of them the first diagnosis</summary>
 
-The stairwells at those two views are **two-ended and crossable**, so that
-darkness is not the one-ended pocket above — it is that *every* stairwell
-doorway is unlit. Lamp attenuation is `1/(1+(d/1.35)²)`, the visible surfaces
-are metres past the opening, and the `ct == 2` spill is
-`vec3(0.055, 0.047, 0.033)` against a shaft's `vec3(0.155, 0.130, 0.092)`, which
-exists because *"without this the well is unreadably black."* Measured out:
-ambient occlusion (`?ablate=occ`, still dark), lost rays (zero misses), and
-`lit == 0` (it is 0.19).
+Closing item 1 removed the rings that had been painted over these openings and
+left a black rectangle behind them, which turned out to be **three** defects
+wearing one coat. None was "a stairwell is dim", which is what it looked like:
 
-**The lighting half is done, and the diagnosis above was wrong.** It was never
-that a stairwell is dim. **Downward-facing stone had no path to light at all** —
-every stairwell lamp sits above the flight so `max(dot(n,L), 0)` gives a soffit
-nothing; the near-vertical stone lift is gated on `horiz > 0.80` and an
-underside's is ~0.01; and `main()` quantises luminance to **six levels**, so
-below `lum ≈ 0.1` everything floors to step 0 and step 0 is `sub * 0.05`. There
-is no dim setting in this renderer: a surface is legible or it is a hole.
+1. **Downward-facing stone had no path to light at all.** Every stairwell lamp
+   sits above the flight, so `max(dot(n,L), 0)` gives a soffit nothing; the
+   near-vertical stone lift is gated `horiz > 0.80` and an underside's is ~0.01;
+   and `main()` quantises luminance to **six levels**, so below `lum ≈ 0.1`
+   everything floors to step 0, and step 0 is `sub * 0.05`. **There is no dim
+   setting in this renderer** — a surface is legible or it is a hole. Fixed with
+   a floor bounce tapered on `(1 - lum)` so it cannot flatten a lit ceiling,
+   plus the stairwell spill raised to the shaft's magnitude with the bias
+   inverted. Doorway interior RGB (1,2,1) → 15–24; frame below luma 6, 21.2% →
+   5.2% and 29.2% → 1.1%. `?ablate=nobounce,dimstair`.
+2. **The remaining patch was a hue difference, not a brightness one.** The wall
+   inside a gap measured luma 18.9 against 21.1 beside it — contrast 1.12 — but
+   `tint = mix(green, warm, lit)` put it at `lit` 0.17 against a wall at 0.90.
+   Dominant colours 16,21,12 against 24,23,15: a green panel in a warm-grey
+   wall. Cold end pulled to `vec3(0.94, 1.00, 0.80)`, R/G gap 0.250 → 0.143.
+   **A palette deviation from V-01 Verdigris Damp, recorded as one.**
+   `?ablate=tintgreen`.
+3. **The lit-knee floor**, which helps dim *near-vertical* stone and could never
+   have reached the soffit — `horiz` there is 0.042 and the lift is gated at
+   0.80. A four-setting sweep moved the patch by 0.02 luma. `?ablate=hardknee`,
+   and the rejected settings as `knee50,kneelow,kneeboth`.
 
-Fixed with a floor bounce on downward-facing stone, tapered on `(1 - lum)` so it
-cannot flatten a lit ceiling, plus the stairwell spill raised to the shaft's
-magnitude and biased toward down-facing surfaces instead of up. Doorway interior
-RGB (1,2,1) → 15–24; frame below luma 6, 21.2% → 5.2% and 29.2% → 1.1%; the
-164×418 black region is gone. `?ablate=nobounce,dimstair` restores it.
+**Rejected on cost, kept on branch `reveal-material`:** tagging the reveal as
+its own material (option A). It works and the tag lands correctly, but costs
+**16–36%** of a frame for a render that is visually indistinguishable at the
+views it was built for. Its findings outlive it — see bug log §14, particularly
+that hoisting the test out of `mapAt` into `shadeHit` made it *dearer*, at the
+call site that runs fifty times less often.
 
-**Still open here, and it is the reason this item has not closed:** a large
-downward-facing stone surface fills the middle of the frame at eye height in
-both reported views. That is consistent with the soffit of an ascending flight
-seen through a doorway and it is **not confirmed** — the stairwell spill barely
-moved those pixels, which suggests the hit is not in a stairwell cell. The fix
-makes the surface legible; it does not establish that the surface belongs there.
-**Identify the geometry before assuming the shading was the whole story.**
+**What actually located it:** the reporter saying that every screenshot had been
+of the same surface. Four sessions of image-differencing never established what
+the camera was pointed at. `?ablate=where` now answers that in one page load.
 
-The topology half — 7.3% of stairwells opening onto rock, and the seam and
-renderer disagreeing there — is unchanged and is still the serious one. Bug log
-§14 carries all three.
+</details>
 
 ### 1c. The shader has almost no link-time headroom left
 
@@ -121,6 +130,24 @@ disable WebGL for the session.
 and fail when the budget is spent. The timer exists; nothing checks it.
 **Done when:** a change that narrows the margin breaks a test instead of a
 session.
+
+### 1d. Bad normals rise with range, cause unknown
+
+**0.72% at 0–3 m against 3.45% at 3–6 m**, measured with `?ablate=nydist` on a
+single view. Real, reproducible, and unexplained.
+
+**The obvious theory is wrong and is already tested.** The march tolerance is
+proportional to range (`0.00018 * t + 0.00012`) while `normalCtx` probes a fixed
+±1.6 mm, so the two cross over at about 8 m — but at 3–6 m the tolerance is
+0.84–1.20 mm and the probe is still the larger of the pair. Scaling the probe to
+track the tolerance (`?ablate=normeps`, rewritten against the shipped tolerance)
+moves 3.45% to **3.35%**. Not the cause.
+
+**Lever:** `?ablate=nydist` bins bad normals by range in one page load. Find a
+view with a long sightline — everything measured so far is under 6 m, so the
+crossover region has never actually been sampled.
+**Done when:** the curve has a named cause, or a longer sightline shows the rise
+is an artefact of what happens to be at 3–6 m in that one view.
 
 ### 2. A 160 ms worst frame, uncharacterised
 
@@ -246,11 +273,13 @@ would prove it agrees. The work is the SDF, not the Library.
 
 ---
 
-*Items 1b, 2 and 4 are live defects, and 1b is now what a walker notices first.
-1c gates 1b and 3: both touch the shading or gap path, and the link budget is
-nearly spent — though 1b's lighting half is a constant and needs none of it. 3 and 7 are debts with a known price. 9 is understood
-and deliberately parked. 5 has started returning numbers, and is the only one
-that tells us something the Library itself does not.*
+*Items 1b, 1d, 2 and 4 are live defects. 1b's visual half is signed off and what
+remains of it is the seam disagreeing with the renderer, which is the one on
+this list that can corrupt a citation rather than merely look wrong. 1c gates 1b
+and 3: both touch the shading or gap path, and the link budget is nearly spent.
+3 and 7 are debts with a known price. 9 is understood and deliberately parked. 5
+has started returning numbers, and is the only one that tells us something the
+Library itself does not.*
 
 *Every defect here has an entry in [`docs/BUG-LOG.md`](docs/BUG-LOG.md) carrying
 what has already been ruled out and with what measurement. Start there, or the

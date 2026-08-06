@@ -964,10 +964,38 @@ Two consequences worth carrying forward. Tightening the tolerance switched
 **ambient occlusion on** for the first time on surfaces where the march used to
 stop early: the probe had been starting outside the surface, `mapAt`
 over-reported, and `occ` clamped to 1. Walls that were uniformly bright now
-carry real occlusion. And the rings had been painted across **stairwell
-interiors** — both reported views face a `passage → stairwell` — so removing
-them reveals §17.13's black doorway underneath. Bug log §13 (closed) and §14
-(open) carry both. *(Roadmap item 1b.)*
+carry real occlusion. And the rings had been painted across the wall standing
+**inside a gap**, so removing them revealed what was underneath. Bug log §13
+(closed) and §14 carry both. *(Roadmap item 1b.)*
+
+**The fourth and fifth mechanisms, and the rule that connects them.** What
+remained after the tolerance was two more defects, and neither was brightness:
+
+- **Downward-facing stone had no path to light at all.** Every stairwell lamp
+  sits above the flight, so `max(dot(n, L), 0.0)` gives a soffit nothing; the
+  near-vertical stone lift above is gated on `horiz > 0.80` and an underside's
+  `horiz` is ~0.01. Fixed with a floor bounce tapered on `(1 - lum)`, plus the
+  stairwell spill raised to the shaft's magnitude with its directional bias
+  inverted.
+- **The remaining patch differed in HUE, not luminance.** Measured contrast
+  between the wall inside a gap and the wall beside it was **1.12** — visually
+  the same brightness — but `tint = mix(vec3(0.82,1.04,0.78), vec3(1.06,0.94,
+  0.78), lit)` tints stone green at low `lit` and warm at high, and the two sat
+  at `lit` 0.17 and 0.90.
+
+**§17.15 — a deviation from V-01.** The cold end of that ramp is now
+`vec3(0.94, 1.00, 0.80)`, which halves the R/G gap between the two surfaces
+(0.250 → 0.143) and moves a bright wall by 1.5%. **Dim stone is therefore less
+green than Verdigris Damp specifies.** Recorded as an intentional palette
+change rather than a shading fix; `?ablate=tintgreen` restores the original.
+
+**The rule underneath all of it, and the one to carry to any future "too dark"
+report:** `main()` quantises luminance to **six levels**
+(`q = floor(lum * 5.0 + 0.5 + dither) / 5.0`, `final = sub * (0.050 + 1.35*q)`).
+Below `lum ≈ 0.1` everything floors to step 0, and step 0 is `sub * 0.05`.
+**There is no dim in this renderer.** Any surface that falls off the bottom of
+the lighting model renders as a black rectangle rather than as shadow, which is
+why three separate defects here all presented as the same hole in a wall.
 
 **On book spines: the distance field over-reported, so the march stepped
 through the surface.** Three places in the shelving took geometry out of the
