@@ -21,7 +21,7 @@ import { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL } from "./babel-glsl.mjs";
 const HTML = new URL("../app/babel-phase1.html", import.meta.url);
 const check = process.argv.includes("--check");
 
-/* The fragment shader lives in core/babel-frag.glsl as PLAIN TEXT and is
+/* The fragment shader lives in app/babel-frag.glsl as PLAIN TEXT and is
    escaped on the way in. That is not tidiness, it is bug #10: the shader used
    to be typed directly into a JS template literal in the prototype, so a
    backtick anywhere in 1,200 lines of GLSL -- including inside a comment --
@@ -33,7 +33,7 @@ const check = process.argv.includes("--check");
    constants (${G.R_CELL.toFixed(3)} and friends) and must keep doing so. */
 const escapeForTemplate = s => s.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
 
-const FRAG = new URL("./babel-frag.glsl", import.meta.url);
+const FRAG = new URL("../app/babel-frag.glsl", import.meta.url);
 
 /* TWO STAGES, because the shader is itself part-generated. babel-glsl.mjs owns
    the lattice's GLSL port, which lives inside babel-frag.glsl; babel-frag.glsl
@@ -76,7 +76,7 @@ function splice(text, where, regions){
 }
 
 const fragBefore = readFileSync(FRAG, "utf8");
-const fragAfter  = splice(fragBefore, "core/babel-frag.glsl", GLSL_REGIONS);
+const fragAfter  = splice(fragBefore, "app/babel-frag.glsl", GLSL_REGIONS);
 if (!check && fragAfter !== fragBefore) writeFileSync(FRAG, fragAfter);
 
 const before = readFileSync(HTML, "utf8");

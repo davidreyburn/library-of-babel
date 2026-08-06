@@ -994,7 +994,17 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     if (ct2 == 2) lightSum += vec3(0.155, 0.130, 0.092) * (0.40 + 0.60 * max(-n.y, 0.0));
     lit = clamp(length(lightSum) * 0.62, 0.0, 1.0) * occ;
 
-    bool floorish = (mat < 0.5 && n.y > 0.62);
+    /* FLOORBOARDS BELONG ON THE FLOOR. This used to be "up-facing stone",
+       with no height test at all, so every up-facing stone surface in the
+       Library got the board pattern -- including ledges inside a doorway.
+       Reported twice as "gap walls with wood texture", and measured: up-facing
+       stone at 0.83 m and 1.20 m above the floor, three metres away, framed by
+       the reveal on both sides. The pattern is keyed on hp.x/hp.z, so it tiles
+       horizontally at any height and reads as a wooden shelf let into the
+       stone. The floor of a storey is fy = 0 exactly; fract() handles negative
+       floors, so this works below ground as well as above.
+       ?ablate=boardsanywhere puts the old rule back. */
+    bool floorish = (mat < 0.5 && n.y > 0.62 && fract(hp.y / H_FLOOR) < 0.02);
     vec3 base;
     if (mat > 1.5 && mat < 2.5) base = C_CRIM;
     else if (mat > 0.5 && mat < 1.5){

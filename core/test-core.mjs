@@ -81,7 +81,7 @@ section("DRIFT -- the prototype's inlined copy vs this module");
   /* THE SHADER IS NOW A FILE, and the prototype's copy is generated from it.
      Same rule as the modules above: byte-identical or the build is stale. */
   {
-    const glsl = readFileSync(new URL("./babel-frag.glsl", import.meta.url), "utf8");
+    const glsl = readFileSync(new URL("../app/babel-frag.glsl", import.meta.url), "utf8");
     const decl = between("/* @frag:begin */", "/* @frag:end */");
     const open = decl === null ? -1 : decl.indexOf("`");
     const close = decl === null ? -1 : decl.lastIndexOf("`");
@@ -109,7 +109,7 @@ section("DRIFT -- the prototype's inlined copy vs this module");
      anyway, one level down: what must hold now is that the ESCAPING works,
      which is what these two assertions check. */
   {
-    const glsl = readFileSync(new URL("./babel-frag.glsl", import.meta.url), "utf8");
+    const glsl = readFileSync(new URL("../app/babel-frag.glsl", import.meta.url), "utf8");
     const decl = between("/* @frag:begin */", "/* @frag:end */") ?? "";
     const bare = (decl.match(/(?<!\\)`/g) ?? []).length;
     ok("the generated FRAG literal has exactly two unescaped backticks",
@@ -992,7 +992,7 @@ section("ROUTING -- a route is a promise the lattice has to keep");
  * that it cannot happen silently. */
 section("BUDGETS -- the shader's shape, which is what link time tracks");
 {
-  const glsl = readFileSync(new URL("./babel-frag.glsl", import.meta.url), "utf8");
+  const glsl = readFileSync(new URL("../app/babel-frag.glsl", import.meta.url), "utf8");
   const code = glsl.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   const sites = re => (code.match(re) ?? []).length;
 
