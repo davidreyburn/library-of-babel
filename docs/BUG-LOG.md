@@ -1145,6 +1145,21 @@ reporter will see first.
 > and one was a hue ramp. Measure the colour, not just the luminance, before
 > concluding that something is unlit.
 >
+> **Option A — the reveal as its own material — SHIPPED, after I wrongly
+> rejected it.** Every measurement below is correct. The judgement built on top
+> of them was not: I compared my own screenshots, called the change visually
+> indistinguishable, and moved it to a branch. The reporter had been looking at
+> the running build while it was live — the server serves the working tree — and
+> it was the version they signed off. Taking it out mid-session read as: *"the
+> gaps were finally looking good and you changed them back."* Restored to main,
+> and the 16–36% is accepted knowingly.
+>
+> **The lesson is not "measure".** I measured, and the numbers were right. It is
+> that a **cost is a measurement and worth is a judgement**, and the judgement
+> was not mine to make from a screenshot when the person who had actually walked
+> the build was one question away. I had written exactly that a message earlier —
+> *"you've walked it and I haven't"* — and then decided anyway.
+>
 > **Option A — the reveal as its own material — was built and rejected on
 > cost.** It lives on branch `reveal-material`, not on main. It tags the wall
 > inside a gap as material 4 and shades it as dressed stone with a luminance

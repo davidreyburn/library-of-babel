@@ -2216,6 +2216,23 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     if (ctype != 1) dv = max(dv, max(-fy, fy - H_ROOM));
   }
 
+  /* THE REVEAL: the wall you see INSIDE a gap. A distinct architectural
+     surface that was being shaded as if it were open wall -- obliquely lit,
+     self-occluded, and so green and dark against its warm bright neighbours a
+     few centimetres away, which is the patch reported four times over.
+
+     Named POSITIONALLY, not by asking which primitive won. The obvious test,
+     "is the doorway box nearer than the room", fails: at a hit point both are
+     ~0 and the march stops a fraction short, so the comparison is decided by
+     noise and the tag spread over 43-98% of a frame. The wall between two
+     cells spans |u| < HALF_D - APO_ROOM = 0.600 m about the gap centre, and
+     inside that slab the only surfaces there are belong to the hole. No SDF
+     comparison, no epsilon, nothing to go wrong at a grazing angle.
+
+     Costs one compare and no geometry: no topology, no collision, nothing
+     core/ believes changes. The test itself lives in shadeHit, NOT here --
+     see the note there; putting it in this function cost 2x the frame. */
+
   float solidAdd = 1e5;
   int   solidMat = 3;
 
@@ -2647,6 +2664,31 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        its mean with distance -- the procedural equivalent of a mip level. */
     float detail = clamp(1.0 - (hit - 2.5) / 7.0, 0.0, 1.0);
     tint0 = mix(0.5, tint0, detail);
+
+    /* THE REVEAL, named here and deliberately NOT in mapAt. The wall between
+       two cells spans |u| < HALF_D - APO_ROOM = 0.600 m about a gap centre,
+       and inside that slab the only surfaces are the ones the hole was cut
+       through -- so the test is positional and needs no SDF comparison. The
+       obvious alternative, asking which primitive the field says is nearest,
+       fails: at a hit point both are ~0 and the march stops a fraction short,
+       so noise decides and the tag spread over 43-98% of a frame.
+
+       The cost is why it is here. The same six-way test inside mapAt measured
+       2x the frame -- 5.8 ms against 3.3 -- because mapAt runs thirty to
+       seventy times a pixel while this runs once. Isolated by ablating the
+       tag's USE and finding the cost unchanged, which put it in the march
+       rather than the shading. That is §17.13's rule, learned again: per-cell
+       work does not belong in the SDF. ?ablate=noreveal removes it. */
+    if (mat < 0.5){
+      vec2 rl = hp.xz - worldOf(c);
+      for (int i = 0; i < 6; i++){
+        if (((d2 >> (i * 2)) & 3) == 0) continue;
+        vec2 rdir = dirW(i);
+        vec2 rrel = rl - rdir * HALF_D;
+        if (abs(dot(rrel, rdir)) < HALF_D - APO_ROOM - 0.01 &&
+            abs(dot(rrel, vec2(-rdir.y, rdir.x))) <= 1.9){ mat = 4.0; break; }
+      }
+    }
     vec3 n = normalCtx(hp, c, d2, ct2, fl);
     /* No bias term here, and that was measured rather than assumed. The old
        loose tolerance left the hit point up to 5.5 mm SHORT of the surface,
@@ -2717,6 +2759,13 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     else if (mat > 6.5) base = vec3(0.86, 0.80, 0.62);          // a lit shade
     else if (mat > 5.5) base = C_HIDE;
     else if (mat > 4.5) base = C_WOOD * 0.62;
+    /* The reveal: dressed stone, and deliberately FLAT. Its albedo does not
+       ride on occ the way open wall does, because the reveal is occluded by
+       construction -- it is the inside of a hole -- and letting occ darken it
+       is half of what made it read as a different material from the wall it
+       is cut into. A door surround being smoother and paler than the rough
+       wall around it is also what a mason would do. */
+    else if (mat > 3.5) base = mix(C_INK, C_STONE, 0.78);
     else if (mat > 2.5) base = mix(C_INK, C_STONE, 0.85);
     else                base = mix(C_INK, C_STONE, 0.55 + 0.45 * occ);
 
@@ -2799,6 +2848,16 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        removes it. */
     if (mat < 0.5 || mat > 2.5)
       lum = min(1.0, lum + 0.40 * smoothstep(0.70, 0.95, -n.y) * (1.0 - lum));
+
+    /* And the reveal gets a FLOOR rather than a lift. Everything above is a
+       lighting model, and the reveal is the one surface where the lighting
+       model has nothing useful to say: it is the inside of a hole, so every
+       lamp is oblique to it and the six-level quantiser has no step between
+       "lit" and "black". Pin it to a step instead. That is what makes it read
+       as a flat plane of dressed stone at any range -- which is the whole
+       point of naming it a material, and is what the reporter asked for when
+       they suggested covering the patch with something that reads flat. */
+    if (mat > 3.5 && mat < 4.5) lum = max(lum, 0.34);
 
     matOut = mat; nOut = n; pOut = hp;
   }
@@ -2954,6 +3013,10 @@ const ABLATIONS = {
              "(0.55 + 0.45 * smoothstep(0.06, 0.28, lit))"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
            "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
+  /* The reveal tag removed, so the wall inside a gap goes back to being shaded
+     as open wall. The A/B for option A. */
+  noreveal: [/abs\(dot\(rrel, vec2\(-rdir\.y, rdir\.x\)\)\) <= 1\.9\)\{ mat = 4\.0; break; \}/,
+             "abs(dot(rrel, vec2(-rdir.y, rdir.x))) <= 1.9){ break; }"],
   /* NORMAL AGAINST DISTANCE. The march tolerance is 0.00018*t + 0.00012 --
      PROPORTIONAL to range -- while normalCtx probes a fixed +/-1.6 mm, so the
      ratio that decides whether a normal is trustworthy gets worse the further

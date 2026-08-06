@@ -102,12 +102,18 @@ wearing one coat. None was "a stairwell is dim", which is what it looked like:
    0.80. A four-setting sweep moved the patch by 0.02 luma. `?ablate=hardknee`,
    and the rejected settings as `knee50,kneelow,kneeboth`.
 
-**Rejected on cost, kept on branch `reveal-material`:** tagging the reveal as
-its own material (option A). It works and the tag lands correctly, but costs
-**16–36%** of a frame for a render that is visually indistinguishable at the
-views it was built for. Its findings outlive it — see bug log §14, particularly
-that hoisting the test out of `mapAt` into `shadeHit` made it *dearer*, at the
-call site that runs fifty times less often.
+**Shipped after all: the reveal as its own material (option A).** I measured it
+at 16-36% of a frame, judged it visually indistinguishable from my own
+screenshots, and moved it to a branch. The reporter had been looking at the
+running build while it was live, and it was the version they signed off:
+*"the gaps were finally looking good and you changed them back."* Restored to
+main. The cost is real and accepted knowingly; the judgement that it made no
+visible difference was mine and it was wrong. `?ablate=noreveal` switches it
+off.
+
+Its findings stand either way, and are in bug log 14 -- particularly that
+hoisting the test out of `mapAt` into `shadeHit` made it *dearer*, at the call
+site that runs fifty times less often.
 
 **What actually located it:** the reporter saying that every screenshot had been
 of the same surface. Four sessions of image-differencing never established what
