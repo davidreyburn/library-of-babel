@@ -1035,6 +1035,70 @@ section("BUDGETS -- the shader's shape, which is what link time tracks");
           : "could not find the step");
 }
 
+/* ---- THE UI KIT ------------------------------------------------------
+ * The standards agreed in app/ui-questionnaire.html, as assertions. Two of
+ * them catch classes of mistake that already happened once:
+ *
+ *   BINDINGS   four keys were handled by the listener and documented
+ *              nowhere -- [ ] Home End -- because help was hand-written
+ *              prose. Help is now rendered from BINDINGS, and this fails
+ *              if a key is handled but not listed.
+ *   TOKENS     the chrome may not use a literal colour. Every one is named
+ *              in :root, so changing the palette is one edit and not a
+ *              search. This is what stopped crimson meaning three things.
+ */
+section("UI KIT -- the standards, as rules");
+{
+  const html = readFileSync(new URL("../app/babel-phase1.html", import.meta.url), "utf8");
+  const script = (html.match(/<script>([\s\S]*)<\/script>/) ?? ["", ""])[1];
+
+  /* every key the listener acts on must appear in BINDINGS */
+  const handled = new Set();
+  for (const m of script.matchAll(/e\.code === "(\w+)"/g)) handled.add(m[1]);
+  for (const m of script.matchAll(/e\.key === "(.)"/g))     handled.add(m[1]);
+  const bindings = (script.match(/const BINDINGS = \[[\s\S]*?\n\];/) ?? [""])[0];
+  /* the names a reader sees, mapped to the codes the listener matches */
+  const spoken = {
+    KeyW:"WASD", KeyA:"WASD", KeyS:"WASD", KeyD:"WASD",
+    ArrowUp:"Arrows", ArrowDown:"Arrows", ArrowLeft:"Arrows", ArrowRight:"Arrows",
+    KeyE:"E", KeyQ:"Q", KeyR:"R", KeyZ:"Z", KeyX:"X", KeyV:"V", KeyG:"G",
+    BracketLeft:"[ ]", BracketRight:"[ ]", Home:"Home End", End:"Home End",
+    Escape:"Esc", Enter:"Esc", F1:"F1", "?":"?",
+    Minus:"\u2212 +", Equal:"\u2212 +", NumpadSubtract:"\u2212 +", NumpadAdd:"\u2212 +"
+  };
+  const undocumented = [...handled].filter(k => {
+    const name = spoken[k];
+    return name === undefined || !bindings.includes('"' + name + '"');
+  });
+  ok("every key the listener handles appears in BINDINGS",
+     undocumented.length === 0,
+     undocumented.length ? "missing: " + undocumented.join(", ")
+                         : handled.size + " keys, all listed");
+
+  /* the chrome's CSS may name colours but not spell them */
+  const css = (html.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1];
+  const root = (css.match(/:root\{[\s\S]*?\}/) ?? [""])[0];
+  const rest = css.replace(root, "");
+  const literals = [...rest.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map(m => m[0]);
+  ok("chrome CSS spells no colour it has not named",
+     literals.length === 0,
+     literals.length ? literals.slice(0, 6).join(" ") + (literals.length > 6 ? " ..." : "")
+                     : root.split("--").length - 1 + " tokens, 0 literals");
+
+  /* crimson is the artefact; attention is its own token */
+  ok("crimson and alert are separate tokens",
+     /--crimson:/.test(root) && /--alert:/.test(root),
+     "an artefact and an alert must not share a colour");
+
+  /* the panels the reader asked to open with, and only those */
+  const open = [...html.matchAll(/<div id="(addr|perf|help)"[^>]*>/g)]
+                 .map(m => [m[1], /\bhidden\b/.test(m[0])]);
+  const shown = open.filter(([, h]) => !h).map(([n]) => n);
+  ok("only the librarian's panel is open on arrival",
+     shown.length === 1 && shown[0] === "addr",
+     "open: " + (shown.join(", ") || "none"));
+}
+
 /* ---- report -------------------------------------------------------- */
 console.log(results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);

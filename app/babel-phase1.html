@@ -1,8 +1,60 @@
 <title>The Library of Babel - Phase 1</title>
 <style>
+  /* ---- TOKENS -------------------------------------------------------- *
+   * Every colour, size and space the chrome uses is named here, and the
+   * chrome may use nothing else. A literal colour anywhere below this block
+   * is a bug -- the whole point of naming them is that a change of mind is
+   * one edit rather than a search.
+   *
+   * CRIMSON IS SPLIT IN TWO, because it was carrying three unrelated jobs:
+   * the one crimson volume in the Library, focus outlines, and a label. An
+   * artefact and an alert are not the same thing and must not share a token.
+   *   --crimson  the artefact. If it is this colour it is THAT BOOK.
+   *   --alert    attention: focus, refusals, the thing you just did.        */
   :root{
-    --pale:#8C9179; --ink:#12140F; --crimson:#9E1B32;
+    /* ink and type */
+    --ink:#12140F;          /* the page behind everything            */
+    --pale:#8C9179;         /* a value: what the Library says        */
+    --dim:#7C8169;          /* prose                                 */
+    --faint:#6E7360;        /* a label: what we call it              */
+    --mute:#5A5F4E;         /* absent, unavailable, "nothing here"   */
+    /* the two reds */
+    --crimson:#9E1B32;      /* the artefact, and only the artefact   */
+    --alert:#C8A55C;        /* attention: focus, refusal, confirmation */
+    /* panel surfaces */
+    --panel-bg:rgba(18,20,15,.90);
+    --panel-line:#2A2E24;
+    /* spacing and rhythm */
+    --pad:.55rem .7rem;     /* inside a panel                        */
+    --gap:.7rem;            /* panel to viewport edge                */
+    --lead:1.55;            /* line height everywhere in chrome      */
+    --track:.05em;          /* letter-spacing everywhere in chrome   */
+    --sz:.68rem;            /* the one chrome type size              */
+    --sz-sm:.62rem;         /* prose and secondary lines             */
+        --line-soft:#34392C;      /* a lighter rule: chip borders, button edges */
+    --field-bg:#1A1D16;       /* inside an input, a select, a button */
+    --title:#A8AD91;          /* the one serif line in the build */
+    --warn:#B58A6A;           /* something is not as it should be, but works */
+    --warn-deep:#8A3320;      /* the same, on paper */
+    --focus:#5E6B45;          /* a control has the keyboard */
+    --focus-lit:#A6B27E;      /* the same, as text */
+    --bright:#D8DCC0;         /* the brightest chrome has: hover, a lit reticule */
+    --wood:#6B4A3C;           /* a shaft, which is the one warm thing in the lattice */
+    --crimson-deep:#7C1428;   /* the artefact, on paper */
+    --spine:#CBD0B2;          /* a spine label */
+    --paper:#E5DDC8;          /* the page */
+    --paper2:#DCD3BC;         /* the page, further from the light */
+    --paper-ink:#26221A;      /* what is printed on it */
+    --paper-dim:#7C7460;      /* secondary, on paper */
+    --paper-faint:#6A6350;    /* an address, on paper */
+    --paper-mute:#9C947E;     /* a placeholder, on paper */
+    --paper-rule:#B4AB92;     /* the sheet's edge */
+    --paper-edge:#BDB49B;     /* a scrollbar, a leaf edge */
+    --paper-edge2:#A79E85;    /* the same, hovered */
+    --paper-ctl:#ADA48B;      /* a control, on paper */
     --mono:"Cascadia Mono",Consolas,"DejaVu Sans Mono","Liberation Mono",monospace;
+    /* the serif survives on the title and nowhere else */
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   }
   html,body{height:100%;}
   body{margin:0;background:var(--ink);color:var(--pale);font-family:var(--mono);overflow:hidden;}
@@ -18,44 +70,62 @@
   canvas.blind{cursor:none;}
 
   .panel{
-    position:fixed;background:rgba(18,20,15,.90);border:1px solid #2A2E24;
-    padding:.55rem .7rem;font-size:.68rem;line-height:1.55;letter-spacing:.05em;
+    position:fixed;background:var(--panel-bg);border:1px solid var(--panel-line);
+    padding:var(--pad);font-size:var(--sz);line-height:var(--lead);letter-spacing:var(--track);
   }
-  #addr{top:.7rem;left:.7rem;min-width:16rem;}
-  #addr .k{color:#6E7360;text-transform:uppercase;}
+  #addr{top:var(--gap);left:var(--gap);min-width:15rem;max-width:19rem;}
+  #addr .k{color:var(--faint);}
   #addr .v{color:var(--pale);font-variant-numeric:tabular-nums;}
   #addr .row{display:flex;justify-content:space-between;gap:1.2rem;}
-  #addr hr{border:0;border-top:1px solid #2A2E24;margin:.4rem 0;}
-  #addr .note{color:#6E7360;font-size:.62rem;letter-spacing:.04em;line-height:1.5;}
+  #addr hr{border:0;border-top:1px solid var(--panel-line);margin:.4rem 0;}
+  #addr .note{color:var(--dim);font-size:var(--sz-sm);letter-spacing:.04em;line-height:1.5;margin-top:.35rem;}
   #addr .cr{color:var(--crimson);}
   #addr .uri{
-    font-size:.56rem;letter-spacing:.02em;color:#8C9179;word-break:break-all;
+    font-size:.56rem;letter-spacing:.02em;color:var(--pale);word-break:break-all;
     user-select:all;cursor:text;line-height:1.45;
   }
   #gaps{display:flex;flex-wrap:wrap;gap:.22rem;margin-top:.15rem;}
   #gaps span{
     font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;
-    border:1px solid #34392C;padding:.02rem .28rem;color:#8C9179;
+    border:1px solid var(--line-soft);padding:.02rem .28rem;color:var(--pale);
   }
-  #gaps .st{border-color:#5E6B45;color:#A6B27E;}
-  #gaps .sh{border-color:#6B4A3C;color:#B58A6A;}
-  #gaps .wl{border-color:#2A2E24;color:#5A5F4E;}
+  #gaps .st{border-color:var(--focus);color:var(--focus-lit);}
+  #gaps .sh{border-color:var(--wood);color:var(--warn);}
+  #gaps .wl{border-color:var(--panel-line);color:var(--mute);}
 
-  #help{bottom:.7rem;left:.7rem;font-size:.65rem;color:#7C8169;max-width:23rem;}
+  #help{bottom:var(--gap);left:var(--gap);font-size:var(--sz-sm);color:var(--dim);max-width:25rem;}
+  #perf .row{display:flex;justify-content:space-between;gap:1.4rem;}
+  #perf .note{margin-top:.3rem;color:var(--mute);}
+  /* A toast says what happened and leaves. It never needs dismissing, which
+     is the whole complaint it answers: V used to print a 100-character URL
+     into the address panel that nothing but a reload would clear. */
+  #toast{
+    position:fixed;left:50%;bottom:var(--gap);transform:translateX(-50%);
+    background:var(--panel-bg);border:1px solid var(--panel-line);
+    padding:var(--pad);font-size:var(--sz);line-height:var(--lead);
+    letter-spacing:var(--track);color:var(--pale);
+    opacity:0;transition:opacity .18s ease;pointer-events:none;z-index:8;
+  }
+  #toast.up{opacity:1;}
+  #toast.alert{color:var(--alert);border-color:var(--alert);}
+  /* focus is attention, not artefact */
   #help b{color:var(--pale);font-weight:400;}
-  #help .t{color:#6E7360;}
+  #help .t{color:var(--dim);}
+  #help .grp{margin:.15rem 0;}
+  #help b{color:var(--pale);font-weight:400;}
+  #help .t{color:var(--faint);}
 
-  #perf{top:.7rem;right:.7rem;font-size:.65rem;color:#6E7360;text-align:right;max-width:11rem;}
+  #perf{top:var(--gap);right:var(--gap);font-size:var(--sz-sm);color:var(--faint);text-align:right;min-width:11rem;}
   #perf #mouse{color:var(--pale);}
-  #perf #mouse.warn{color:#B58A6A;}
-  #perf #ms{color:#6E7360;}
+  #perf #mouse.warn{color:var(--warn);}
+  #perf #ms{color:var(--faint);}
   #perf #ms b{color:var(--pale);font-weight:400;}
-  #perf #ms.hitch b{color:#B58A6A;}
-  #perf #mousenote{display:block;font-size:.6rem;color:#6E7360;letter-spacing:.04em;}
+  #perf #ms.hitch b{color:var(--warn);}
+  #perf #mousenote{display:block;font-size:.6rem;color:var(--faint);letter-spacing:.04em;}
   #perf #mousenote:empty{display:none;}
   #perf select{
-    font-family:var(--mono);font-size:.65rem;background:#1A1D16;color:var(--pale);
-    border:1px solid #2A2E24;padding:.1rem .2rem;margin-top:.3rem;
+    font-family:var(--mono);font-size:.65rem;background:var(--field-bg);color:var(--pale);
+    border:1px solid var(--panel-line);padding:.1rem .2rem;margin-top:.3rem;
   }
 
   /* ---- going somewhere in particular (Z), being taken there (X) ------ *
@@ -63,23 +133,23 @@
      comes out, so a jump is repeatable rather than a one-off. */
   #jump{bottom:.7rem;right:.7rem;min-width:13rem;}
   #jump[hidden], #auto[hidden]{display:none;}
-  #jump .k, #auto .k{color:#6E7360;text-transform:uppercase;font-size:.6rem;letter-spacing:.09em;}
+  #jump .k, #auto .k{color:var(--faint);text-transform:uppercase;font-size:.6rem;letter-spacing:.09em;}
   #jump label{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-top:.3rem;}
   #jump input{
-    font-family:var(--mono);font-size:.65rem;background:#1A1D16;color:var(--pale);
-    border:1px solid #2A2E24;padding:.12rem .3rem;width:6.4rem;
+    font-family:var(--mono);font-size:.65rem;background:var(--field-bg);color:var(--pale);
+    border:1px solid var(--panel-line);padding:.12rem .3rem;width:6.4rem;
   }
-  #jump input:focus{outline:1px solid #5E6B45;}
+  #jump input:focus{outline:1px solid var(--focus);}
   #jump .btns{display:flex;gap:.3rem;margin-top:.45rem;}
   #jump button, #auto button{
-    font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;background:#1A1D16;
-    color:var(--pale);border:1px solid #34392C;padding:.16rem .45rem;cursor:pointer;
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;background:var(--field-bg);
+    color:var(--pale);border:1px solid var(--line-soft);padding:.16rem .45rem;cursor:pointer;
   }
-  #jump button:hover, #auto button:hover{border-color:#5E6B45;color:#D8DCC0;}
-  #jump .warn{display:block;margin-top:.35rem;font-size:.58rem;color:#B58A6A;line-height:1.45;}
+  #jump button:hover, #auto button:hover{border-color:var(--focus);color:var(--bright);}
+  #jump .warn{display:block;margin-top:.35rem;font-size:.58rem;color:var(--warn);line-height:1.45;}
   #jump .warn:empty{display:none;}
   #jump .uri{
-    display:block;margin-top:.3rem;font-size:.55rem;letter-spacing:.02em;color:#6E7360;
+    display:block;margin-top:.3rem;font-size:.55rem;letter-spacing:.02em;color:var(--faint);
     word-break:break-all;user-select:all;cursor:text;line-height:1.4;
   }
   #jump .uri:empty{display:none;}
@@ -90,9 +160,9 @@
     bottom:.7rem;left:50%;transform:translateX(-50%);text-align:center;min-width:15rem;
   }
   #auto .dest{color:var(--pale);font-size:.58rem;word-break:break-all;line-height:1.4;}
-  #auto .left{color:#A6B27E;font-size:.65rem;letter-spacing:.07em;margin-top:.15rem;}
-  #auto .hint{color:#6E7360;font-size:.56rem;letter-spacing:.05em;margin-top:.2rem;}
-  #auto.stopped .left{color:#B58A6A;}
+  #auto .left{color:var(--focus-lit);font-size:.65rem;letter-spacing:.07em;margin-top:.15rem;}
+  #auto .hint{color:var(--faint);font-size:.56rem;letter-spacing:.05em;margin-top:.2rem;}
+  #auto.stopped .left{color:var(--warn);}
 
   /* ---- the reticule ------------------------------------------------- *
      With the cursor hidden this is the only thing telling you what you are
@@ -105,7 +175,7 @@
   }
   #aim.on{opacity:1;}
   #aim i{
-    position:absolute;background:#8C9179;opacity:.55;
+    position:absolute;background:var(--pale);opacity:.55;
     transition:background 120ms linear, opacity 120ms linear, transform 120ms ease-out;
   }
   #aim i:nth-child(1){left:12px;top:0;width:2px;height:7px;}
@@ -113,9 +183,9 @@
   #aim i:nth-child(3){top:12px;left:0;height:2px;width:7px;}
   #aim i:nth-child(4){top:12px;right:0;height:2px;width:7px;}
   /* a volume under the reticule: the ticks close in and brighten */
-  #aim.book i{background:#D8DCC0;opacity:.95;transform:scale(.72);}
+  #aim.book i{background:var(--bright);opacity:.95;transform:scale(.72);}
   /* a slot the Purifiers emptied: still a target, but nothing to take */
-  #aim.gap i{background:#B58A6A;opacity:.7;}
+  #aim.gap i{background:var(--warn);opacity:.7;}
 
   /* The name goes in the address panel, not under the crosshair: a label at
      the centre of the screen sits on top of the very spine it is naming.
@@ -125,15 +195,15 @@
   #addr .aimed .spine{
     display:block;
     font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
-    font-size:.95rem;color:#CBD0B2;letter-spacing:.02em;line-height:1.25;
+    font-size:.95rem;color:var(--spine);letter-spacing:.02em;line-height:1.25;
     word-break:break-all;
   }
   #addr .aimed .slot{
-    display:block;font-size:.58rem;color:#6E7360;letter-spacing:.1em;
+    display:block;font-size:.58rem;color:var(--faint);letter-spacing:.1em;
     text-transform:uppercase;margin-top:.15rem;
   }
-  #addr .aimed .slot em{font-style:normal;color:#B58A6A;}
-  #addr .aimed .none{color:#5A5F4E;font-size:.62rem;}
+  #addr .aimed .slot em{font-style:normal;color:var(--warn);}
+  #addr .aimed .none{color:var(--mute);font-size:.62rem;}
   #addr .aimed .cr{color:var(--crimson);}
   @media (prefers-reduced-motion: reduce){
     #aim i{transition:none;}
@@ -155,7 +225,7 @@
      Deliberately one look, not two: the Library is dark and the page is
      paper, whatever the viewer's theme.                                  */
   #book{
-    --paper:#DCD3BC; --paper-lit:#E5DDC8; --ink:#26221A; --ink-faint:#7C7460;
+    --paper:var(--paper2); --paper-lit:var(--paper); --ink:var(--paper-ink); --ink-faint:var(--paper-dim);
     --rule:rgba(38,34,26,.20);
     position:fixed;inset:0;display:none;place-items:center;z-index:12;
     background:rgba(6,7,5,.88);padding:1rem;
@@ -171,7 +241,7 @@
     /* kept off the text block on purpose: the sticky ruler below has to
        sit on a flat tone to match what scrolls under it */
     background-image:radial-gradient(62% 34% at 10% 0%, var(--paper-lit), transparent 72%);
-    border:1px solid #B4AB92;
+    border:1px solid var(--paper-rule);
     box-shadow:10px 16px 44px rgba(0,0,0,.55);
     padding:1.15rem 1.35rem 1rem;
     max-height:94vh;
@@ -195,17 +265,17 @@
     text-transform:uppercase;line-height:1.5;
   }
   #book .addr{
-    font-size:.8rem;color:#6A6350;word-break:break-all;user-select:all;
+    font-size:.8rem;color:var(--paper-faint);word-break:break-all;user-select:all;
     margin:.55rem 0 .65rem;line-height:1.45;
   }
   /* the default scrollbar is a slab of chrome in the middle of a page */
   #book .leaf::-webkit-scrollbar{width:11px;height:11px;}
   #book .leaf::-webkit-scrollbar-track{background:transparent;}
   #book .leaf::-webkit-scrollbar-thumb{
-    background:#BDB49B;border:3px solid var(--paper);border-radius:6px;
+    background:var(--paper-edge);border:3px solid var(--paper);border-radius:6px;
   }
-  #book .leaf::-webkit-scrollbar-thumb:hover{background:#A79E85;}
-  #book .leaf{scrollbar-color:#BDB49B var(--paper);scrollbar-width:thin;}
+  #book .leaf::-webkit-scrollbar-thumb:hover{background:var(--paper-edge2);}
+  #book .leaf{scrollbar-color:var(--paper-edge) var(--paper);scrollbar-width:thin;}
 
   /* the leaf: ruler, caret and lines share one scroll box and one grid, so
      column 17 of the ruler sits over column 17 of the text */
@@ -227,10 +297,10 @@
     position:sticky;background-color:var(--paper);user-select:none;z-index:1;
   }
   #book .ruler{top:0;color:var(--ink-faint);}
-  #book .caret{top:1.5em;color:var(--crimson);line-height:1;padding-bottom:.15em;}
-  #book .ln.cited .num{color:var(--crimson);}
+  #book .caret{top:1.5em;color:var(--alert);line-height:1;padding-bottom:.15em;}
+  #book .ln.cited .num{color:var(--alert);}
   #book .lines b{
-    font-weight:400;color:#7C1428;background:rgba(158,27,50,.15);
+    font-weight:400;color:var(--crimson-deep);background:rgba(158,27,50,.15);
     box-shadow:0 1px 0 rgba(124,20,40,.45);
   }
 
@@ -240,16 +310,16 @@
   }
   #book input, #book button{
     font-family:var(--mono);font-size:.72rem;color:var(--ink);
-    background:transparent;border:1px solid #ADA48B;padding:.3rem .55rem;
+    background:transparent;border:1px solid var(--paper-ctl);padding:.3rem .55rem;
   }
   #book input{flex:1 1 16rem;min-width:6rem;}
-  #book input::placeholder{color:#9C947E;}
+  #book input::placeholder{color:var(--paper-mute);}
   #book button{cursor:pointer;letter-spacing:.06em;}
   #book button:hover{border-color:var(--ink);background:rgba(38,34,26,.05);}
   #book input:focus-visible, #book button:focus-visible{
-    outline:2px solid var(--crimson);outline-offset:2px;border-color:var(--crimson);
+    outline:2px solid var(--alert);outline-offset:2px;border-color:var(--alert);
   }
-  #book .warn{color:#8A3320;font-size:.72rem;}
+  #book .warn{color:var(--warn-deep);font-size:.72rem;}
 
   #veil{
     position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,12,8,.94);
@@ -258,11 +328,11 @@
   #veil.gone{display:none;}
   #veil h1{
     font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
-    font-weight:400;font-size:clamp(1.4rem,4vw,2.2rem);margin:0 0 .6rem;color:#A8AD91;
+    font-weight:400;font-size:clamp(1.4rem,4vw,2.2rem);margin:0 0 .6rem;color:var(--title);
   }
-  #veil p{font-size:.72rem;color:#7C8169;margin:.2rem 0;letter-spacing:.06em;}
+  #veil p{font-size:.72rem;color:var(--dim);margin:.2rem 0;letter-spacing:.06em;}
   #veil .go{
-    margin-top:1.2rem;border:1px solid #6E7360;padding:.5rem 1.4rem;display:inline-block;
+    margin-top:1.2rem;border:1px solid var(--faint);padding:.5rem 1.4rem;display:inline-block;
     font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--pale);
   }
 </style>
@@ -271,37 +341,35 @@
 
 <div id="aim" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
+<!-- THE LIBRARIAN'S PANEL. Floor, cell, and a sentence about the room: what
+     orients you, and nothing else. It used to carry eleven rows -- shelf and
+     volume counts, a chip list of the ways out, a static note, what you were
+     pointing at, and two URIs. The counts repeat what the sentence says in
+     words; the chips read as jargon ("the readout that says things like Gap
+     and Corridor in small pill containers"); the note never changed. -->
 <div id="addr" class="panel">
   <div class="row"><span class="k">Floor</span><span class="v" id="a-floor">+0</span></div>
   <div class="row"><span class="k">Cell</span><span class="v" id="a-cell">0, 0</span></div>
-  <hr>
-  <div class="row"><span class="k">Shelved</span><span class="v" id="a-shelf">&mdash;</span></div>
-  <div class="row"><span class="k">Volumes here</span><span class="v" id="a-vol">&mdash;</span></div>
-  <div class="k" style="margin-top:.35rem">Through the gaps</div>
-  <div id="gaps"></div>
-  <hr>
-  <div class="note" id="a-note">Every floor is a different network. Shafts and stairwells run through all of them.</div>
-  <div class="k" style="margin-top:.4rem">Pointing at</div>
-  <div class="aimed" id="a-aim"><span class="none">nothing shelved</span></div>
-  <div class="k" style="margin-top:.4rem">You are here</div>
-  <div class="uri" id="a-uri" title="Click to select, then copy. Open the page with ?at=&lt;address&gt; to stand anywhere -- this is how an agent's coordinates and yours are the same coordinates."></div>
-  <div class="k" style="margin-top:.4rem" id="a-viewk" hidden>This exact view <span id="a-viewnote" class="cr"></span></div>
-  <div class="uri" id="a-view" hidden title="x, y, z, yaw, pitch -- metres and radians, at full precision so the camera is restored exactly. It rides in the page's own query string rather than in the babel:// address, because every part of an address is checkable (a wall that is a doorway is refused) and where you happen to be looking is not. Paste this into a bug report and the screenshot becomes reproducible."></div>
+  <div class="note" id="a-note"></div>
 </div>
 
-<div id="perf" class="panel">
+<!-- THE ENGINEER'S PANEL. Hidden until F1. Everything here is an instrument;
+     nothing here is about the Library. -->
+<div id="perf" class="panel" hidden>
   <div><span id="fps">--</span> fps</div>
-  <div id="msrow" title="Mean frame time and the worst single frame in the last half second. A high frame rate with a much worse peak is a stutter, not a slow renderer -- the two feel completely different and the mean hides it."><span id="ms">--</span></div>
-  <div><span id="res">--</span></div>
-  <div id="mouserow" title="True mouse capture needs the Pointer Lock API. The artifact frame is sandboxed as allow-scripts allow-same-origin allow-forms, with no allow-pointer-lock, so it can never be granted there. Serve this file from a local server and open it in a normal tab to get capture.">mouse <span id="mouse">--</span><span id="mousenote"></span></div>
-  <select id="scale">
+  <div id="msrow"><span id="ms">--</span></div>
+  <div class="row"><span class="k">Scale</span><span class="v" id="res">--</span></div>
+  <div class="row"><span class="k">Grain</span><span class="v" id="grainv">--</span></div>
+  <div id="mouserow">Mouse <span id="mouse">--</span><span id="mousenote"></span></div>
+  <div class="note" style="margin-top:.3rem">&minus; / + scale &middot; G grain &middot; F1 close</div>
+  <select id="scale" hidden>
     <option value="0" selected>auto</option>
     <option value="1">1:1</option>
     <option value="2">1:2</option>
     <option value="3">1:3</option>
     <option value="4">1:4</option>
   </select>
-  <select id="grain">
+  <select id="grain" hidden>
     <option value="0">ordered</option>
     <option value="1" selected>noise</option>
     <option value="2">fine</option>
@@ -309,16 +377,13 @@
   </select>
 </div>
 
-<div id="help" class="panel">
-  <b>WASD</b> <span class="t">walk</span> &middot; <b>move the mouse</b> <span class="t">to look</span> &middot; <b>arrows</b> <span class="t">too</span>
-  &middot; <b>E</b> <span class="t">read the volume you face</span>
-  &middot; <b>Q</b> <span class="t">let the mouse go</span> &middot; <b>R</b> <span class="t">if stuck</span><br>
-  <b>Z</b> <span class="t">go to a floor and cell</span> &middot;
-  <b>X</b> <span class="t">be walked to a shelf and handed a book &mdash; X again to stop</span> &middot;
-  <b>V</b> <span class="t">copy this exact view, for a bug report</span><br>
-  <span class="t">Gaps are passages or halls. Through them: another gallery, a stairwell
-  with flights up and down, or a shaft you can look into but not cross.</span>
-</div>
+<!-- Filled from BINDINGS at startup, never by hand. Four keys used to be bound
+     and documented nowhere; a list that writes itself cannot drift again. -->
+<div id="help" class="panel" hidden></div>
+
+<!-- Events say so and then get out of the way. Pressing V used to print a
+     100-character URL into the address panel with no way to dismiss it. -->
+<div id="toast" aria-live="polite"></div>
 
 <div id="jump" class="panel" hidden>
   <div class="k">Go to</div>
@@ -3566,17 +3631,15 @@ function viewURL(){
   u.searchParams.set("view", viewParam());
   return u.toString();
 }
-/* Shown as well as copied: clipboard access can be refused, and a URL you
-   cannot select is a URL you cannot report. */
+/* A refusal names the nearest thing that would work, so the clipboard being
+   denied is not a dead end: the URL goes in the address bar instead, where
+   it can be copied by hand. */
 function copyView(){
   const url = viewURL();
-  el.viewk.hidden = false; el.view.hidden = false;
-  el.view.textContent = url;
-  const note = s => { el.viewnote.textContent = s; };
-  note("");
-  if (navigator.clipboard) navigator.clipboard.writeText(url)
-    .then(() => note("· copied"), () => note("· select it and copy"));
-  else note("· select it and copy");
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(
+    () => say("Location copied to clipboard."),
+    () => { history.replaceState(null, "", url); say("Clipboard refused. It is in the address bar \u2014 copy it from there.", "alert"); });
+  else { history.replaceState(null, "", url); say("It is in the address bar \u2014 copy it from there.", "alert"); }
 }
 
 /* Called at the foot of this script, not here: openBook() reaches into the
@@ -3602,6 +3665,10 @@ function arriveFromURL(){
     else { entered = true; veil.classList.add("gone"); openBook(a, a.page ?? 0); }
   } catch (e){ console.warn("could not open " + read + ": " + e.message); }
 }
+
+/* R returns HERE: wherever ?at= and ?view= left us, not the world origin.
+   Marked after arrival so a shared link is its own home. */
+function markStartAfterArrival(){ markStart(); }
 
 /* ---- reading a volume ----------------------------------------------- *
  * The corpus has been computable all along; this is where it becomes
@@ -3698,13 +3765,17 @@ function volumeInFront(){
  * volume reads, and hands the answer to the shader as well as to the HUD,
  * so the spine that lights up is the spine that opens. */
 const aimEl = document.getElementById("aim");
-const aimedEl = document.getElementById("a-aim");
+
 let aimKey = "-", lastPose = NaN;
 const isCrimson = t => t.q === CRIM.q && t.r === CRIM.r && t.floor === CRIM.floor &&
                        t.wall === CRIM.wall && t.shelf === CRIM.shelf && t.slot === CRIM.slot;
+/* The reticule itself carries this now. A permanent row saying "nothing
+   shelved" was a label for the absence of a thing, which is the kind of
+   row the panel was cut down to remove. */
+const plain = s => s.replace(/&middot;/g, "\u00b7").replace(/<[^>]+>/g, "");
 function noTarget(msg){
   aimEl.classList.remove("book", "gap");
-  aimedEl.innerHTML = '<span class="none">' + (msg || "nothing shelved") + "</span>";
+  aimEl.title = msg || "nothing shelved";
   gl.uniform3i(U.uTgtSlot, -1, -1, -1);
 }
 function aim(){
@@ -3724,15 +3795,13 @@ function aim(){
                 " &middot; slot " + t.slot;
   if (t.empty){
     aimEl.classList.remove("book"); aimEl.classList.add("gap");
-    aimedEl.innerHTML = '<span class="slot"><em>empty slot</em> &middot; ' + where + "</span>";
+    aimEl.title = "An empty slot \u2014 " + plain(where) + ".";
     gl.uniform3i(U.uTgtSlot, -1, -1, -1);
     return;
   }
   aimEl.classList.remove("gap"); aimEl.classList.add("book");
-  aimedEl.innerHTML =
-    '<span class="spine' + (isCrimson(t) ? " cr" : "") + '">' + spineLabel(t.address) + "</span>" +
-    '<span class="slot">' + where +
-    (isCrimson(t) ? ' &middot; <em>appears once</em>' : "") + "</span>";
+  aimEl.title = spineLabel(t.address) + " \u2014 " + plain(where) +
+                (isCrimson(t) ? ". It appears exactly once." : ".");
   gl.uniform3i(U.uTgtCell, t.q, t.r, t.floor);
   gl.uniform3i(U.uTgtSlot, t.wall, t.shelf, t.slot);
 }
@@ -4282,7 +4351,20 @@ addEventListener("keydown", e => {
   if (e.code === "KeyE" && entered) pullVolume();
   if (e.code === "KeyQ")       release();
   if (e.code === "KeyV")       copyView();
-  if (e.code === "KeyR"){      stopAuto(); placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z)); }
+  if (e.code === "KeyR"){
+    stopAuto();
+    if (START){ st.x = START.x; st.y = START.y; st.z = START.z;
+                st.yaw = START.yaw; st.pitch = START.pitch;
+                say("Back where you started."); }
+    else { placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z)); }
+  }
+  /* The instruments, the help, and the two settings that used to be
+     unlabelled dropdowns nobody could tell apart. */
+  if (e.code === "F1"){ e.preventDefault(); togglePanel(el.perf, "Instruments"); }
+  if (e.key === "?"){   e.preventDefault(); togglePanel(el.help, "Keys"); }
+  if (e.code === "KeyG"){ cycleGrain(); }
+  if (e.code === "Minus" || e.code === "NumpadSubtract") nudgeScale(+1);
+  if (e.code === "Equal" || e.code === "NumpadAdd")      nudgeScale(-1);
   /* preventDefault, or the z that opened the panel is typed into the field
      it just focused and "floor z" is the first thing you see */
   if (e.code === "KeyZ"){      e.preventDefault(); toggleJump(); }
@@ -4310,14 +4392,93 @@ resize();
 /* ---- HUD ------------------------------------------------------------ */
 const el = {
   floor: document.getElementById("a-floor"), cell: document.getElementById("a-cell"),
-  shelf: document.getElementById("a-shelf"), vol:  document.getElementById("a-vol"),
-  gaps:  document.getElementById("gaps"),    note: document.getElementById("a-note"),
-  uri:   document.getElementById("a-uri"),
-  viewk: document.getElementById("a-viewk"), view: document.getElementById("a-view"),
-  viewnote: document.getElementById("a-viewnote"),
+  note:  document.getElementById("a-note"),
   fps:   document.getElementById("fps"),     res:  document.getElementById("res"),
-  ms:    document.getElementById("ms")
+  ms:    document.getElementById("ms"),      grainv: document.getElementById("grainv"),
+  perf:  document.getElementById("perf"),    help: document.getElementById("help"),
+  toast: document.getElementById("toast")
 };
+
+/* ---- events that speak and then leave --------------------------------
+ * The complaint this answers, verbatim: "V produces a long string that
+ * cant be dismissed unless you refresh." It printed a 100-character URL
+ * into the address panel, where it stayed until a reload. Say what
+ * happened, in one line, and go. aria-live announces it to a screen
+ * reader without moving focus. */
+/* Where the page opened. R returns here; without it R had nothing to mean. */
+let START = null;
+function markStart(){ START = { x: st.x, y: st.y, z: st.z, yaw: st.yaw, pitch: st.pitch }; }
+
+function togglePanel(p, name){
+  p.hidden = !p.hidden;
+  say(name + (p.hidden ? " hidden." : " shown."));
+}
+/* Scale steps between 1:1 and 1:4 and switches auto off, because a reader
+   who reaches for a control has stopped wanting to be managed. */
+function nudgeScale(d){
+  st.autoScale = false;
+  st.div = Math.max(1, Math.min(4, st.div + d));
+  resize(); hudPerf();
+  say("Render scale 1:" + st.div + ".");
+}
+const GRAINS = ["ordered", "noise", "fine", "smooth"];
+function cycleGrain(){
+  st.grain = (st.grain + 1) % 4;
+  hudPerf();
+  say("Grain " + GRAINS[st.grain] + ".");
+}
+function hudPerf(){
+  if (el.res)    el.res.textContent = (st.autoScale ? "auto " : "") + "1:" + st.div;
+  if (el.grainv) el.grainv.textContent = GRAINS[st.grain];
+}
+
+let toastT = 0;
+function say(msg, kind){
+  clearTimeout(toastT);
+  el.toast.textContent = msg;
+  el.toast.className = "up" + (kind ? " " + kind : "");
+  toastT = setTimeout(() => { el.toast.className = ""; }, 2600);
+}
+/* ---- BINDINGS, the only list of them --------------------------------
+ * Help is rendered from this and nowhere else. Four keys used to be bound
+ * and documented nowhere -- [ ] Home End -- because the help text was
+ * hand-written prose that nobody updated when a key was added. A list that
+ * writes its own documentation cannot drift, and core/test-core.mjs fails
+ * if a key handled in the listener is missing from here.
+ *
+ * Sentence case throughout, and each line names an ACTION rather than a
+ * symptom: R was documented as "if stuck", which tells you when to press
+ * it and never what it does. */
+const BINDINGS = [
+  { grp: "Walking", keys: [
+    ["WASD", "Walk"],
+    ["Mouse", "Look around"],
+    ["Arrows", "Look around, without the mouse"],
+    ["R", "Return to where you started"],
+    ["Q", "Let the mouse go"] ] },
+  { grp: "The books", keys: [
+    ["E", "Read the volume you are facing"],
+    ["[ ]", "Turn a page back or forward"],
+    ["Home End", "First page, last page"],
+    ["Esc", "Close the book"] ] },
+  { grp: "Going somewhere", keys: [
+    ["Z", "Go to a floor and cell"],
+    ["X", "Be walked to a shelf and handed a book. X again to stop"],
+    ["V", "Copy this exact view, for a bug report"] ] },
+  { grp: "The page itself", keys: [
+    ["?", "Show or hide this list"],
+    ["F1", "Show or hide the instruments"],
+    ["− +", "Coarser or sharper render scale"],
+    ["G", "Cycle the grain"] ] }
+];
+function renderHelp(){
+  el.help.innerHTML = BINDINGS.map(g =>
+    '<div class="grp"><span class="k">' + g.grp + '</span>&ensp;' +
+    g.keys.map(([k, d]) => '<b>' + k + '</b> <span class="t">' + d + '</span>').join(' &middot; ') +
+    '</div>').join("");
+}
+renderHelp();
+
 let lastKey = "";
 function hud(){
   const [q, r] = cellOf(st.x, st.z);
@@ -4343,38 +4504,41 @@ function hud(){
   }
   el.floor.textContent = (fl >= 0 ? "+" : "") + fl;
   el.cell.textContent  = q + ", " + r;
-  /* A corridor says what it holds rather than what it lacks -- an alcove is
-     the only thing in the Library you meet by standing still. */
-  const held = t === TYPE.CORRIDOR ? alcovesIn(q, r, fl).map(a => a.holds) : [];
-  el.shelf.textContent = t === TYPE.GALLERY ? shelved + " walls"
-                       : t === TYPE.STAIRWELL ? "stairwell"
-                       : t === TYPE.CORRIDOR ? (held.length ? held.join(", ") : "corridor")
-                       : t === TYPE.STUDY ? (studyVisible(q,r,fl) & FURN_MIRROR ? "mirror" : "none")
-                       : "shaft";
-  el.vol.textContent   = t === TYPE.GALLERY ? (shelved * 5 * 35).toLocaleString() : "0";
-  el.gaps.innerHTML    = chips.length ? chips.join("") : '<span class="wl">none</span>';
-  el.uri.textContent   = cellAddress(q, r, fl);
 
+  /* ---- the room, as a sentence ---------------------------------------
+   * The panel used to carry the same facts three times: a count of shelved
+   * walls, a count of volumes, a chip per way out, and then a sentence. The
+   * counts and the chips are gone, so this line is now the whole of what the
+   * Library says about where you are, and it says it the way you would say
+   * it out loud: "A reading room with an end table.", not "No shelves at
+   * all: an end table." -- name what is there, not what is missing.
+   *
+   * Sentence case, and no crimson. Crimson means the artefact now, and a
+   * reading room is not an artefact; the one crimson volume still gets it. */
+  const list = xs => xs.length === 1 ? xs[0]
+                   : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
   const here = q === CRIM.q && r === CRIM.r && fl === CRIM.floor;
-  el.note.innerHTML =
-      t === TYPE.STUDY     ? (() => {
-        /* Three kits in sixteen are the mirror and nothing else, and for
-           those the old line read "No shelves at all: ." -- which is not a
-           sentence. Each case gets its own. */
-        const kit = studyVisible(q, r, fl), head = '<span class="cr">A reading room.</span> ';
-        const kept = ["a recliner","an end table","a lamp","a desk and chair"]
-                       .filter((_, i) => kit & (1 << i));
-        if (kit === FURN_MIRROR)
-          return head + "No shelves, and no furniture. A mirror on the wall, and nothing else.";
-        if (kit & FURN_MIRROR) kept.push("a mirror");
-        return head + (kept.length ? "No shelves at all: " + kept.join(", ") + "."
-                                   : "No shelves, and nothing in it at all.");
-      })()
-    : t === TYPE.SHAFT     ? "A shaft. It runs through every floor and there is no way across."
-    : t === TYPE.STAIRWELL ? "A stair. One flight straight across, one storey up."
-    : here ? '<span class="cr">The crimson volume is in this gallery.</span><br>Wall 1, shelf 2, slot 17. It appears exactly once.'
-    : shelved === 4 ? "Four shelved walls, 700 volumes, as the text requires."
-    : shelved + " shelved walls: this gallery departs from 'all sides except two.'";
+  let s;
+  if (t === TYPE.STUDY){
+    const kit = studyVisible(q, r, fl);
+    const kept = ["a recliner", "an end table", "a lamp", "a desk and chair"]
+                   .filter((_, i) => kit & (1 << i));
+    if (kit & FURN_MIRROR) kept.push("a mirror");
+    s = kept.length ? "A reading room with " + list(kept) + "."
+                    : "A reading room, empty.";
+  }
+  else if (t === TYPE.SHAFT)     s = "A shaft. It runs through every floor and there is no way across.";
+  else if (t === TYPE.STAIRWELL) s = "A stair, one flight across and one storey up.";
+  else if (t === TYPE.CORRIDOR){
+    const held = alcovesIn(q, r, fl).map(a => a.holds);
+    s = held.length ? "A corridor with " + list(held) + "." : "A corridor.";
+  }
+  else s = "A gallery with " + shelved + (shelved === 1 ? " shelved wall" : " shelved walls") +
+           ", " + (shelved * 5 * 35).toLocaleString() + " volumes.";
+  /* The one exception to no-crimson: the artefact really is here. */
+  el.note.innerHTML = here
+    ? s + '<br><span class="cr">The crimson volume is in this gallery.</span> Wall 1, shelf 2, slot 17.'
+    : s;
 }
 
 /* ---- loop ------------------------------------------------------------ */
@@ -4404,7 +4568,7 @@ function frame(now){
     if (st.emaMs > 28 && st.div < 4){ st.div++; resize(); }
     else if (st.emaMs < 11 && st.div > 1){ st.div--; resize(); }
   }
-  el.res.textContent = "1:" + st.div;
+  hudPerf();
 
   /* Edge turning, for when the mouse is not captured: the pointer stops at the
      window edge and no more movement events arrive, so hold it there and the
@@ -4461,5 +4625,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 arriveFromURL();
+markStartAfterArrival();
+hudPerf();
 requestAnimationFrame(frame);
 </script>
