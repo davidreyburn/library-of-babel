@@ -2720,7 +2720,19 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     else if (mat > 2.5) base = mix(C_INK, C_STONE, 0.85);
     else                base = mix(C_INK, C_STONE, 0.55 + 0.45 * occ);
 
-    vec3 tint = mix(vec3(0.82, 1.04, 0.78), vec3(1.06, 0.94, 0.78), lit);
+    /* The cold end pulled toward neutral, and this is what actually closed the
+       patch of wall standing in a gap. The two surfaces were never far apart
+       in BRIGHTNESS -- measured luma 18.9 against 21.1, a contrast of 1.12 --
+       they differed in HUE: this ramp tints stone green when lit is low and
+       warm when it is high, the reveal sits at lit 0.17 and the wall beside it
+       at 0.90, so a green panel sat inside a warm-grey wall. Dominant colours
+       16,21,12 against 24,23,15.
+
+       0.82 -> 0.94 on red halves the R/G gap between them, 0.250 -> 0.143,
+       and moves a bright wall by 1.5%. It is a palette change and should be
+       read as one: dim stone is less green than V-01 Verdigris Damp specified.
+       ?ablate=tintgreen restores the original cold end. */
+    vec3 tint = mix(vec3(0.94, 1.00, 0.80), vec3(1.06, 0.94, 0.78), lit);
     sub = base * tint;
 
     vec3 shaded = sub * (0.045 + lightSum * 0.55);
@@ -2918,6 +2930,28 @@ const ABLATIONS = {
      in an opening read black while the wall beside it read bright. */
   hardknee: [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
              "smoothstep(0.18, 0.38, lit)"],
+  /* The knee sweep. The reveal inside a gap measures lit ~0.135 and the wall
+     around it 1.0, so what matters is how much lift the gate gives at 0.135
+     and how little it changes at 1.0 -- raise the floor, lower the knee, or
+     both. Kept after the decision so the rejected settings cost one page
+     load to re-see rather than an edit and a rebuild. */
+  knee50:   [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
+             "(0.50 + 0.50 * smoothstep(0.18, 0.38, lit))"],
+  /* The tint ramp, which is what actually separates the patch from the wall
+     around it. It lerps stone from a GREEN cold end to a WARM end on lit, and
+     the reveal sits at lit 0.17 while the wall beside it sits at 0.90 -- so
+     the two read as different colours, not merely different brightnesses
+     (measured dominant colours: 16,21,12 against 24,23,15). Two ways to close
+     that: pull the cold end toward neutral, or compress the ramp so nothing
+     reaches its green extreme. */
+  tintgreen: [/vec3 tint = mix\(vec3\(0\.94, 1\.00, 0\.80\), vec3\(1\.06, 0\.94, 0\.78\), lit\);/,
+              "vec3 tint = mix(vec3(0.82, 1.04, 0.78), vec3(1.06, 0.94, 0.78), lit);"],
+  tintcomp:  [/vec3 tint = mix\(vec3\(0\.94, 1\.00, 0\.80\), vec3\(1\.06, 0\.94, 0\.78\), lit\);/,
+              "vec3 tint = mix(vec3(0.82, 1.04, 0.78), vec3(1.06, 0.94, 0.78), 0.40 + 0.60 * lit);"],
+  kneelow:  [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
+             "(0.35 + 0.65 * smoothstep(0.08, 0.30, lit))"],
+  kneeboth: [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
+             "(0.55 + 0.45 * smoothstep(0.06, 0.28, lit))"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
            "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
   /* WHERE AM I LOOKING. An instrument, not a suspect, and the one that was

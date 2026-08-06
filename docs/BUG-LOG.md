@@ -1113,6 +1113,38 @@ reporter will see first.
 > below luma 6 **5.15% → 3.57%**, and the largest sub-luma-12 region narrows from
 > 164 px wide to 56.
 >
+> **The patch was a HUE difference, not a brightness one, and the knee could
+> never have reached it.** Two corrections to the entry above, both measured.
+>
+> First, the lit-knee floor cannot touch this surface at all. The reveal is a
+> **soffit** -- the head of the opening, n.y -0.958 -- so horiz = 1 - |n.y| is
+> **0.042**, and the lift is gated smoothstep(0.80, 0.92, horiz), which is zero.
+> A sweep of four knee settings moved the patch by 0.02 luma. The knee floor is
+> still right for dim NEAR-VERTICAL stone, and that is all it does; it was not
+> what lifted this patch out of black. The floor bounce was.
+>
+> Second, and the actual answer: the reveal and the wall were never far apart in
+> brightness. Measured luma **18.9 against 21.1 -- a contrast of 1.12**. What
+> separated them was colour.
+> `tint = mix(vec3(0.82,1.04,0.78), vec3(1.06,0.94,0.78), lit)` tints stone
+> GREEN where `lit` is low and WARM where it is high; the reveal sits at `lit`
+> 0.17 and the wall beside it at 0.90. Dominant colours
+> **16,21,12 against 24,23,15** — a green panel inside a warm-grey wall, which
+> is exactly what a "patch" looks like when the levels already match.
+>
+> Pulling the cold end to `vec3(0.94, 1.00, 0.80)` halves the R/G gap, **0.250 →
+> 0.143**, and moves a bright wall by 1.5%. `?ablate=tintgreen` restores it.
+>
+> **This is a palette change and is recorded as one:** dim stone is now less
+> green than V-01 Verdigris Damp specifies. It is the reporter's call to keep
+> or revert, and it is one constant either way.
+>
+> **The generalisable part.** Three sessions of this hunt assumed a region that
+> reads as a patch must be a region that is DARKER. Two of the three mechanisms
+> found here were not brightness at all: one was a normal error drawing rings,
+> and one was a hue ramp. Measure the colour, not just the luminance, before
+> concluding that something is unlit.
+>
 > **Still visible, and honestly so.** The patch is lighter and no longer
 > hard-edged; it has not gone. The remaining headroom is in the two knee
 > constants and in `occ` ~0.32 over that surface, and both are look decisions
