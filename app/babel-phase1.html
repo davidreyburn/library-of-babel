@@ -2954,6 +2954,36 @@ const ABLATIONS = {
              "(0.55 + 0.45 * smoothstep(0.06, 0.28, lit))"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
            "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
+  /* NORMAL AGAINST DISTANCE. The march tolerance is 0.00018*t + 0.00012 --
+     PROPORTIONAL to range -- while normalCtx probes a fixed +/-1.6 mm, so the
+     ratio that decides whether a normal is trustworthy gets worse the further
+     you look: 0.55 mm at 2.4 m, 1.6 mm at about 8 m, and past that the
+     mottling mechanism is back. This packs n.y, range, material and height
+     together so "does the defect return with distance" is a curve rather than
+     an impression. R n.y biased, G range over 16 m, B material over 16,
+     A fract(y / H_FLOOR).
+
+     MEASURED, and the tolerance story did NOT hold: bad normals do rise with
+     range -- 0.72% at 0-3 m against 3.45% at 3-6 m -- but at 3-6 m the
+     tolerance is 0.84-1.20 mm and the probe is still the larger of the two,
+     so the crossover is not what is happening there. Scaling the probe
+     (?ablate=normeps) moves 3.45% to 3.35%. The range dependence is real and
+     its cause is still open; do not assume it is the march.
+
+     The height channel settles the other half: floorish -- the rule that
+     paints stone with floorboards -- is mat 0 with n.y > 0.62, and across
+     four views 100% of the pixels it catches sit at fract(y/H_FLOOR) = 0.000.
+     No stone above floor level renders as wood. Wood seen through a doorway
+     is the floor, not a mis-materialled sill. */
+  nydist: [
+    [/float gTgt;/, "float gTgt;\nvec4 gDbg = vec4(0.0);"],
+    [/(    lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;)/,
+     "$1\n    gDbg = vec4(n.y * 0.5 + 0.5, clamp(hit / 16.0, 0.0, 1.0),\n" +
+     "                  mat / 16.0, fract(hp.y / H_FLOOR));"],
+    [/(if \(hit < 0\.0\)\{ sub = C_INK; lum = \(b == 0\) \? 0\.02 : 0\.015;) (break; \})/,
+     "$1 gDbg = vec4(0.0, 1.0, 1.0, 0.0); $2"],
+    [/  outColor = vec4\(final, 1\.0\);/, "  outColor = gDbg;"]
+  ],
   /* WHERE AM I LOOKING. An instrument, not a suspect, and the one that was
      missing every time this hunt argued about what a dark region was: it
      reports the geometry rather than the shading. R the distance to the hit
@@ -3001,8 +3031,23 @@ const ABLATIONS = {
      the step count that reached the tolerance is an integer, which is why
      the error comes out in rings. Scale the probe with the same tolerance
      the march used and the two are commensurate again. */
+  /* Rewritten against the SHIPPED tolerance. The original scaled by
+     0.0018*d + 0.0012 and was measured as a regression -- correctly, but that
+     was ten times the tolerance the march now uses, so it was testing a probe
+     an order of magnitude too big. What matters is the RATIO of probe to
+     positional error, and because the tolerance is proportional to range and
+     the probe is fixed, that ratio decays with distance: fine at 2.4 m,
+     one-to-one at about 8 m, and past that the rings come back. Grow the
+     probe only where it has to grow, and never below the 1.6 mm that near
+     surfaces are already clean at -- a level of detail for the normal.
+
+     REJECTED on measurement, twice now for different reasons. Bad normals at
+     3-6 m: 3.45% shipped, 3.35% with this. The reasoning was sound and the
+     premise was wrong -- the crossover it corrects for sits at about 8 m, and
+     the surfaces that actually degrade are nearer than that. Kept because the
+     schedule is right if the tolerance is ever loosened again. */
   normeps: [/vec2 e = vec2\(1\.0, -1\.0\) \* 0\.0016;/,
-            "vec2 e = vec2(1.0, -1.0) * (0.0016 + 1.20 * (0.0018 * distance(p, uCam) + 0.0012));"],
+            "vec2 e = vec2(1.0, -1.0) * max(0.0016, 2.5 * (0.00018 * distance(p, uCam) + 0.00012));"],
 
   /* The same mismatch attacked at the other end, and for one add. The march
      stops when d is under tolerance and returns t -- leaving the hit point
