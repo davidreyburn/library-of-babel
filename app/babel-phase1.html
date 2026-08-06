@@ -2678,8 +2678,17 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        seventy times a pixel while this runs once. Isolated by ablating the
        tag's USE and finding the cost unchanged, which put it in the march
        rather than the shading. That is §17.13's rule, learned again: per-cell
-       work does not belong in the SDF. ?ablate=noreveal removes it. */
-    if (mat < 0.5){
+       work does not belong in the SDF. ?ablate=noreveal removes it.
+
+       It runs AFTER the normal because it has to exclude the floor. The
+       threshold under a doorway is boards like the rest of the floor, and
+       floorish -- the rule that paints them -- requires material 0, so
+       tagging the whole throat turned the sill to stone. Reported the moment
+       it shipped: "the only thing that doesn't read right is that the floors
+       are no longer wood in the gap." The same n.y > 0.62 test floorish uses,
+       so the two can never disagree about what counts as floor. */
+    vec3 n = normalCtx(hp, c, d2, ct2, fl);
+    if (mat < 0.5 && n.y <= 0.62){
       vec2 rl = hp.xz - worldOf(c);
       for (int i = 0; i < 6; i++){
         if (((d2 >> (i * 2)) & 3) == 0) continue;
@@ -2689,7 +2698,6 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
             abs(dot(rrel, vec2(-rdir.y, rdir.x))) <= 1.9){ mat = 4.0; break; }
       }
     }
-    vec3 n = normalCtx(hp, c, d2, ct2, fl);
     /* No bias term here, and that was measured rather than assumed. The old
        loose tolerance left the hit point up to 5.5 mm SHORT of the surface,
        so every ambient probe started outside it, mapAt over-reported, and
