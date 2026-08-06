@@ -1077,15 +1077,46 @@ reporter will see first.
 > Gallery ceilings, which were also black bands, now read as dim stone. Walls,
 > shelves, floor and the lit reference pixels are unchanged.
 >
-> **What is NOT established, and should not be assumed.** A large downward-facing
-> stone surface fills the middle of the frame at eye height in both views. That
-> is consistent with the soffit of an ascending flight seen through a doorway,
-> and it is *not* confirmed — the stairwell spill barely moved those pixels,
-> which suggests the hit is not in a stairwell cell at all. **This fix makes that
-> surface legible; it does not establish that the surface belongs there.** If it
-> turns out not to, this is a geometry defect wearing a lighting defect's coat,
-> and the entry stays open until somebody identifies the geometry rather than
-> its shading.
+> **The soffit theory was wrong, and the reporter said so in one sentence.**
+> *"Every image I've sent you is of the same thing: a wall that lies in the gap
+> between two galleries, that's where the problem patch of wall is located."*
+> Every previous theory — bare stone, a stairwell interior, a stair soffit — was
+> a guess about geometry made from a screenshot. The surface was always the same
+> one, and it is the wall standing **inside a gap**.
+>
+> **The instrument that should have existed from the start: `?ablate=where`.**
+> It renders geometry instead of shading — R the hit distance over 16 m, G the
+> cell type, B and A the cell's q and r — so a pixel names the cell it landed
+> in. Run on the reported view it returned cell **(−1, 0), type 0, a gallery**,
+> at 1.6–2.3 m: not a stairwell, which is what the stairwell spill failing to
+> move those pixels had already hinted. Four sessions of this hunt argued about
+> what a dark region *was*; this answers it in one load. **Reach for it first.**
+>
+> **The cause, and it is a third instance of the same shape.** Over the patch
+> `lit` measures **0.135**; the wall a few centimetres away on either side of
+> the opening measures **1.000**. The near-vertical stone lift is gated
+> `smoothstep(0.18, 0.38, lit)`, so the wall in the gap falls *below* the knee
+> and receives none of the lift while its neighbours sit far above it and
+> receive all of it. Since that lift is, by its own comment, most of what makes
+> stone visible, and since the six-level quantiser then rounds the unlit side to
+> step 0, the result is a hard-edged dark rectangle inside a bright wall.
+>
+> That is the same defect §17.14 already recorded once — *"a step function on a
+> continuous quantity"* — and making it a `smoothstep` did not fix it. **A ramp
+> between two thresholds is still a cliff if the surfaces you are comparing sit
+> on opposite sides of it.** Softening a step is not the same as removing the
+> discontinuity it creates.
+>
+> Fixed by giving the gate a floor: `0.35 + 0.65 * smoothstep(0.18, 0.38, lit)`.
+> Bright walls are untouched; dim stone gets a third of the lift instead of
+> nothing. `?ablate=hardknee` restores the cliff. At the reported view, frame
+> below luma 6 **5.15% → 3.57%**, and the largest sub-luma-12 region narrows from
+> 164 px wide to 56.
+>
+> **Still visible, and honestly so.** The patch is lighter and no longer
+> hard-edged; it has not gone. The remaining headroom is in the two knee
+> constants and in `occ` ~0.32 over that surface, and both are look decisions
+> rather than defects. Reported as improved, not as closed.
 
 ### 15. The shader is one small edit away from an 81-second link
 

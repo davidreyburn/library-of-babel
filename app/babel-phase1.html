@@ -2743,9 +2743,26 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        times the ambient term, which is why it came out as smooth-edged
        shapes following the geometry: the mottling on bare walls, and the one
        thing in this hunt that was never the distance field. Ramp both. */
+    /* The lit gate has a FLOOR now, and that floor is the fix for the patch
+       of wall standing in a gap between two galleries -- the one thing every
+       report of this defect was actually a picture of.
+
+       A wall inside an opening is lit obliquely and from further away, so it
+       measures lit ~0.135 where the wall on either side of the opening
+       measures 1.0. The old gate was smoothstep(0.18, 0.38, lit): the wall
+       in the gap fell BELOW the knee and got none of the lift, its
+       neighbours sat far above it and got all of it. Since this lift is, by
+       its own comment, most of what makes stone visible, that is a cliff
+       between two surfaces a few centimetres apart -- and main()'s six-level
+       quantiser then rounds the unlit side down to step 0, which is black.
+       Hence a dark rectangle in the doorway with clean bright wall around it.
+
+       0.35 + 0.65 * gate keeps bright walls exactly as they were and gives
+       dim stone a third of the lift instead of nothing. ?ablate=hardknee
+       restores the cliff. */
     if (mat < 0.5 || mat > 2.5)
       lum = min(1.0, lum + 0.30 * smoothstep(0.80, 0.92, horiz)
-                                * smoothstep(0.18, 0.38, lit));
+                                * (0.35 + 0.65 * smoothstep(0.18, 0.38, lit)));
 
     /* And stone that faces DOWN gets nothing from any path, which is what
        made a stairwell doorway read as a hole cut in the wall. The lift
@@ -2894,15 +2911,35 @@ const ABLATIONS = {
            "float occ = aoCtx(hp + n * 0.004, n, c, d2, ct2, fl);"],
   albedo: [/base = mix\(C_INK, C_STONE, 0\.55 \+ 0\.45 \* occ\);/,
            "base = mix(C_INK, C_STONE, 1.0);"],
-  lift:   [/lum = min\(1\.0, lum \+ 0\.30 \* smoothstep\([\s\S]*?lit\)\);/,
+  lift:   [/lum = min\(1\.0, lum \+ 0\.30 \* smoothstep\([\s\S]*?lit\)\)\);/,
            "lum = lum;"],
+  /* The stone lift back to a hard knee on lit, with no floor -- the A/B for
+     the dark patch of wall inside a gap. This is the cliff that made a wall
+     in an opening read black while the wall beside it read bright. */
+  hardknee: [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
+             "smoothstep(0.18, 0.38, lit)"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
            "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
+  /* WHERE AM I LOOKING. An instrument, not a suspect, and the one that was
+     missing every time this hunt argued about what a dark region was: it
+     reports the geometry rather than the shading. R the distance to the hit
+     over 16 m, G the cell type there, B and A the cell's q and r biased by
+     32. Read together they name the cell a pixel landed in, which settles
+     "is that a stairwell or a hall" without a screenshot in it. */
+  where:  [
+    [/float gTgt;/, "float gTgt;\nvec4 gDbg = vec4(0.0);"],
+    [/(    lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;)/,
+     "$1\n    gDbg = vec4(clamp(hit / 16.0, 0.0, 1.0), float(ct2) / 8.0,\n" +
+     "                  float(c.x + 32) / 64.0, float(c.y + 32) / 64.0);"],
+    [/(if \(hit < 0\.0\)\{ sub = C_INK; lum = \(b == 0\) \? 0\.02 : 0\.015;) (break; \})/,
+     "$1 gDbg = vec4(1.0, 1.0, 1.0, 1.0); $2"],
+    [/  outColor = vec4\(final, 1\.0\);/, "  outColor = gDbg;"]
+  ],
   /* The candidate fix, not a suspect: lift stone in PROPORTION to how lit it
      already is, instead of gating the lift on a narrow band of it. A ramp
      between two thresholds still draws an iso-contour of `lit` across a wall
      -- softer than a step, and still a shape. Multiplying cannot band. */
-  softlift: [/0\.30 \* smoothstep\(0\.80, 0\.92, horiz\)\s*\* smoothstep\(0\.18, 0\.38, lit\)/,
+  softlift: [/0\.30 \* smoothstep\(0\.80, 0\.92, horiz\)\s*\* \(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
              "0.42 * smoothstep(0.80, 0.92, horiz) * lit"],
   /* Every lamp's contribution is truncated at a hard radius, and there are up
      to 42 of them in range (7 cells x 3 storeys x 2). Each truncation is a
