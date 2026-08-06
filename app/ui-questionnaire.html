@@ -1,0 +1,395 @@
+<meta charset="utf-8">
+<title>Library of Babel — UI Kit Questionnaire</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{
+    --ink:#0B0D09; --panel:rgba(12,14,10,.86); --rule:#2A2E24;
+    --pale:#C6CBAE; --dim:#8C9179; --faint:#6E7360;
+    --crimson:#9E1B32; --amber:#C8A55C;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mono:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ink); color:var(--pale);
+    font:14px/1.65 var(--mono); padding:2.5rem 1.2rem 6rem;
+  }
+  .wrap{max-width:52rem;margin:0 auto}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(1.5rem,4vw,2.3rem);
+     margin:0 0 .3rem;color:#A8AD91;letter-spacing:.01em}
+  .lead{color:var(--dim);font-size:.82rem;margin:0 0 .4rem}
+  .meta{color:var(--faint);font-size:.72rem;margin:0 0 2.4rem}
+  h2{font-family:var(--serif);font-weight:400;font-size:1.15rem;color:var(--amber);
+     margin:3rem 0 .2rem;letter-spacing:.02em}
+  h2 .n{color:var(--faint);font-family:var(--mono);font-size:.72rem;margin-right:.6rem}
+  .sub{color:var(--faint);font-size:.74rem;margin:0 0 1.4rem;border-bottom:1px solid var(--rule);padding-bottom:.9rem}
+  section{margin:0 0 2.2rem;padding:1.1rem 1.2rem;background:var(--panel);
+          border:1px solid var(--rule)}
+  .q{color:var(--pale);font-size:.94rem;margin:0 0 .5rem;line-height:1.5}
+  .now{border-left:2px solid var(--rule);padding:.5rem 0 .5rem .8rem;margin:.7rem 0 1rem;
+       color:var(--dim);font-size:.78rem}
+  .now b{color:var(--amber);font-weight:400}
+  .now code{color:var(--pale);background:rgba(255,255,255,.04);padding:0 .25rem}
+  label.opt{display:block;padding:.34rem .5rem;margin:.15rem 0;cursor:pointer;
+            border:1px solid transparent;font-size:.82rem;color:var(--dim)}
+  label.opt:hover{border-color:var(--rule);color:var(--pale)}
+  label.opt input{margin-right:.55rem;accent-color:var(--crimson)}
+  label.opt .why{display:block;margin-left:1.5rem;color:var(--faint);font-size:.72rem}
+  textarea{width:100%;background:rgba(0,0,0,.35);color:var(--pale);border:1px solid var(--rule);
+           font:12px/1.6 var(--mono);padding:.55rem;margin-top:.6rem;resize:vertical;min-height:3.2rem}
+  textarea:focus{outline:1px solid var(--crimson);outline-offset:1px}
+  .hint{color:var(--faint);font-size:.7rem;margin-top:.35rem}
+  #out{position:fixed;left:0;right:0;bottom:0;background:#070806;border-top:1px solid var(--rule);
+       padding:.6rem 1rem;display:flex;gap:.8rem;align-items:center;justify-content:center;z-index:5}
+  button{background:transparent;color:var(--pale);border:1px solid var(--faint);
+         font:12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
+         padding:.6rem 1.3rem;cursor:pointer}
+  button:hover{border-color:var(--crimson);color:#fff}
+  pre#dump{white-space:pre-wrap;background:rgba(0,0,0,.4);border:1px solid var(--rule);
+           padding:1rem;font-size:11.5px;color:var(--dim);margin:1.4rem 0 0;display:none}
+  .swatch{display:inline-block;width:2.2rem;height:1rem;vertical-align:middle;
+          margin-right:.4rem;border:1px solid var(--rule)}
+  table{border-collapse:collapse;width:100%;font-size:.76rem;margin:.6rem 0}
+  td,th{border:1px solid var(--rule);padding:.3rem .5rem;text-align:left;color:var(--dim)}
+  th{color:var(--faint);font-weight:400}
+  .kbd{border:1px solid var(--faint);padding:0 .3rem;font-size:.72rem;color:var(--pale)}
+</style>
+
+<div class="wrap">
+<h1>A UI kit for the Library</h1>
+<p class="lead">Nineteen decisions the interface is currently making by accident.</p>
+<p class="meta">
+  Every “as it stands” below is read off the shipped build, not remembered.
+  Answer what you have an opinion about and skip the rest — a blank is a real
+  answer and means “you choose”. <b>Copy answers</b> at the bottom dumps
+  everything as text to paste back.
+</p>
+
+<h2><span class="n">I</span>What the interface is for</h2>
+<p class="sub">Everything else follows from this, so it comes first.</p>
+
+<section>
+  <p class="q">1. Who is the interface addressing?</p>
+  <div class="now">
+    As it stands it addresses two readers at once. The address panel talks to a
+    <b>librarian</b> — <code>Through the gaps</code>, <code>Pointing at</code>,
+    <code>You are here</code> — while the perf panel talks to an
+    <b>engineer</b>: <code>20.0 ms · worst 20.2</code>, <code>1:2</code>,
+    <code>auto</code>, <code>noise</code>. Both are on screen permanently.
+  </div>
+  <label class="opt"><input type="radio" name="q1" value="one-reader"> One reader. The engineer's panel is a dev tool and should be off by default.<span class="why">Cleanest. Costs you the frame-time readout that found the 160 ms stutter.</span></label>
+  <label class="opt"><input type="radio" name="q1" value="two-readers"> Two readers, and the split should be made explicit rather than hidden.<span class="why">Keep both, but style them as different registers so nobody confuses them.</span></label>
+  <label class="opt"><input type="radio" name="q1" value="instrument"> One reader, and they are an instrument-user. The Library is an apparatus, not a place.<span class="why">Leans into the measuring; the prose panel becomes a readout too.</span></label>
+  <textarea name="q1n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">2. Is the interface part of the fiction, or outside it?</p>
+  <div class="now">
+    Currently mixed. <code>A reading room. No shelves at all: an end table.</code>
+    is inside the fiction. <code>2 shelved walls: this gallery departs from
+    ‘all sides except two.’</code> steps outside it to compare the build against
+    Borges. <code>mouse free · click to re-capture</code> is neither.
+  </div>
+  <label class="opt"><input type="radio" name="q2" value="inside"> Inside. The interface is the librarian's own notation.</label>
+  <label class="opt"><input type="radio" name="q2" value="outside"> Outside. It is a scholarly apparatus describing the Library.</label>
+  <label class="opt"><input type="radio" name="q2" value="both"> Both, deliberately: fiction in the left panel, apparatus in the right.</label>
+  <textarea name="q2n" placeholder="notes"></textarea>
+</section>
+
+<h2><span class="n">II</span>The panels</h2>
+<p class="sub">Seven exist today. None can be moved, resized, or dismissed.</p>
+
+<section>
+  <p class="q">3. Which panels should be visible when the page opens?</p>
+  <div class="now">
+    <table>
+      <tr><th>panel</th><th>id</th><th>now</th><th>what it is</th></tr>
+      <tr><td>Address</td><td><code>#addr</code></td><td>always</td><td>floor, cell, shelves, gaps, what you point at, the URI</td></tr>
+      <tr><td>Performance</td><td><code>#perf</code></td><td>always</td><td>fps, mean/worst ms, scale, mouse state, two selects</td></tr>
+      <tr><td>Help</td><td><code>#help</code></td><td>always</td><td>six lines of key bindings</td></tr>
+      <tr><td>Reader</td><td><code>#book</code></td><td>on <span class="kbd">E</span></td><td>the page, spine, ruler, prev/next</td></tr>
+      <tr><td>Auto-walk</td><td><code>#w</code></td><td>on <span class="kbd">X</span></td><td>where it is going, and a hint</td></tr>
+      <tr><td>Intro veil</td><td><code>#veil</code></td><td>until clicked</td><td>title, one line, CLICK TO ENTER</td></tr>
+      <tr><td>Reticule</td><td><code>#aim</code></td><td>always</td><td>four ticks at centre</td></tr>
+    </table>
+  </div>
+  <label class="opt"><input type="checkbox" name="q3" value="addr"> Address</label>
+  <label class="opt"><input type="checkbox" name="q3" value="perf"> Performance</label>
+  <label class="opt"><input type="checkbox" name="q3" value="help"> Help</label>
+  <label class="opt"><input type="checkbox" name="q3" value="aim"> Reticule</label>
+  <label class="opt"><input type="checkbox" name="q3" value="none"> None — open on the room, and summon everything.</label>
+  <textarea name="q3n" placeholder="and what summons the rest? a key, a hover, an edge?"></textarea>
+</section>
+
+<section>
+  <p class="q">4. Should a panel be dismissible, and does that state persist?</p>
+  <div class="now">
+    No panel can be closed. There is no persistence of any kind — no
+    <code>localStorage</code>, so the grain and scale selects reset on every reload.
+  </div>
+  <label class="opt"><input type="radio" name="q4" value="none"> Not dismissible. Fixed furniture, like the frame of a window.</label>
+  <label class="opt"><input type="radio" name="q4" value="session"> Dismissible, forgotten on reload.</label>
+  <label class="opt"><input type="radio" name="q4" value="persist"> Dismissible and remembered, along with grain and scale.<span class="why">Needs localStorage; the page currently stores nothing at all.</span></label>
+  <textarea name="q4n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">5. The address panel is nine rows deep and always open. Too much?</p>
+  <div class="now">
+    Floor · Cell · rule · Shelved · Volumes here · Through the gaps · rule ·
+    a note · Pointing at · You are here · This exact view. The note
+    (<code>Every floor is a different network…</code>) never changes.
+  </div>
+  <label class="opt"><input type="radio" name="q5" value="asis"> Right as it is.</label>
+  <label class="opt"><input type="radio" name="q5" value="two-tier"> Two tiers: where you are always, the rest on demand.</label>
+  <label class="opt"><input type="radio" name="q5" value="drop-note"> Keep it, but the static note belongs in help, not in a live readout.</label>
+  <label class="opt"><input type="radio" name="q5" value="minimal"> Cut to floor, cell and the URI. Everything else on demand.</label>
+  <textarea name="q5n" placeholder="notes"></textarea>
+</section>
+
+<h2><span class="n">III</span>The controls</h2>
+<p class="sub">Sixteen bindings, no remapping, no on-screen affordance for most.</p>
+
+<section>
+  <p class="q">6. Are these the right bindings?</p>
+  <div class="now">
+    <table>
+      <tr><th>key</th><th>does</th><th>discoverable?</th></tr>
+      <tr><td><span class="kbd">WASD</span> <span class="kbd">↑↓←→</span></td><td>walk, look</td><td>in help</td></tr>
+      <tr><td><span class="kbd">E</span></td><td>read the volume you face</td><td>in help</td></tr>
+      <tr><td><span class="kbd">Q</span></td><td>release the mouse</td><td>in help</td></tr>
+      <tr><td><span class="kbd">R</span></td><td>“if stuck”</td><td>in help, unexplained</td></tr>
+      <tr><td><span class="kbd">Z</span></td><td>go to a floor and cell</td><td>in help</td></tr>
+      <tr><td><span class="kbd">X</span></td><td>be walked to a shelf; again to stop</td><td>in help</td></tr>
+      <tr><td><span class="kbd">V</span></td><td>copy this exact view</td><td>in help</td></tr>
+      <tr><td><span class="kbd">[</span> <span class="kbd">]</span></td><td>page back / forward in the reader</td><td><b>nowhere</b></td></tr>
+      <tr><td><span class="kbd">Home</span> <span class="kbd">End</span></td><td>first / last page</td><td><b>nowhere</b></td></tr>
+      <tr><td><span class="kbd">Enter</span> <span class="kbd">Esc</span></td><td>confirm / dismiss</td><td><b>nowhere</b></td></tr>
+    </table>
+  </div>
+  <label class="opt"><input type="radio" name="q6" value="asis"> Right. Undocumented keys are a reward for exploring.</label>
+  <label class="opt"><input type="radio" name="q6" value="document"> Right, but every binding must appear somewhere on screen.</label>
+  <label class="opt"><input type="radio" name="q6" value="contextual"> Show bindings for the panel that has focus, and only those.</label>
+  <label class="opt"><input type="radio" name="q6" value="remap"> All of the above, plus remapping.</label>
+  <textarea name="q6n" placeholder="which letters feel wrong? R and X are the least mnemonic"></textarea>
+</section>
+
+<section>
+  <p class="q">7. <span class="kbd">R</span> is described only as “if stuck”. What is it for?</p>
+  <div class="now">
+    The help says <code>R if stuck</code> and nothing else. A reader who has
+    never been stuck has no idea what it does or whether it will lose their place.
+  </div>
+  <label class="opt"><input type="radio" name="q7" value="name"> Name the action, not the symptom.</label>
+  <label class="opt"><input type="radio" name="q7" value="hide"> Hide it. A recovery key should not be advertised.</label>
+  <label class="opt"><input type="radio" name="q7" value="auto"> It should not exist — being stuck is the bug to fix.</label>
+  <textarea name="q7n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">8. The two selects are unlabelled.</p>
+  <div class="now">
+    <code>auto | 1:1 | 1:2 | 1:3</code> and
+    <code>ordered | noise | fine | smooth</code>, side by side, with no captions.
+    You cannot tell which is resolution and which is dither without changing one.
+    <b>Also a real bug:</b> the auto-scaler now goes to 1:4, but the manual list
+    still stops at 1:3 — I raised one and not the other.
+  </div>
+  <label class="opt"><input type="radio" name="q8" value="label"> Label them.</label>
+  <label class="opt"><input type="radio" name="q8" value="hide"> Hide them behind a settings affordance.</label>
+  <label class="opt"><input type="radio" name="q8" value="remove"> Remove them. Auto should be good enough, and grain is a look decision you make once.</label>
+  <textarea name="q8n" placeholder="notes"></textarea>
+</section>
+
+<h2><span class="n">IV</span>Layout and density</h2>
+<p class="sub">Three corners are occupied; the fourth is empty.</p>
+
+<section>
+  <p class="q">9. Panels sit at fixed corners. Should that be the rule?</p>
+  <div class="now">
+    Address top-left, performance top-right, help bottom-left, bottom-right empty.
+    Nothing adapts to viewport size; on a narrow window the panels overlap the view.
+  </div>
+  <label class="opt"><input type="radio" name="q9" value="corners"> Corners, and codify it: information left, instruments right, teaching bottom.</label>
+  <label class="opt"><input type="radio" name="q9" value="edge"> One edge. Everything in a single rail, so the view is never boxed in.</label>
+  <label class="opt"><input type="radio" name="q9" value="responsive"> Corners on wide screens, a collapsing rail below some width.</label>
+  <textarea name="q9n" placeholder="what belongs bottom-right, if anything?"></textarea>
+</section>
+
+<section>
+  <p class="q">10. How dense should a panel be?</p>
+  <div class="now">
+    Type is ~11px mono at 1.65 line-height, keys in <code>--faint</code> and
+    values in <code>--pale</code>, rules between groups. It reads like a
+    catalogue card.
+  </div>
+  <label class="opt"><input type="radio" name="q10" value="denser"> Denser. It is a readout; pack it.</label>
+  <label class="opt"><input type="radio" name="q10" value="asis"> As it is.</label>
+  <label class="opt"><input type="radio" name="q10" value="airier"> Airier. The Library is vast and the UI should not feel cramped.</label>
+  <textarea name="q10n" placeholder="notes"></textarea>
+</section>
+
+<h2><span class="n">V</span>Appearance</h2>
+<p class="sub">The palette is already decided; what is undecided is how the UI uses it.</p>
+
+<section>
+  <p class="q">11. Should panels sit <em>on</em> the scene or <em>in</em> it?</p>
+  <div class="now">
+    Panels are <code>rgba(12,14,10,.86)</code> over the canvas with a 1px rule —
+    floating cards, clearly not part of the room.
+  </div>
+  <label class="opt"><input type="radio" name="q11" value="on"> On it. Honest overlay, no pretence.</label>
+  <label class="opt"><input type="radio" name="q11" value="in"> In it. Paper, vellum, brass — as if the librarian brought a card with them.</label>
+  <label class="opt"><input type="radio" name="q11" value="fade"> On it, but yielding: fade while walking, return when still.</label>
+  <textarea name="q11n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">12. Two typefaces are in play. Which does what?</p>
+  <div class="now">
+    Serif (<span style="font-family:var(--serif)">Iowan Old Style</span>) is used
+    <b>only</b> on the intro veil's title. Everything else is mono. Book pages
+    are mono because the corpus is fixed-width by construction.
+  </div>
+  <label class="opt"><input type="radio" name="q12" value="mono"> Mono throughout. The serif is a one-off and should go.</label>
+  <label class="opt"><input type="radio" name="q12" value="serif-prose"> Serif for prose, mono for anything a machine produced.<span class="why">A clear rule: coordinates, measurements and page text stay mono.</span></label>
+  <label class="opt"><input type="radio" name="q12" value="serif-chrome"> Serif for headings and labels, mono only for values.</label>
+  <textarea name="q12n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">13. What is crimson allowed to mean?</p>
+  <div class="now">
+    <span class="swatch" style="background:#9E1B32"></span><code>--crimson</code>
+    is used for the one crimson volume in the whole Library (V-09), for focus
+    outlines, and for the reading-room label. Three unrelated meanings.
+  </div>
+  <label class="opt"><input type="radio" name="q13" value="artefact"> The artefact only. Never chrome. If it is crimson it is <em>that book</em>.</label>
+  <label class="opt"><input type="radio" name="q13" value="attention"> Attention only — focus, errors, the thing you are pointing at.</label>
+  <label class="opt"><input type="radio" name="q13" value="split"> Split the token: one crimson for the artefact, another for attention.</label>
+  <textarea name="q13n" placeholder="notes"></textarea>
+</section>
+
+<h2><span class="n">VI</span>Language</h2>
+<p class="sub">The copy has a strong voice already. The question is which parts are the standard.</p>
+
+<section>
+  <p class="q">14. Sentence case, lower case, or small caps for labels?</p>
+  <div class="now">
+    Currently mixed: <code>Through the gaps</code> (sentence),
+    <code>PASSAGE → STAIRS</code> (caps),
+    <code>nothing shelved</code> (lower),
+    <code>CLICK TO ENTER</code> (caps).
+  </div>
+  <label class="opt"><input type="radio" name="q14" value="sentence"> Sentence case everywhere.</label>
+  <label class="opt"><input type="radio" name="q14" value="lower"> Lower case everywhere; caps only for data the Library itself emits.</label>
+  <label class="opt"><input type="radio" name="q14" value="rule"> A rule by kind: labels sentence, values as the Library writes them, actions caps.</label>
+  <textarea name="q14n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">15. How long may a tooltip be?</p>
+  <div class="now">
+    The <code>This exact view</code> tooltip is <b>458 characters</b> and explains
+    the design rationale for keeping the camera out of the address. The mouse
+    tooltip explains iframe sandboxing. These are essays in <code>title</code>
+    attributes — invisible on touch, and unreadable to a screen reader in that form.
+  </div>
+  <label class="opt"><input type="radio" name="q15" value="short"> One line. Anything longer belongs in the docs.</label>
+  <label class="opt"><input type="radio" name="q15" value="keep"> Keep the long ones — the reasoning is the point of this project.</label>
+  <label class="opt"><input type="radio" name="q15" value="move"> Keep the depth, move it: a real “about this readout” panel rather than a hover.</label>
+  <textarea name="q15n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">16. What voice is the UI written in?</p>
+  <div class="now">
+    Present tense, second person, no exclamation, occasional quotation of the
+    source text: <code>2 shelved walls: this gallery departs from ‘all sides
+    except two.’</code> and <code>X to stop · WASD takes over</code>. Errors are
+    plain: <code>that stair is a dead end</code>.
+  </div>
+  <label class="opt"><input type="radio" name="q16" value="asis"> This is the voice. Write it down and hold to it.</label>
+  <label class="opt"><input type="radio" name="q16" value="drier"> Drier. Fewer asides, no quotation of Borges in a live readout.</label>
+  <label class="opt"><input type="radio" name="q16" value="warmer"> Warmer. It is a place; let the copy have some air.</label>
+  <textarea name="q16n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">17. How should a refusal read?</p>
+  <div class="now">
+    Refusals currently state the reason and stop:
+    <code>that stair is a dead end</code>,
+    <code>this gallery has no shelved wall</code>,
+    <code>nothing shelved</code>. None of them suggests what to do next.
+  </div>
+  <label class="opt"><input type="radio" name="q17" value="reason"> Reason only. Do not patronise.</label>
+  <label class="opt"><input type="radio" name="q17" value="reason-next"> Reason, then the nearest thing that would work.</label>
+  <textarea name="q17n" placeholder="notes"></textarea>
+</section>
+
+<h2><span class="n">VII</span>What to write down</h2>
+<p class="sub">The output of this exercise. Tick what should become a rule that a future change can violate.</p>
+
+<section>
+  <p class="q">18. Which standards should be codified — and enforced by a test where possible?</p>
+  <label class="opt"><input type="checkbox" name="q18" value="tokens"> A token list: every colour, size and spacing used by chrome, named.<span class="why">Testable: fail if a panel uses a literal colour instead of a token.</span></label>
+  <label class="opt"><input type="checkbox" name="q18" value="voice"> A voice guide with the rules above and three worked examples.</label>
+  <label class="opt"><input type="checkbox" name="q18" value="bindings"> A single source of truth for key bindings, rendered into help automatically.<span class="why">Testable: fail if a bound key is missing from the help text — which would have caught <span class="kbd">[</span> <span class="kbd">]</span> <span class="kbd">Home</span> <span class="kbd">End</span>.</span></label>
+  <label class="opt"><input type="checkbox" name="q18" value="panel"> A panel recipe: where they sit, how they open, how they behave when narrow.</label>
+  <label class="opt"><input type="checkbox" name="q18" value="a11y"> An accessibility floor: contrast, focus order, and no meaning carried by hover alone.</label>
+  <label class="opt"><input type="checkbox" name="q18" value="copy"> A copy register table: label, value, action, refusal.</label>
+  <textarea name="q18n" placeholder="notes"></textarea>
+</section>
+
+<section>
+  <p class="q">19. Anything the interface does today that you actively dislike?</p>
+  <textarea name="q19n" placeholder="free text — the thing that made you ask for this" style="min-height:6rem"></textarea>
+</section>
+
+<pre id="dump"></pre>
+</div>
+
+<div id="out">
+  <button id="copy">Copy answers</button>
+  <button id="show">Show as text</button>
+</div>
+
+<script>
+function collect(){
+  const out = [];
+  document.querySelectorAll("section").forEach(sec => {
+    const q = sec.querySelector(".q");
+    const name = sec.querySelector("input,textarea");
+    if (!name) return;
+    /* the option's own text, without the explanatory .why beneath it */
+    const picked = [...sec.querySelectorAll("input:checked")].map(i => {
+      const l = i.parentElement.cloneNode(true);
+      l.querySelectorAll(".why").forEach(w => w.remove());
+      return l.textContent.replace(/\s+/g, " ").trim();
+    });
+    const note = (sec.querySelector("textarea")?.value ?? "").trim();
+    if (!picked.length && !note) return;
+    out.push((q ? q.textContent.trim() : "—"));
+    picked.forEach(p => out.push("  > " + p));
+    if (note) out.push("  note: " + note);
+    out.push("");
+  });
+  return out.length ? out.join("\n") : "(nothing answered yet)";
+}
+document.getElementById("show").onclick = () => {
+  const d = document.getElementById("dump");
+  d.textContent = collect();
+  d.style.display = d.style.display === "block" ? "none" : "block";
+  if (d.style.display === "block") d.scrollIntoView({behavior:"smooth", block:"end"});
+};
+document.getElementById("copy").onclick = async () => {
+  const t = collect();
+  try { await navigator.clipboard.writeText(t); }
+  catch (_) { const d = document.getElementById("dump"); d.textContent = t; d.style.display = "block"; }
+  const b = document.getElementById("copy");
+  const was = b.textContent; b.textContent = "Copied";
+  setTimeout(() => b.textContent = was, 1200);
+};
+</script>
