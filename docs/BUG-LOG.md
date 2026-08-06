@@ -1026,6 +1026,13 @@ the serious one. The lighting half is new, affects *every* stairwell doorway
 rather than 7.3% of them, is a constant rather than a branch, and is the one the
 reporter will see first.
 
+> **Both halves are now closed, and the topology half did not close the way
+> this entry expected.** The 7.3% are still there and are staying: §18 measured
+> the fix proposed below at 96–144 seconds of link time in every form it can be
+> written, against a 0.21 s baseline. What closed was the disagreement, not the
+> topology — the collision field now refuses a flight the seam refuses, so the
+> Library keeps its dead ends and nobody can walk into one.
+
 > **The lighting half, found and fixed — and the diagnosis above was wrong.**
 > It is not that a stairwell interior is dim. **Downward-facing stone has no
 > path to light at all**, anywhere in the Library, and a stairwell doorway is
@@ -1354,6 +1361,236 @@ just as effectively; it merely stops advertising itself first.
 one-ended in a 121x121 sample, so a few hundred crossings should find it. Until
 somebody does that, this is one report and a plausible mechanism, not a
 diagnosis.
+
+**Reproduced, and fixed — see §18.** The walk above was done. Standing in the
+gallery at `3,0` facing the dead-end flight at `3,-1` and stepping forward 400
+times, the old collision field walks straight into the flight; the new one stops
+in the gallery. Both were measured in the same page load, with the guard swapped
+at runtime, so the two numbers are the same build:
+
+| | ends at | in cell |
+|---|---|---|
+| collision as it was | `12.57, 0.46` | `3,-1`, the stairwell |
+| collision with the guard | `12.57, 5.68` | `3,0`, the gallery |
+
+The mechanism in the paragraphs above was right. The proposed fix was not, and
+§18 is why.
+
+### 18. The gap rule that is correct, affordable on the CPU, and unaffordable on the GPU
+
+**The fix §14 and §17 both call for is one line of intent:** in `gapAt`, do not
+open one end of a flight's axis unless the other end opens too. It is right, it
+single-sources cleanly, and on the CPU it costs nothing. **Every form of it put
+the shader over the linker's cliff.**
+
+The permission to change it was explicit — the Library did not need to stay
+stable — so this is not a compatibility story. It is a cost story, and the cost
+is not in the frame. It is in the link.
+
+> **Every number in the rest of this entry is wrong, and §20 is why.** The
+> "0.21 s baseline" is Chrome's GPU program cache returning a shader it had
+> already linked. A *novel* shader text costs ~91 s to link on this machine
+> whatever it says — a one-line comment costs it. So the table below compares
+> cold links against a warm one, and the differences it attributes to the rule
+> are mostly the cache. Corrected, against a ~91 s cold baseline: +5 s for the
+> `axisOf` preference, +10 s for the cheap both-ends test, +23 s for one
+> `corridorAxis` call site, +53 s for four. Left standing as written, with the
+> numbers it was decided on, because the decision it produced was wrong and
+> striking that out would hide how.
+
+**Measured, one variant per page load, `loadEventEnd` on a warmed browser. The
+control was re-run after the slow variants to prove the GPU process had not
+simply been poisoned by them: it came back at 213 ms.**
+
+| variant | reaches | page load |
+|---|---|---|
+| shipped lattice | — | **0.21 s** |
+| both-ends test, 4 `corridorAxis` call sites | `corridorAxis` | 144 s |
+| the same test restructured to 1 call site | `corridorAxis` | 114 s |
+| cheap both-ends + `axisOf` preferring gallery ends | `axisOf` | 101 s |
+| **`axisOf` preference alone, `gapAt` untouched** | `axisOf` | **96 s** |
+
+The last row is the finding. `gapAt`'s own additions were worth about five
+seconds of it; the other ninety-six came from making `axisOf` slightly bigger
+and removing its early return. `axisOf` and `corridorAxis` are the two most
+inlined functions in the program — `corridorAxis`'s own comment has said so
+since the corridor shipped — and **the honest form of this rule cannot avoid
+reaching one of them.** There is no structure that fixes it, only structures
+that are 96 seconds instead of 144.
+
+**What was tried and rejected on the way**, all measured rather than reasoned:
+
+- *Corridors yield to a flight that points at them.* Free at link time, and it
+  carves a doorway into the side of a corridor whose cut does not reach that
+  edge — the same doorway-into-rock defect in a new place, which is why the
+  corridor rule tests the axis in the first place.
+- *Flights never open onto corridors* (`B1`). Free, removes all 127 one-ended
+  flights, **and deletes all 273 doorways where a stair opens onto a hallway.**
+  The stairway in the hallway is in the text; paying for a bug fix with it is a
+  bad trade.
+- *Flights prefer an axis with a room at both ends, corridors as fallback*
+  (`B2`). Free in principle: 127 one-ended flights down to 29, hallway stairs
+  kept at 59, 27% more rooms reachable inside twelve steps. Then it measured at
+  101 s, because the preference is in `axisOf`.
+
+**So the lattice keeps its dead ends** — which remains the right answer, for a
+reason this entry never found. See §19: the dead ends were never the defect.
+
+**So the lattice keeps its dead ends.** They are 7.3% of flights and they are
+not a defect in the Library — a stair that climbs into rock is well within what
+the text describes. What was a defect is that the renderer let you walk into
+one. `core`'s new `stairCrossable(q, r, fl)` answers the question the shader
+cannot afford, the collision field seals the cell and refuses to carve its
+doorway from either side, and walking into one now says so:
+
+> That stair is a dead end — it climbs to rock. Another way out is behind you.
+
+Cost: 194 ms page load, unchanged. `resolve()` runs 1.9 million times a second
+and the walk loop calls it once a frame.
+
+**The first version of that seal was wrong, and only a sweep found it.** It made
+the cell solid with `-sdHexFlat(lx, lz, APO_ROOM)`, copying the shaft. But
+`-sdHexFlat` is solid *inside* the hexagon it is handed and flips back to void
+outside it, so the cell's six corners — the rock between the room hexagon and
+the cell boundary — stayed walkable. A corridor's slab runs `CORR_EXT` past its
+own cell, which puts a walker in exactly that corner. **One flight in 38 could
+still be entered, around the side**, and a single hand-picked test site said the
+fix worked. `HALF_D` is the cell's own apothem, so the whole cell is solid and
+the field meets its neighbours' at the shared edge.
+
+Verified by sweep rather than by a site: **77 dead ends, approached from three
+lateral offsets each — 231 walks, 8 of them from a corridor. None entered, none
+displaced.** And the other direction, which matters just as much: **80 crossable
+flights, 80 still enterable.** A seal that also sealed the working stairs would
+have passed every test written for the bug.
+
+**The rule this leaves behind**, and the reason it is now a test rather than a
+paragraph: *the seam and the renderer are written twice, and when they disagree
+the walker is the one who finds out.* `SEAM AND RENDERER` walks every flight in
+an 81×81 sample and asserts that every doorway `throughStairwell` refuses
+belongs to a flight `stairCrossable` seals — 68 refused of 1,472 carved, and 68
+sealed. It is deliberately not an assertion that the count is zero. The count is
+not zero, that is the finding, and a test that demanded zero would have to be
+deleted rather than kept honest.
+
+### 19. The flight was cut 0.75 m past its own walled end
+
+**The report**, with a place to stand: *"if it's a dead end, that's fine, block
+the top of the stairs, but either the top of the stairs should be a solid wall
+matching the rest or the bottom of the stairs should just be walled off."*
+Standing in the gallery at `-11,-7` on floor 1, facing yaw −0.9988, you see a
+staircase climbing away into a black rectangle.
+
+**Neither §14, §17 nor §18 had the mechanism.** All three blamed the topology —
+7.3% of flights open at one end and rock at the other — and §18 spent the
+session proving the topology could not be fixed on the GPU. The topology was
+never the defect.
+
+`STAIR_EXT` extends a flight's cut **0.75 m past the cell boundary at both
+ends, unconditionally**, in the shader and in `voidDist2D` identically. It
+exists for a real reason, recorded where it is defined: ending the cut exactly
+on the boundary caps it with a face, and the flight has to reach the doorway box
+its neighbour draws. But `STAIR_RUN` is *exactly* the cell radius, so at a
+**walled** end the overhang runs straight through the rock into the next cell.
+
+Worked out on the flight the report was looking at, `-10,-8`, axis 1, rising
+toward its walled end:
+
+| u from centre | cell | old | new |
+|---|---|---|---|
+| 2.35 m | `-10,-8` | void | void |
+| 2.45 m | `-9,-9` | **void** | rock |
+| 3.00 m | `-9,-9` | **void** | rock |
+| 3.20 m | `-9,-9` | rock | rock |
+
+The cut reached `u = 3.17`, which is 0.75 m inside `-9,-9` — a cell `gapAt`
+says is behind a WALL. That is the black rectangle: the flight does not stop, it
+continues into a neighbour with no lamp in it. **And it is §17's warp.** Walking
+that staircase put a body in `-9,-9`:
+
+```
+  0: cell -11,-7 floor 1     the gallery
+200: cell -10,-8 floor 1     in the flight
+300: cell -10,-8 floor 2     climbing
+400: cell -9,-9  floor 2     through the wall
+```
+
+Not `resolve()` pushing someone out of a pocket, as §17 and §18 both guessed.
+A hole in the wall, 0.75 m deep, at the top of one flight in eight.
+
+**The fix is the report's own first option: block the top.** A flight extends
+only at an end that opens. The two ends are resolved once per cell in
+`cellDesc` — bits 15-16, free on a stairwell because a cell is never both a
+flight and a study — and `mapAt` reads one constant bit each. `voidDist2D` uses
+the same rule from `stairExtends`. The lattice does not change: `gapAt`,
+`vectors.json` and the agent's Library are untouched.
+
+**Measured over 684 approaches, both behaviours in one page load:**
+
+| | as it was | with the fix |
+|---|---|---|
+| walked through a WALL edge | **31** | **0** |
+| dead end, ended a storey up | 27 | 0 |
+| dead end, walked back out level | 3 | 14 |
+
+The one remaining storey change was the test's fault, not the code's: the walk
+leaves the dead end correctly at floor 1, crosses the gallery in a straight line
+and climbs a *different, working* flight opposite. Galleries here are ringed
+with stairwells — the one in the report has four.
+
+At the top of the flight the surface now reads `mat` 0, `occ`/`lit` **0.45**,
+against **0.74** for the wall beside it. Stone, in shadow, where there was a
+hole. Whether 0.45 should be closer to 0.74 is §17.16's stairwell lamp
+placement, and is not this entry.
+
+**What this cost, and the lesson that is not about stairs.** Three entries and
+most of two sessions blamed the topology because the topology was the thing that
+had a name. §14 measured one-endedness at 7.3% and stopped; §17 built a
+mechanism out of it that sounded right and was not; §18 took that mechanism as
+given and spent the session proving an unnecessary fix unaffordable. Nobody
+walked up the stairs. **The report that fixed it came with a place to stand.**
+
+### 20. The link-time budget was measuring Chrome's shader cache
+
+**Every link-time number in §18 is a cache measurement**, and the entry's
+central conclusion followed from it. Found by accident: removing `+ STAIR_EXT`
+from one expression made the page take 93.75 s to load. Both operands are
+`const float`, so the sum folds at compile time and the emitted code is
+identical. That cannot cost 90 seconds, and a change that cannot cost anything
+costing everything means the instrument is wrong.
+
+**The control.** Add one comment line to the shader — no semantic change of any
+kind — and load twice:
+
+| | load |
+|---|---|
+| shipped shader (linked many times before) | **213 ms** |
+| + one comment, first load | **91,098 ms** |
+| the same commented shader, second load | **201 ms** |
+
+Chrome caches linked programs on disk, keyed by source text. Any novel text is a
+cold link and costs ~91 s on this machine; any text it has seen is ~0.2 s. Every
+"baseline" in §18 was a shader Chrome had already linked, and every candidate
+was novel. **The comparison was cold against warm, every time.**
+
+Corrected, against a ~91 s cold baseline: the `axisOf` preference costs **+5 s**,
+not +96; four `corridorAxis` call sites cost **+53 s**, not +53 over nothing.
+The differences are real and the ordering survives — but they are a fraction of
+what was reported, and §18 rejected a fix on the strength of them.
+
+**Two things follow, and the second is the bigger one.**
+
+*For measuring:* a link-time A/B needs both variants to be novel, or both warm.
+The reliable form is to link both inside one page load — the same rule §15
+already gives for ablations, for the same reason, arrived at again the hard way.
+
+*For the Library:* the shipped shader takes **~91 seconds to link on a cold GPU
+cache**. Nobody has ever measured that, because every measurement anyone made
+was on a machine that had already linked it. That is what a first-time visitor
+pays. §15's budget was written to prevent exactly this and has been passing
+because it counts call sites in the source, which is a proxy, and the proxy has
+drifted from the thing. **Open, and more urgent than anything §18 was worried
+about.**
 
 ## The performance review, Aug 2026
 

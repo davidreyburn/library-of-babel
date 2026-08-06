@@ -102,11 +102,11 @@ section("COVERAGE -- what a green fuzz run cannot prove");
     for (const d of t.decisions){
       kinds.add(d.action.kind);
       if (d.refused) refusals.add(d.refused.replace(/\d+/g, "N").slice(0, 34));
-      cellTypes.add(core.CELL_TYPE_NAME[core.cellType(d.at.q, d.at.r)]);
+      cellTypes.add(core.CELL_TYPE_NAME[core.roomAt(d.at.q, d.at.r, d.at.floor)]);
     }
     for (const v of t.report.visited){
       const [q, r] = v.split(",").map(Number);
-      cellTypes.add(core.CELL_TYPE_NAME[core.cellType(q, r)]);
+      cellTypes.add(core.CELL_TYPE_NAME[core.roomAt(q, r, t.report.at?.floor ?? 0)]);
     }
     if (t.report.seated) seats++;
     claims += t.report.claims.length;

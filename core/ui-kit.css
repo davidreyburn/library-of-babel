@@ -1,0 +1,56 @@
+/* The kit's palette and rhythm, named once.
+ *
+ * Two pages read this: the prototype inlines it at build time, because it
+ * ships as one file; the atlas links it. Before this existed there was one
+ * copy, and the moment a second page wanted a panel there would have been
+ * two -- which is how a kit stops being a kit.
+ *
+ * A colour belongs here if anything renders it. The rule the suite enforces
+ * is that chrome CSS may NAME a colour and may not SPELL one, so a literal
+ * anywhere but this file is a failure.
+ */
+:root{
+  /* ink and type */
+  --ink:#12140F;          /* the page behind everything            */
+  --pale:#8C9179;         /* a value: what the Library says        */
+  --dim:#7C8169;          /* prose                                 */
+  --faint:#6E7360;        /* a label: what we call it              */
+  --mute:#5A5F4E;         /* absent, unavailable, "nothing here"   */
+  /* the two reds */
+  --crimson:#9E1B32;      /* the artefact, and only the artefact   */
+  --alert:#C8A55C;        /* attention: focus, refusal, confirmation */
+  /* panel surfaces */
+  --panel-bg:rgba(18,20,15,.90);
+  --panel-line:#2A2E24;
+  /* spacing and rhythm */
+  --pad:.55rem .7rem;     /* inside a panel                        */
+  --gap:.7rem;            /* panel to viewport edge                */
+  --lead:1.55;            /* line height everywhere in chrome      */
+  --track:.05em;          /* letter-spacing everywhere in chrome   */
+  --sz:.68rem;            /* the one chrome type size              */
+  --sz-sm:.62rem;         /* prose and secondary lines             */
+      --line-soft:#34392C;      /* a lighter rule: chip borders, button edges */
+  --field-bg:#1A1D16;       /* inside an input, a select, a button */
+  --title:#A8AD91;          /* the one serif line in the build */
+  --warn:#B58A6A;           /* something is not as it should be, but works */
+  --warn-deep:#8A3320;      /* the same, on paper */
+  --focus:#5E6B45;          /* a control has the keyboard */
+  --focus-lit:#A6B27E;      /* the same, as text */
+  --bright:#D8DCC0;         /* the brightest chrome has: hover, a lit reticule */
+  --wood:#6B4A3C;           /* a shaft, which is the one warm thing in the lattice */
+  --crimson-deep:#7C1428;   /* the artefact, on paper */
+  --spine:#CBD0B2;          /* a spine label */
+  --paper:#E5DDC8;          /* the page */
+  --paper2:#DCD3BC;         /* the page, further from the light */
+  --paper-ink:#26221A;      /* what is printed on it */
+  --paper-dim:#7C7460;      /* secondary, on paper */
+  --paper-faint:#6A6350;    /* an address, on paper */
+  --paper-mute:#9C947E;     /* a placeholder, on paper */
+  --paper-rule:#B4AB92;     /* the sheet's edge */
+  --paper-edge:#BDB49B;     /* a scrollbar, a leaf edge */
+  --paper-edge2:#A79E85;    /* the same, hovered */
+  --paper-ctl:#ADA48B;      /* a control, on paper */
+  --mono:"Cascadia Mono",Consolas,"DejaVu Sans Mono","Liberation Mono",monospace;
+  /* the serif survives on the title and nowhere else */
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}

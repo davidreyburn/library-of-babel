@@ -858,6 +858,120 @@ end of 1 corridor in 5. The six ends are resolved once into a bitfield and
 both passes then read bits, which halves the `axisEnd` calls; keep it that
 way.
 
+**A flight that climbs into rock stays in the lattice, and stops at its own
+wall.** Because neither rule consults the other's axis, a
+flight can be opened on one wall and walled on the other: **7.3% of stairwells
+are one-ended**. `throughStairwell` refuses to cross one, so the seam has
+always been right about them; the renderer carved the doorway anyway, and a
+walker let into that pocket was pushed back out by `resolve()` through whichever
+wall was nearest.
+
+That is not a defect and nothing seals it: you walk in, you climb, and the top
+is a wall. What *was* a defect is that the flight did not stop there.
+`STAIR_EXT` cuts a flight 0.75 m past the cell boundary at each end so it meets
+the doorway box its neighbour draws, and `STAIR_RUN` is exactly the cell radius
+— so at a walled end the cut ran through the rock into the next cell. It read as
+a stair climbing into a black hole, and it walked bodies across a WALL edge in
+31 of 684 approaches (BUG-LOG §19).
+
+So a flight extends only at an end that opens. The two ends are resolved once
+per cell in `cellDesc`, bits 15-16 — free on a stairwell, which is never also a
+study — and `mapAt` reads one constant bit each; `voidDist2D` reads the same
+rule from `stairExtends`. The lattice is untouched: `gapAt`, `vectors.json` and
+the agent's Library are exactly as they were.
+
+Held down by a test, because the bit and the gap are two spellings of one fact:
+`SEAM AND RENDERER` asserts they agree for every flight, that the sample still
+contains walled ends so the assertion is not vacuous, and that no cut reaches
+past a wall.
+
+`stairCrossable(q, r, fl)` remains in `core` as the name for a flight that goes
+nowhere. Putting that rule in `gapAt`, where it belongs, was measured at +5 to
++53 s of cold link time (BUG-LOG §18, corrected by §20) and has not been needed
+since §19.
+
+**A reading room is a room, not a column.** `cellType` is a function of
+`(q,r)` and cannot see a floor, so every type it returns runs the whole height
+of the Library. A shaft and a flight must: a stair has to arrive at a doorway on
+every storey or it climbs into a floor. A reading room did so by accident, and
+the atlas made it obvious — the rare pale rooms stacked into columns you could
+pick out at a glance, which means finding one told you where one was on every
+floor above and below.
+
+It is the only type that could move, and for a reason worth stating: **a reading
+room is not part of the structure.** `openGround` counts it as open ground,
+`axisEnd` returns the same 1 for it as for a gallery, and `gapAt` never mentions
+it. So `cellType` dropped the study band back into the galleries and
+`studyAt(q, r, fl)` decides per storey, at a rate over galleries that lands on
+the same 2.1% of cells the column rule did. The topology is not merely expected
+to be unchanged, it is **proved** unchanged: 8,281 cells across four storeys,
+198,744 edges, and zero gaps, axes or rises differ.
+
+Not random — a hash of the cell *and* the storey, so the same room on the same
+floor is the same room for anyone for ever. What it stops being is correlated
+with the floors above and below.
+
+The shader is told once per cell: `cellDesc` packs the answer as **bit 23**,
+free on a gallery because a corridor uses 23–24 for its axis and is never a
+study, and `mapAt` gates its whole reading-room branch on that bit. So
+`cellType` stays structural on the hot path and `studyAt` has two call sites —
+`cellDesc`, and the lamp loop, which wanted it per storey anyway. Measured cold
+against cold, the change is free: **85.0 s against a ~91 s cold baseline**.
+
+Everything that draws or describes a room asks `roomAt(q, r, fl)`; everything
+that works out where a wall goes asks `cellType(q, r)`. Getting that wrong is
+not hypothetical — the atlas asked the column and drew every reading room as a
+gallery, on the one page whose job is to show you that sort of thing, so the
+suite now asserts it asks the storey.
+
+**Vertical traversal: 12% flights and 2% shafts became 9% and 3%.** At 12% a
+flight was never more than a couple of rooms away and the Library read as a
+staircase with galleries attached. Climbing should be something you go and find.
+
+The limit is not taste. A shaft is impassable, so raising its share fragments a
+storey, and the cost lands on the walk to the nearest flight that *works* —
+measured over a 111×111 sample as rooms walked:
+
+| shafts | flights | mean walk | stranded |
+|---|---|---|---|
+| 2% | 12% | 1.6 | none |
+| **3%** | **9%** | **2.0** | **none** |
+| 4% | 8% | 2.1 | 0.9% |
+| 4% | 6% | 2.5 | 1.8% |
+
+"Stranded" is a room with no working flight inside thirty. **The frontier is at
+3% shafts**; past it the number stops being zero, which is why the change stops
+there rather than going further. Dead-end flights fall with the square of the
+share — 106 to 59 over the same sample — because a dead end is mostly a flight
+that met another flight.
+
+**The atlas: the lattice as an object rather than a place.** `app/babel-atlas.html`
+draws the cluster around a cell — 6 cells in every direction and 6 storeys either
+way by default, 1,651 cells — as low-poly solids you can orbit, slice and filter.
+It answers the questions the prototype cannot: what is next to what, which way a
+flight runs, and where the network stops. Rooms are hexagonal prisms, corridors
+and flights are beams, a flight's top is sloped so its rise reads at a glance,
+and every open edge is drawn as a bar. It draws the **void**, not the rock.
+
+Three things about it are deliberate:
+
+- **It imports `core/` instead of inlining it.** The prototype inlines because it
+  ships as one file and is tested for byte-identical drift; nothing here ships,
+  so an import is the same single source with no build step and nothing to drift.
+- **It does not ray-march.** An SDF answers "what is in front of me", which is
+  the wrong question for a map, and the prototype's takes ~91 s to link on a cold
+  GPU cache (BUG-LOG §20). The atlas is triangles and links instantly.
+- **It shares the kit and cannot fork it.** The palette moved to
+  `core/ui-kit.css`; the prototype inlines it at `@tokens`, the atlas links it.
+  Four tests hold the atlas to the same rules the prototype has: link the kit,
+  redeclare none of its 38 tokens, name its own model colours and spell them
+  nowhere else, and document every key it handles.
+
+The model palette is amber separated by **value, not hue** — the dither has six
+steps to spend, and two colours one step apart are two colours nobody can tell
+apart. `--alert` is not reused for a room type: it means attention, and a type
+that is always that colour would mean nothing is.
+
 **What actually stopped the shader linking, and how it was found.** The GLSL
 compiled in 17 ms; the linker then ran for **127 seconds** and returned false
 with an empty info log. Nothing reported an error — the page simply froze,

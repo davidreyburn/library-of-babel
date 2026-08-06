@@ -11,6 +11,7 @@
    * artefact and an alert are not the same thing and must not share a token.
    *   --crimson  the artefact. If it is this colour it is THAT BOOK.
    *   --alert    attention: focus, refusals, the thing you just did.        */
+  /* @tokens:begin */
   :root{
     /* ink and type */
     --ink:#12140F;          /* the page behind everything            */
@@ -56,6 +57,7 @@
     /* the serif survives on the title and nowhere else */
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   }
+/* @tokens:end */
   html,body{height:100%;}
   body{margin:0;background:var(--ink);color:var(--pale);font-family:var(--mono);overflow:hidden;}
   /* nearest-neighbour upscale: the dither must land on whole pixels, or the
@@ -500,7 +502,7 @@
    under one version replays only against that version: a rules change
    must break a replay loudly rather than invalidate it quietly. Bump it
    whenever the lattice, the corpus or the seam changes behaviour. */
-const CORE_VERSION = "0.5.0";
+const CORE_VERSION = "0.6.0";
 
 /* ---- lattice constants (verbatim from the prototype) --------------- */
 const G = {
@@ -556,17 +558,29 @@ const G = {
   SHELF_BASE: 0.05    // the first shelf's height above the floor
 };
 const P_OPEN  = 32768;   // 0.50 * 65536
-const P_SHAFT = 1311;    // 0.02 -- a shaft view in about 1 room in 18
-const P_STAIR = 9175;    // 0.02 + 0.12
-const P_STUDY = 10486;   // + 0.02 -- a reading room, rarely met
+/* Half the vertical the Library had, and half again as many wells to look
+   down. Climbing should be something you go and find, not something you
+   trip over: at 12% a flight was never more than a couple of rooms away and
+   the Library read as a staircase with galleries attached.
+   Why not further. A shaft is impassable, so raising its share fragments a
+   storey, and the cost lands on the walk to the nearest flight that works.
+   Measured over a 111x111 sample, as rooms walked to reach one:
+       2% / 12%   mean 1.6, none stranded      (as it was)
+       3% /  9%   mean 2.0, none stranded      (this)
+       4% /  8%   mean 2.1, 0.9% stranded
+       4% /  6%   mean 2.5, 1.8% stranded
+   "Stranded" is a room with no working flight inside thirty. The frontier
+   is at 3% shafts; past it the number stops being zero. */
+const P_SHAFT = 1966;    // 0.03 -- a shaft view in about 1 room in 12
+const P_STAIR = 7864;    // 0.03 + 0.09
 /* The corridor's band is taken from the TOP of the range rather than
-   continued from P_STUDY, and that is deliberate. Continuing the ascending
-   chain makes the type of every gallery a function of where this threshold
-   lands: a 10% band starting at P_STUDY swallows cell 15,94 -- hash lane
-   16563 -- and the crimson volume with it. Taken from the top, the band can
-   be widened or narrowed to taste without moving a single shaft, stairwell,
-   reading room, or the landmark. Only the share of galleries changes.
-   0.10 * 65536 = 6554.                                                    */
+   continued from the stairwell's, and that is deliberate. Continuing the
+   ascending chain makes the type of every gallery a function of where this
+   threshold lands: a 10% band starting where the flights end swallows cell
+   15,94 -- hash lane 16563 -- and the crimson volume with it. Taken from the
+   top, the band can be widened or narrowed to taste, and the shaft and
+   stairwell shares moved, without touching the landmark. Only the share of
+   galleries changes. 0.10 * 65536 = 6554.                                  */
 const P_CORR  = 58982;   // 65536 - 6554: a corridor in about 1 cell in 10
 const CRIM = { q: 15, r: 94, floor: 0, wall: 1, shelf: 2, slot: 17 };
 const GAP = { WALL:0, PASSAGE:1, HALL:2, SHAFT:3 };
@@ -586,14 +600,46 @@ const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 const DIRW = [[0.8660254,0.5],[0.8660254,-0.5],[0,-1],
               [-0.8660254,-0.5],[-0.8660254,0.5],[0,1]];
 const cellKey = (q,r) => uhash(u32((q + 32768) | ((r + 32768) << 16)));
+/* cellType is a fact about (q,r) and cannot see a floor, so every type it
+   returns is a COLUMN running the whole height of the Library. For a shaft
+   and a flight that is required -- a stair has to arrive at a doorway on
+   every storey or it climbs into a floor. For a reading room it was an
+   accident, and a visible one: find one and you have found one on every
+   floor above and below it, which is a shortcut the Library should not be
+   handing out. Seen first in the atlas, where the rare pale rooms stack
+   into columns you can pick out at a glance. */
 function cellType(q,r){
   const h = cellKey(q,r) >>> 16;
   if (h < P_SHAFT) return TYPE.SHAFT;
   if (h < P_STAIR) return TYPE.STAIRWELL;
-  if (h < P_STUDY) return TYPE.STUDY;
   if (h >= P_CORR) return TYPE.CORRIDOR;
   return TYPE.GALLERY;
 }
+/* Which galleries are furnished, decided per storey.
+ *
+ * This is safe to move and nothing else is, because a reading room is not
+ * part of the structure: openGround counts it as open ground, axisEnd
+ * returns the same 1 for it as for a gallery, and gapAt does not mention
+ * STUDY at all. So which rooms are furnished changes no gap, no axis, no
+ * route -- a claim the suite checks rather than takes on trust.
+ *
+ * Not random: a hash of the cell AND the storey. The same room on the same
+ * floor is the same room for anyone, for ever, which is what makes a
+ * citation worth anything. What it stops being is correlated with the
+ * floors above and below.
+ *
+ * The rate is over galleries rather than over all cells, so it reads
+ * higher than the 0.02 it replaces while landing on the same number of
+ * rooms. */
+const P_ROOM = 1819;     // 0.0278 of galleries -- the same 2.1% of cells as the column rule
+const studyRoll = (q, r, fl) =>
+  uhash(u32(cellKey(q, r) ^ u32(Math.imul(fl + 32768, 374761393)) ^ 0x2545f491));
+const studyAt = (q, r, fl) =>
+  cellType(q, r) === TYPE.GALLERY && (studyRoll(q, r, fl) >>> 16) < P_ROOM;
+/* What the room IS, as opposed to what the column is. Everything that reads
+   a cell to draw it, furnish it or describe it wants this; everything that
+   reads a cell to work out where a wall goes wants cellType. */
+const roomAt = (q, r, fl) => studyAt(q, r, fl) ? TYPE.STUDY : cellType(q, r);
 /* Footprints of whatever this reading room holds, so you cannot walk through
    the furniture. Same kits, same anchor, same order as the shader.       */
 /* stair axis and rise, mirroring the shader */
@@ -846,7 +892,7 @@ function corridorUV(lx, lz, cq, cr){
  * naming a wall that is a doorway is simply false. That is what makes
  * a claimed coordinate checkable.                                     */
 function shelvedWalls(q, r, fl){
-  if (cellType(q, r) !== TYPE.GALLERY) return [];
+  if (roomAt(q, r, fl) !== TYPE.GALLERY) return [];
   const out = [];
   for (let i = 0; i < 6; i++) if (gapAt(q, r, i, fl) === GAP.WALL) out.push(i);
   return out;
@@ -891,7 +937,7 @@ function exitsFrom(q, r, fl){
     const g = gapAt(q, r, i, fl);
     if (g === GAP.WALL) continue;
     const nq = q + DIRS[i][0], nr = r + DIRS[i][1];
-    const nt = cellType(nq, nr);
+    const nt = roomAt(nq, nr, fl);
     out.push({
       dir: i, via: GAP_NAME[g], to: { q: nq, r: nr, floor: fl },
       type: CELL_TYPE_NAME[nt],
@@ -902,7 +948,7 @@ function exitsFrom(q, r, fl){
   return out;
 }
 function describeCell(q, r, fl){
-  const t = cellType(q, r);
+  const t = roomAt(q, r, fl);
   const walls = shelvedWalls(q, r, fl);
   return {
     cell: { q, r, floor: fl },
@@ -939,7 +985,7 @@ function alcovesIn(q, r, fl){
    of study furniture listed here because the rest are already reported as
    furniture and seats. */
 function holdsIn(q, r, fl){
-  const t = cellType(q, r);
+  const t = roomAt(q, r, fl);
   if (t === TYPE.CORRIDOR) return alcovesIn(q, r, fl).map(a => a.holds);
   if (t === TYPE.STUDY && (studyVisible(q, r, fl) & FURN_MIRROR)) return ["mirror"];
   return [];
@@ -960,7 +1006,7 @@ const FURN_MIRROR = 16;
    and same culling as the renderer, so what is listed is what is drawn
    and what you collide with. */
 function studyPieces(q, r, fl){
-  if (cellType(q, r) !== TYPE.STUDY) return [];
+  if (!studyAt(q, r, fl)) return [];
   const key = studyKey(q, r, fl);
   const kept = studyVisible(q, r, fl);          // the kit after doorway culling
   const ax = DIRW[studyAnchor(q, r, fl, key)];
@@ -1001,6 +1047,15 @@ const seatsIn = (q, r, fl) => studyPieces(q, r, fl).filter(p => p.sittable);
  * it inside the SDF -- about eighty times per pixel, which cost 6.5 ms a
  * frame in a furnished room. It is computed here, once. The alcoves are
  * carried for exactly the same reason. */
+/* Which ends of a flight carry the 0.75 m overhang. The overhang exists to
+   reach a neighbour doorway; an end with no doorway must not have one, or
+   the cut runs through the rock (BUG-LOG 19). +u runs toward the axis when
+   the flight rises that way, and toward its opposite when it does not. */
+function stairExtends(q, r, fl){
+  const a = axisOf(q, r), up = riseOf(q, r) > 0;
+  return [gapAt(q, r, (up ? a : a + 3) % 6, fl) !== GAP.WALL,
+          gapAt(q, r, (up ? a + 3 : a) % 6, fl) !== GAP.WALL];
+}
 function cellDesc(q, r, fl){
   let packed = 0;
   for (let i = 0; i < 6; i++) packed |= gapAt(q, r, i, fl) << (i * 2);
@@ -1008,11 +1063,22 @@ function cellDesc(q, r, fl){
   if (t === TYPE.STAIRWELL){
     packed |= axisOf(q, r) << 12;
     packed |= (riseOf(q, r) > 0 ? 1 : 0) << 14;
+    /* bits 15-16: does each end of the flight open? Resolved once per cell
+       so mapAt, which is inlined at eight call sites, reads a constant bit.
+       A study never shares these bits -- a cell is one or the other. */
+    const [ep, em] = stairExtends(q, r, fl);
+    if (ep) packed |= 1 << 15;
+    if (em) packed |= 1 << 16;
   }
-  if (t === TYPE.STUDY){
+  if (studyAt(q, r, fl)){
     const key = studyKey(q, r, fl);
     packed |= studyAnchor(q, r, fl, key) << 15;
     packed |= studyVisible(q, r, fl) << 18;
+    /* bit 23: this room is furnished. mapAt gates the whole reading-room
+       branch on it, so cellType stays a fact about the column and the
+       shader never asks a second time. A corridor uses 23-24 for its axis
+       and is never a study, so the bit is free here. */
+    packed |= 1 << 23;
   }
   if (t === TYPE.CORRIDOR){
     packed |= corridorAxis(q, r) << 23;
@@ -1025,8 +1091,11 @@ function cellDesc(q, r, fl){
 const descGaps   = d => [0,1,2,3,4,5].map(i => (d >> (i * 2)) & 3);
 const descAxis   = d => (d >> 12) & 3;
 const descRise   = d => ((d >> 14) & 1) ? 1 : -1;
-const descAnchor = d => (d >> 15) & 7;
+const descAnchor = d => (d >> 15) & 7;          // a study; a flight uses 15-16 below
+const descExtP   = d => ((d >> 15) & 1) === 1;  // the +u end of a flight opens
+const descExtM   = d => ((d >> 16) & 1) === 1;  //     -u
 const descKit    = d => (d >> 18) & 31;
+const descStudy    = d => ((d >> 23) & 1) === 1;   // a gallery; see below on a corridor
 const descCorrAxis = d => (d >> 23) & 3;
 const descAlcove   = (d, side) => (d >> (25 + side * 2)) & 3;
 
@@ -1046,6 +1115,29 @@ function stepHash(seed, n){
    does -- entering at the low end climbs, entering at the high end
    descends. Returns null if the far side is walled and the stair is a
    dead end. */
+/* Does this flight go anywhere at all? gapAt opens a stairwell on both
+   walls its axis runs between, but the corridor rule can wall one of them
+   afterwards, and 7.3% of flights are open at one end and solid rock at
+   the other. throughStairwell refuses to cross one, so the seam has always
+   been right about them.
+
+   They are not a defect and they are not sealed off. A flight that climbs
+   into rock is a thing the text allows, and since BUG-LOG 19 the renderer
+   builds exactly that: you walk in, you climb, and the top is a wall. What
+   was wrong was never the dead end -- it was that the flight was cut 0.75 m
+   past its own walled end, so it ran through the rock and let a walker out
+   inside the next cell.
+
+   Kept because it names the fact, and because the test that guards the
+   seam against the renderer needs a word for it. Not used by the renderer:
+   putting it in gapAt, where it belongs, costs 96 to 144 seconds of link
+   time by every route measured (BUG-LOG 18). */
+function stairCrossable(sq, sr, fl){
+  if (cellType(sq, sr) !== TYPE.STAIRWELL) return false;
+  const a = axisOf(sq, sr);
+  return gapAt(sq, sr, a, fl)     !== GAP.WALL &&
+         gapAt(sq, sr, a + 3, fl) !== GAP.WALL;
+}
 function throughStairwell(sq, sr, sfl, dir){
   const a = axisOf(sq, sr), sgn = riseOf(sq, sr);
   const lowWall = sgn > 0 ? (a + 3) % 6 : a;
@@ -1483,7 +1575,7 @@ function validate(a){
     if (a.offset + a.phrase.length > C) return { ok: false, reason: "phrase runs past the book" };
     return { ok: true };
   }
-  const t = cellType(a.q, a.r);
+  const t = roomAt(a.q, a.r, a.floor ?? 0);
   /* A room address only has to name somewhere you could be. A shaft is the
      one cell type you cannot stand in -- you look into it, you do not cross
      it -- so that is the only rejection. */
@@ -1909,12 +2001,12 @@ uint uhash(uint x){
 }
 uint cellKey(ivec2 c){ return uhash(uint(c.x + 32768) | (uint(c.y + 32768) << 16)); }
 uint studyKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 2654435761u)); }
+uint studyRoll(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 374761393u) ^ 0x2545f491u); }
 uint corrKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 0x7ed55d16u)); }
 int cellType(ivec2 c){
   uint h = cellKey(c) >> 16;
-  if (h < 1311u) return 1;
-  if (h < 9175u) return 2;
-  if (h < 10486u) return 3;      // a reading room: no shelves, some furniture
+  if (h < 1966u) return 1;
+  if (h < 7864u) return 2;
   if (h >= 58982u) return 4;      // a corridor: mirror, latrine, standing closet
   return 0;
 }
@@ -1957,6 +2049,19 @@ int axisEnd(ivec2 c, int a, int i){       // 0 nothing . 1 open ground . 2 a fli
   if (t == 0 || t == 3) return 1;
   if (t == 2 && a == axisOf(n)) return 2;
   return 0;
+}
+/* Which galleries are furnished, decided per storey. This is the one
+   type that can move, because a reading room is not part of the
+   structure: openGround counts it as open ground, axisEnd returns the
+   same 1 for it as for a gallery, and gapAt never mentions it. So which
+   rooms are furnished changes no gap, no axis and no route -- proved
+   over 198,744 edges rather than asserted.
+
+   Two call sites, both already holding a floor: cellDesc, which packs
+   the answer into bit 23 so mapAt need not ask a second time, and the
+   lamp loop, which wants it per storey anyway. */
+bool studyAt(ivec2 c, int fl){
+  return cellType(c) == 0 && (studyRoll(c, fl) >> 16) < 1819u;
 }
 int corridorAxis(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x1d3f9a7bu) % 3u);
@@ -2295,16 +2400,32 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
        of the cell and climbing exactly one storey: a narrow hallway, not a
        well. Copies sit every storey, so entering low puts you out one floor
        up, and entering high puts you out one floor down.                */
-    vec2 ax = dirW((desc >> 12) & 3);
-    float u = dot(lp, ax) * (((desc >> 14) & 1) == 1 ? 1.0 : -1.0);
+    int sax = (desc >> 12) & 3;
+    bool sup = ((desc >> 14) & 1) == 1;
+    vec2 ax = dirW(sax);
+    float u = dot(lp, ax) * (sup ? 1.0 : -1.0);
     float v = dot(lp, vec2(-ax.y, ax.x));
     float t = clamp((u + STAIR_RUN) / (2.0 * STAIR_RUN), 0.0, 1.0);
     float smoothY = t * H_FLOOR;
     float stepY   = ceil(t * 14.0) * (H_FLOOR / 14.0);
+    /* The overhang belongs to a doorway, not to the flight. STAIR_RUN is
+       exactly the cell radius, so the run ends on the boundary and EXT
+       carries it 0.75 m into the neighbour to meet that neighbour's opening.
+       Carrying it into a neighbour there is no opening to meet drives the
+       cut straight through the rock: from the gallery it reads as a stair
+       climbing into a black hole, and a walker who followed it came out
+       inside the next cell, across an edge gapAt calls WALL (BUG-LOG 19).
+       So each end is extended only if that end is open.
+       Two constant bits, resolved once per cell in cellDesc. Working the
+       same thing out here instead cost 94 seconds of link time: mapAt is
+       inlined at eight call sites, and it took two dynamic shifts. */
+    float extP = ((desc >> 15) & 1) == 1 ? STAIR_EXT : 0.0;
+    float extM = ((desc >> 16) & 1) == 1 ? STAIR_EXT : 0.0;
+    float run  = max(u - (STAIR_RUN + extP), -u - (STAIR_RUN + extM));
     dv = 1e5;
     for (int k = -1; k <= 1; k++){
       float h = p.y - float(fl + k) * H_FLOOR;
-      dv = min(dv, max(max(abs(u) - (STAIR_RUN + STAIR_EXT), abs(v) - STAIR_HW),
+      dv = min(dv, max(max(run, abs(v) - STAIR_HW),
                        max(stepY - h, h - smoothY - 2.05)));
     }
   } else {
@@ -2380,7 +2501,10 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     if (f < d){ d = f; gMat = float(gFurnMat); }
     return d;
   }
-  if (ctype == 3){                                        // a reading room
+  /* Gated on the packed bit, not on the type: a reading room is a fact
+     about the room and the storey now, and cellDesc already worked it out
+     once for this cell. */
+  if (((desc >> 23) & 1) == 1){                           // a reading room
     float f = furniture(lp, fy, studyKey(c, fl), desc, d);
     if (f < d){ d = f; gMat = float(gFurnMat); }
     return d;
@@ -2508,10 +2632,25 @@ int cellDesc(ivec2 c, int fl){
   for (int i = 0; i < 6; i++) packed |= gapAt(c, i, fl) << (i * 2);
   int t = cellType(c);
   if (t == 2){                                 // stash axis and rise, bits 12-14
-    packed |= axisOf(c) << 12;
-    packed |= (riseOf(c) > 0.0 ? 1 : 0) << 14;
+    int a = axisOf(c);
+    bool up = riseOf(c) > 0.0;
+    packed |= a << 12;
+    packed |= (up ? 1 : 0) << 14;
+    /* bits 15-16: does each end of the flight open? The overhang that meets
+       a neighbour doorway must not be cut where there is no doorway, or it
+       runs through the rock (BUG-LOG 19). Resolved here rather than in
+       mapAt, which is inlined at eight call sites -- doing it there cost 94
+       seconds of link time. Spelled out per axis so every shift is a
+       constant: packed >> (a * 2) is a dynamic shift, and that was most of
+       the 94 seconds. A study never shares these bits. */
+    int lo, hi;
+    if      (a == 0){ lo = (packed >> 0) & 3; hi = (packed >>  6) & 3; }
+    else if (a == 1){ lo = (packed >> 2) & 3; hi = (packed >>  8) & 3; }
+    else            { lo = (packed >> 4) & 3; hi = (packed >> 10) & 3; }
+    if ((up ? lo : hi) != 0) packed |= 1 << 15;   // the +u end
+    if ((up ? hi : lo) != 0) packed |= 1 << 16;   //     -u
   }
-  if (t == 3){                                 // the study anchor, bits 15-17
+  if (studyAt(c, fl)){                         // the study anchor, bits 15-17
     /* one rule, from the generated block above -- this used to carry its
        own copy of the best-fit loop while studyAnchor() implemented a
        different rule for the lamp */
@@ -2530,6 +2669,11 @@ int cellDesc(ivec2 c, int fl){
         !clearOfDoors(ax * 1.06, 0.25, packed)) m &= ~8;
     if (!clearOfDoors(ax * 1.79, 0.06, packed)) m &= ~16;
     packed |= m << 18;
+    /* bit 23: this room is furnished. mapAt gates its whole reading-room
+       branch on this, so cellType stays a fact about the column and no
+       shading path asks studyAt a second time. A corridor uses 23-24 for
+       its own axis and is never a study, so the bit is free here. */
+    packed |= 1 << 23;
   }
   if (t == 4){                                 // the corridor, bits 23-28
     /* Which alcove holds what is a fact about the cell, not about the
@@ -2604,7 +2748,11 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
        ends of a corridor read a little darker for it, which LIB-P-012 is
        not going to complain about. */
 
-    if (ct == 3){
+    /* A gallery, because a reading room is now one that happens to be
+       furnished on THIS storey. The loop already ran per storey to find the
+       lamp; it just used to be able to assume the room was a reading room on
+       all of them, and cannot any more. */
+    if (ct == 0){
       for (int f = -1; f <= 1; f++){           // the reading lamp is a real source
         int flf = fl0 + f;
         /* Reject on the room before working out where its lamp is. Whatever
@@ -2612,9 +2760,12 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
            centre, so beyond 7 + 1.646 it cannot reach us. Without this the
            anchor scan ran three times per neighbouring room -- once per
            storey -- and the dl > 7.0 test below then threw two of them away.
-           That scan is the most expensive thing in this function. */
+           That scan is the most expensive thing in this function.
+           Distance first, then whether the room is furnished at all: the
+           reject is a subtract and a compare, and studyAt is a hash. */
         vec3 mid = vec3(wc.x, float(flf) * H_FLOOR + 1.40, wc.y);
         if (distance(p, mid) > 8.65) continue;
+        if (!studyAt(c, flf)) continue;
         uint k = studyKey(c, flf);
         if ((studyKit(k) & 4) == 0) continue;
         /* The anchor, and only the anchor. Going through cellDesc would also
@@ -3425,7 +3576,16 @@ function voidDist2D(x, z, fl){
     // blocked sliver right on the threshold, where the flight ends and the
     // gallery's own opening has not yet begun
     const [u, v] = stairUV(lx, lz, cq, cr);
-    d = Math.max(Math.abs(u) - (G.STAIR_RUN + G.STAIR_EXT), Math.abs(v) - G.STAIR_HW);
+    /* Extended only at an end that opens, from the same rule the shader
+       reads out of cellDesc. The overhang exists to meet the doorway box a
+       neighbour draws; run it past a *walled* end and the cut goes through
+       the rock, which is how a stair came to climb into a black hole and
+       let a walker out inside the next cell, across an edge gapAt calls
+       WALL (BUG-LOG 19). */
+    const [ep, em] = stairExtends(cq, cr, fl);
+    d = Math.max(Math.max(u - (G.STAIR_RUN + (ep ? G.STAIR_EXT : 0)),
+                         -u - (G.STAIR_RUN + (em ? G.STAIR_EXT : 0))),
+                 Math.abs(v) - G.STAIR_HW);
   }
   else if (t === TYPE.CORRIDOR){
     // the same slab the shader cuts, and the same two recesses -- an alcove

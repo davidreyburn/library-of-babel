@@ -1,0 +1,603 @@
+<title>The Library of Babel — atlas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../core/ui-kit.css">
+<style>
+  /* The model's own palette. These are not chrome: they are the substrate
+     colours the shader multiplies its tone ramp against, the way the
+     prototype's GLSL owns C_INK. Amber throughout, separated by value
+     rather than by hue, because the dither only has six steps to spend and
+     two colours a step apart are two colours nobody can tell apart.
+
+     --alert is NOT reused here. It means attention in the kit, and a room
+     type that is always that colour would mean nothing is. */
+  :root{
+    --cell-gallery:#C8913C;   /* the common case, and the mid tone         */
+    --cell-study:#E8C87A;     /* a reading room: the brightest thing here  */
+    --cell-corridor:#9A6B2F;  /* a hallway, a value below the gallery      */
+    --cell-stair:#B5762A;     /* a flight, warmer so a ramp reads as one   */
+    --cell-shaft:#5E3B22;     /* a well: the deepest, and the one you fall */
+    --cell-door:#D8A75A;      /* what joins them, brighter than either     */
+    --model-sky:#12140F;      /* the same ink the chrome sits on           */
+  }
+  html,body{height:100%;}
+  body{margin:0;background:var(--ink);color:var(--pale);
+       font-family:var(--mono);overflow:hidden;}
+  /* The buffer is an integer fraction of the canvas and upscaled by nearest
+     neighbour, so the dither pattern lands on whole pixels -- the same
+     reason, and the same trick, as the prototype. */
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block;
+      image-rendering:pixelated;}
+  .panel{
+    position:fixed;background:var(--panel-bg);border:1px solid var(--panel-line);
+    padding:var(--pad);font-size:var(--sz);line-height:var(--lead);letter-spacing:var(--track);
+  }
+  #legend{top:var(--gap);left:var(--gap);min-width:13rem;}
+  #legend .row{display:flex;align-items:center;gap:.5rem;cursor:pointer;}
+  #legend .row:hover .n{color:var(--bright);}
+  #legend .sw{width:.62rem;height:.62rem;border:1px solid var(--line-soft);flex:none;}
+  #legend .n{color:var(--pale);flex:1;}
+  #legend .c{color:var(--faint);font-variant-numeric:tabular-nums;}
+  #legend .row.off .n,#legend .row.off .c{color:var(--mute);}
+  #legend .row.off .sw{opacity:.22;}
+  #legend .hd{color:var(--faint);margin-bottom:.25rem;}
+  #legend .ft{color:var(--mute);margin-top:.35rem;font-size:var(--sz-sm);}
+  #legend .ft b{color:var(--faint);font-weight:400;}
+
+  #stats{top:var(--gap);right:var(--gap);font-size:var(--sz-sm);color:var(--faint);
+         text-align:right;min-width:11rem;}
+  #stats .row{display:flex;justify-content:space-between;gap:1.4rem;}
+  #stats b{color:var(--pale);font-weight:400;}
+
+  #help{bottom:var(--gap);left:var(--gap);font-size:var(--sz-sm);color:var(--dim);max-width:27rem;}
+  #help b{color:var(--pale);font-weight:400;}
+  #help .t{color:var(--faint);}
+  #help .grp{margin:.15rem 0;}
+  #help .k{color:var(--faint);}
+
+  #toast{
+    position:fixed;left:50%;bottom:var(--gap);transform:translateX(-50%);
+    background:var(--panel-bg);border:1px solid var(--panel-line);
+    padding:var(--pad);font-size:var(--sz);line-height:var(--lead);
+    letter-spacing:var(--track);color:var(--pale);
+    opacity:0;transition:opacity .18s ease;pointer-events:none;z-index:8;
+  }
+  #toast.up{opacity:1;}
+  #toast.alert{color:var(--alert);border-color:var(--alert);}
+  [hidden]{display:none !important;}
+</style>
+
+<canvas id="gl"></canvas>
+
+<div class="panel" id="legend"></div>
+<div class="panel" id="stats" hidden></div>
+<div class="panel" id="help" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+/* ====================================================================
+ * The atlas -- the lattice as a model you can turn over in your hand.
+ *
+ * A separate page from the prototype, and separate on purpose:
+ *
+ *   - It imports core/ as a module instead of inlining it. The prototype
+ *     inlines because it ships as one file; nothing here ships, so the
+ *     import is the single source with no build step and no drift to test.
+ *   - It does NOT ray-march. The prototype's SDF answers "what is in front
+ *     of me", which is the wrong question for a map, and it costs ~91
+ *     seconds to link on a cold GPU cache (BUG-LOG 20). This is triangles:
+ *     a few hundred lines of GLSL that link instantly.
+ *
+ * What it draws is the VOID -- the rooms, not the rock. Solids with air
+ * between them, joined by bars where gapAt says a doorway is. That is the
+ * shape of the questions this page exists to answer: what is next to what,
+ * which way does a flight run, and where does the network stop.
+ * ==================================================================== */
+import { G, DIRS, DIRW, TYPE, GAP, CELL_TYPE_NAME,
+         cellType, roomAt, gapAt, axisOf, riseOf, corridorAxis,
+         worldOf, stairCrossable } from "../core/babel-core.mjs";
+
+const qs = new URLSearchParams(location.search);
+const RADIUS = Math.max(0, Math.min(12, +(qs.get("r") ?? 6)));
+const FLOORS = Math.max(0, Math.min(12, +(qs.get("f") ?? 6)));
+const [CQ, CR] = (qs.get("at") ?? "0,0").split(",").map(n => +n || 0);
+
+const cv = document.getElementById("gl");
+const el = { legend: document.getElementById("legend"),
+             stats:  document.getElementById("stats"),
+             help:   document.getElementById("help"),
+             toast:  document.getElementById("toast") };
+const gl = cv.getContext("webgl2", { antialias: false, alpha: false });
+if (!gl) throw new Error("WebGL2 is required");
+
+/* ---- the kit's voice ------------------------------------------------ */
+let toastT = 0;
+function say(msg, kind){
+  clearTimeout(toastT);
+  el.toast.textContent = msg;
+  el.toast.className = "up" + (kind ? " " + kind : "");
+  toastT = setTimeout(() => { el.toast.className = ""; }, 2600);
+}
+
+/* ---- the model palette, read from the stylesheet --------------------
+ * Named in CSS and used in GL, so the legend swatch and the solid it
+ * stands for cannot disagree -- there is one place either could change. */
+const cssRGB = name => {
+  const s = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const h = s.replace("#", "");
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+};
+
+/* Order matters: this is the type id the shader indexes with. */
+const KINDS = [
+  { id: TYPE.GALLERY,   key: "1", name: "Gallery",      css: "--cell-gallery" },
+  { id: TYPE.SHAFT,     key: "2", name: "Shaft",        css: "--cell-shaft" },
+  { id: TYPE.STAIRWELL, key: "3", name: "Stairwell",    css: "--cell-stair" },
+  { id: TYPE.STUDY,     key: "4", name: "Reading room", css: "--cell-study" },
+  { id: TYPE.CORRIDOR,  key: "5", name: "Corridor",     css: "--cell-corridor" },
+  { id: 5,              key: "6", name: "Doorways",     css: "--cell-door" }
+];
+const DOOR = 5;                                   // not a cell type: what joins them
+
+/* ---- mesh ----------------------------------------------------------- *
+ * One static buffer. Eight floats a vertex: position, normal, kind, and
+ * the storey it belongs to, so slicing and hiding are uniforms rather
+ * than a rebuild -- a toggle has to be instant or nobody toggles. */
+const V = [];
+function tri(a, b, c, n, kind, fl){
+  for (const p of [a, b, c]) V.push(p[0], p[1], p[2], n[0], n[1], n[2], kind, fl);
+}
+function quad(a, b, c, d, n, kind, fl){ tri(a, b, c, n, kind, fl); tri(a, c, d, n, kind, fl); }
+
+/* A regular hexagon of the given apothem, in the lattice's own orientation:
+   face k faces DIRW[k], and the vertex between faces k and k+1 is where
+   their normals sum. */
+function hexRing(a){
+  const out = [];
+  for (let k = 0; k < 6; k++){
+    const n0 = DIRW[k], n1 = DIRW[(k + 1) % 6];
+    out.push([(n0[0] + n1[0]) * (2 * a / 3), (n0[1] + n1[1]) * (2 * a / 3)]);
+  }
+  return out;
+}
+function prism(cx, cz, apo, y0, y1, kind, fl){
+  const ring = hexRing(apo);
+  for (let k = 0; k < 6; k++){
+    const p = ring[(k + 5) % 6], q = ring[k];             // the face facing DIRW[k]
+    quad([cx + p[0], y0, cz + p[1]], [cx + q[0], y0, cz + q[1]],
+         [cx + q[0], y1, cz + q[1]], [cx + p[0], y1, cz + p[1]],
+         [DIRW[k][0], 0, DIRW[k][1]], kind, fl);
+  }
+  for (let k = 1; k < 5; k++){                            // caps, as fans
+    tri([cx + ring[0][0], y1, cz + ring[0][1]],
+        [cx + ring[k][0], y1, cz + ring[k][1]],
+        [cx + ring[k + 1][0], y1, cz + ring[k + 1][1]], [0, 1, 0], kind, fl);
+    tri([cx + ring[0][0], y0, cz + ring[0][1]],
+        [cx + ring[k + 1][0], y0, cz + ring[k + 1][1]],
+        [cx + ring[k][0], y0, cz + ring[k][1]], [0, -1, 0], kind, fl);
+  }
+}
+/* A box lying along a horizontal axis, with a top that may rise from one
+   end to the other -- which is how a flight reads as a flight and not as a
+   slab, and which way it rises is half of what this page is for. */
+function beam(cx, cz, ax, halfLen, halfWid, y0, yTopLow, yTopHigh, kind, fl){
+  const ux = ax[0], uz = ax[1], vx = -ax[1], vz = ax[0];
+  const P = (s, t, y) => [cx + ux * s + vx * t, y, cz + uz * s + vz * t];
+  const L = halfLen, W = halfWid;
+  const a = P(-L, -W, y0), b = P(L, -W, y0), c = P(L, W, y0), d = P(-L, W, y0);
+  const A = P(-L, -W, yTopLow), B = P(L, -W, yTopHigh),
+        C = P(L, W, yTopHigh),  D = P(-L, W, yTopLow);
+  quad(a, d, c, b, [0, -1, 0], kind, fl);                  // floor
+  const rise = yTopHigh - yTopLow, run = 2 * L;
+  const m = Math.hypot(rise, run);
+  quad(A, B, C, D, [-ux * rise / m, run / m, -uz * rise / m], kind, fl);
+  quad(a, b, B, A, [-vx, 0, -vz], kind, fl);
+  quad(c, d, D, C, [vx, 0, vz], kind, fl);
+  quad(b, c, C, B, [ux, 0, uz], kind, fl);
+  quad(d, a, A, D, [-ux, 0, -uz], kind, fl);
+}
+
+const counts = new Map(KINDS.map(k => [k.id === DOOR && k.name === "Doorways" ? DOOR : k.id, 0]));
+const bump = k => counts.set(k, (counts.get(k) ?? 0) + 1);
+const inRange = (q, r) =>
+  (Math.abs(q - CQ) + Math.abs(r - CR) + Math.abs((q - CQ) + (r - CR))) / 2 <= RADIUS;
+
+for (let q = CQ - RADIUS; q <= CQ + RADIUS; q++)
+for (let r = CR - RADIUS; r <= CR + RADIUS; r++){
+  if (!inRange(q, r)) continue;
+  const t = cellType(q, r);
+  const [wx, wz] = worldOf(q, r);
+  for (let fl = -FLOORS; fl <= FLOORS; fl++){
+    const base = fl * G.H_FLOOR;
+    if (t === TYPE.SHAFT){
+      /* A well is one shaft through every storey, so it is drawn full
+         height and butts against its own copies. It reads as a column. */
+      prism(wx, wz, G.APO_SHAFT * 0.72, base, base + G.H_FLOOR, TYPE.SHAFT, fl);
+    } else if (t === TYPE.STAIRWELL){
+      const a = axisOf(q, r), up = riseOf(q, r) > 0, ax = DIRW[a];
+      const lo = base + 0.10, hi = base + G.H_FLOOR;
+      beam(wx, wz, ax, G.STAIR_RUN, G.STAIR_HW, base,
+           up ? lo : hi, up ? hi : lo, TYPE.STAIRWELL, fl);
+    } else if (t === TYPE.CORRIDOR){
+      beam(wx, wz, DIRW[corridorAxis(q, r)], G.HALF_D, G.CORR_HW,
+           base, base + G.H_ROOM, base + G.H_ROOM, TYPE.CORRIDOR, fl);
+    } else {
+      /* roomAt, not cellType: whether a gallery is a reading room is a fact
+         about the storey now, and asking the column drew every one of them
+         as a plain gallery -- which this page is exactly the tool for
+         noticing. The other four types are columns and t is enough. */
+      prism(wx, wz, G.APO_ROOM, base, base + G.H_ROOM, roomAt(q, r, fl), fl);
+    }
+    if (fl === 0) bump(roomAt(q, r, fl));
+
+    /* The joins. Each edge once -- directions 0..2 -- so a doorway is not
+       drawn twice and shaded twice at slightly different depths. Stubs on
+       the boundary of the sample are kept: an edge that leaves the model
+       is a fact about the model, not a mistake. */
+    for (let i = 0; i < 3; i++){
+      const g = gapAt(q, r, i, fl);
+      if (g === GAP.WALL) continue;
+      const hw = g === GAP.HALL ? G.HALL_HW : g === GAP.SHAFT ? 0.62 : G.PASS_HW;
+      const h  = g === GAP.HALL ? G.H_ROOM * 0.92 : 2.04;
+      const mx = wx + DIRW[i][0] * G.HALF_D, mz = wz + DIRW[i][1] * G.HALF_D;
+      beam(mx, mz, DIRW[i], G.HALF_D - G.APO_ROOM + 0.12, hw * 0.72,
+           base + 0.06, base + h * 0.5, base + h * 0.5, DOOR, fl);
+      if (fl === -FLOORS) bump(DOOR);
+    }
+  }
+}
+const verts = new Float32Array(V);
+const nVerts = verts.length / 8;
+
+/* ---- program -------------------------------------------------------- */
+const VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNrm;
+layout(location=2) in float aKind;
+layout(location=3) in float aFloor;
+uniform mat4 uMVP;
+out vec3 vN; out float vKind; out float vFloor; out float vDepth;
+void main(){
+  vN = aNrm; vKind = aKind; vFloor = aFloor;
+  vec4 c = uMVP * vec4(aPos, 1.0);
+  vDepth = c.w;
+  gl_Position = c;
+}`;
+
+const FS = `#version 300 es
+precision highp float;
+in vec3 vN; in float vKind; in float vFloor; in float vDepth;
+uniform vec3  uTint[6];
+uniform float uShow[6];      // 1 shown, 0 hidden, 0.22 pushed back
+uniform vec2  uSlice;        // the storeys still standing
+uniform int   uGrain;
+uniform float uFar;
+out vec4 outColor;
+
+/* Both dithers, lifted from the prototype unchanged so the two pages have
+   one look. Ordered leaves a weave on a flat wall; the noise does not, and
+   a model is mostly flat walls -- so noise is the default here. */
+float bayer8(ivec2 c){
+  int x = c.x & 7, y = c.y & 7, v = 0;
+  for (int i = 0; i < 3; i++){
+    int s = 2 - i;
+    v = (v << 2) | (((y >> s) & 1) << 1) | (((x ^ y) >> s) & 1);
+  }
+  return float(v) / 64.0;
+}
+float ign(vec2 c){
+  return fract(52.9829189 * fract(dot(c, vec2(0.06711056, 0.00583715))));
+}
+void main(){
+  int k = int(vKind + 0.5);
+  if (vFloor < uSlice.x - 0.5 || vFloor > uSlice.y + 0.5) discard;
+  float show = uShow[k];
+  if (show < 0.01) discard;
+
+  /* Two lamps and an ambient floor, which is all a solid needs to read as
+     a solid. Not the prototype's lighting: that models a room you stand
+     in, and this is an object you hold. */
+  vec3 n = normalize(vN);
+  float key  = max(dot(n, normalize(vec3( 0.42, 0.86, 0.28))), 0.0);
+  float fill = max(dot(n, normalize(vec3(-0.55, 0.22, -0.70))), 0.0);
+  float lum  = 0.26 + 0.62 * key + 0.20 * fill;
+  lum *= mix(0.34, 1.0, show);                       // pushed back, not gone
+  lum *= 1.0 - 0.35 * clamp(vDepth / uFar, 0.0, 1.0);
+
+  float L   = (uGrain == 2) ? 10.0 : 6.0;
+  float amp = (uGrain == 2) ? 0.85 : 1.15;
+  float dth = (uGrain == 1 || uGrain == 2) ? ign(gl_FragCoord.xy) - 0.5
+                                           : bayer8(ivec2(gl_FragCoord.xy)) - 0.5;
+  float q = (uGrain == 3) ? lum
+          : clamp(floor(lum * (L - 1.0) + 0.5 + dth * amp) / (L - 1.0), 0.0, 1.0);
+  outColor = vec4(clamp(uTint[k] * (0.050 + 1.35 * q), 0.0, 1.0), 1.0);
+}`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
+  throw new Error(gl.getProgramInfoLog(prog) || "link failed");
+gl.useProgram(prog);
+
+const vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+const vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+const STRIDE = 32;
+for (const [loc, size, off] of [[0, 3, 0], [1, 3, 12], [2, 1, 24], [3, 1, 28]]){
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, size, gl.FLOAT, false, STRIDE, off);
+}
+const U = {};
+for (const n of ["uMVP", "uTint", "uShow", "uSlice", "uGrain", "uFar"])
+  U[n] = gl.getUniformLocation(prog, n);
+gl.uniform3fv(U.uTint, new Float32Array(KINDS.flatMap(k => cssRGB(k.css))));
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+
+/* ---- matrices, written out rather than imported --------------------- */
+const mul = (a, b) => {
+  const o = new Float32Array(16);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++){
+    let s = 0;
+    for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k];
+    o[i * 4 + j] = s;
+  }
+  return o;
+};
+function perspective(fovy, aspect, near, far){
+  const f = 1 / Math.tan(fovy / 2), o = new Float32Array(16);
+  o[0] = f / aspect; o[5] = f; o[11] = -1;
+  o[10] = (far + near) / (near - far); o[14] = 2 * far * near / (near - far);
+  return o;
+}
+function lookAt(e, c, up){
+  const z = norm([e[0] - c[0], e[1] - c[1], e[2] - c[2]]);
+  const x = norm(cross(up, z)), y = cross(z, x);
+  const o = new Float32Array(16);
+  o[0] = x[0]; o[4] = x[1]; o[8]  = x[2]; o[12] = -dot(x, e);
+  o[1] = y[0]; o[5] = y[1]; o[9]  = y[2]; o[13] = -dot(y, e);
+  o[2] = z[0]; o[6] = z[1]; o[10] = z[2]; o[14] = -dot(z, e);
+  o[15] = 1;
+  return o;
+}
+const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const dot   = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const norm  = a => { const l = Math.hypot(...a) || 1; return [a[0]/l, a[1]/l, a[2]/l]; };
+
+/* ---- state ---------------------------------------------------------- */
+const [ox, oz] = worldOf(CQ, CR);
+const HOME = { yaw: -0.9, pitch: 0.62, dist: RADIUS * 9 + 18,
+               tx: ox, ty: 0, tz: oz };
+const st = { ...HOME, grain: 1, div: 2,
+             show: new Map(KINDS.map(k => [k.id === DOOR ? DOOR : k.id, 1])),
+             lo: -FLOORS, hi: FLOORS, isolate: null };
+
+function resize(){
+  const w = Math.max(1, Math.round(cv.clientWidth  / st.div));
+  const h = Math.max(1, Math.round(cv.clientHeight / st.div));
+  if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+  gl.viewport(0, 0, cv.width, cv.height);          // AFTER the size, always
+}
+addEventListener("resize", resize);
+
+/* ---- the legend, which is also the control -------------------------- */
+function renderLegend(){
+  el.legend.innerHTML =
+    '<div class="hd">Around ' + CQ + ',' + CR + ' &middot; ' + RADIUS +
+    ' cells, ' + FLOORS + ' storeys either way</div>' +
+    KINDS.map(k => {
+      const id = k.id === DOOR ? DOOR : k.id;
+      const on = st.show.get(id) === 1;
+      return '<div class="row' + (on ? '' : ' off') + '" data-id="' + id + '">' +
+             '<i class="sw" style="background:var(' + k.css + ')"></i>' +
+             '<span class="n">' + k.name + '</span>' +
+             '<span class="c">' + k.key + '</span></div>';
+    }).join("") +
+    '<div class="ft">Storeys <b>' + st.lo + '</b> to <b>' + st.hi + '</b>' +
+    (st.isolate !== null ? ' &middot; isolated' : '') + '</div>';
+  for (const row of el.legend.querySelectorAll(".row"))
+    row.onclick = () => toggle(+row.dataset.id);
+}
+function toggle(id){
+  st.isolate = null;
+  st.show.set(id, st.show.get(id) === 1 ? 0 : 1);
+  const k = KINDS.find(x => (x.id === DOOR ? DOOR : x.id) === id);
+  say(k.name + (st.show.get(id) ? " shown." : " hidden."));
+  renderLegend();
+}
+/* Isolate is the question this page is usually asked: not "hide corridors"
+   but "show me only the flights". A second press puts everything back.
+
+   It HIDES the rest rather than dimming them. Dimming was the first idea
+   and it reads better -- until you isolate a rare type that lives inside
+   the block, which is every interesting case. Reading rooms are 2% of a
+   storey and none of them is on the surface: dimmed, the answer was a solid
+   wall of dim galleries with the thing you asked for somewhere behind it. */
+function isolate(id){
+  if (st.isolate === id){
+    st.isolate = null;
+    for (const k of KINDS) st.show.set(k.id === DOOR ? DOOR : k.id, 1);
+    say("All types shown.");
+  } else {
+    st.isolate = id;
+    for (const k of KINDS){
+      const kid = k.id === DOOR ? DOOR : k.id;
+      st.show.set(kid, kid === id ? 1 : 0);
+    }
+    say(KINDS.find(x => (x.id === DOOR ? DOOR : x.id) === id).name +
+        " alone. Press again for everything.");
+  }
+  renderLegend();
+}
+
+/* ---- BINDINGS, the only list of them -------------------------------- */
+const BINDINGS = [
+  { grp: "Turning it over", keys: [
+    ["Drag", "Orbit"],
+    ["Shift drag", "Pan"],
+    ["Wheel", "Zoom"],
+    ["Arrows", "Orbit, without the mouse"],
+    ["R", "Back to the first view"] ] },
+  { grp: "What you can see", keys: [
+    ["1 – 6", "Show or hide one kind"],
+    ["Shift 1 – 6", "That kind alone"],
+    ["[ ]", "Fewer or more storeys"],
+    ["\\", "One storey, or all of them"] ] },
+  { grp: "The page itself", keys: [
+    ["?", "Show or hide this list"],
+    ["F1", "Show or hide the instruments"],
+    ["− +", "Coarser or sharper render scale"],
+    ["G", "Cycle the grain"] ] }
+];
+el.help.innerHTML = BINDINGS.map(g =>
+  '<div class="grp"><span class="k">' + g.grp + '</span>&ensp;' +
+  g.keys.map(([k, d]) => '<b>' + k + '</b> <span class="t">' + d + '</span>').join(' &middot; ') +
+  '</div>').join("");
+
+const GRAINS = ["ordered", "noise", "fine", "smooth"];
+function renderStats(ms){
+  if (el.stats.hidden) return;
+  el.stats.innerHTML =
+    '<div class="row"><span>cells</span><b>' + cellCount + '</b></div>' +
+    '<div class="row"><span>triangles</span><b>' + (nVerts / 3).toLocaleString() + '</b></div>' +
+    '<div class="row"><span>storeys</span><b>' + (st.hi - st.lo + 1) + '</b></div>' +
+    '<div class="row"><span>scale</span><b>1:' + st.div + '</b></div>' +
+    '<div class="row"><span>grain</span><b>' + GRAINS[st.grain] + '</b></div>' +
+    '<div class="row"><span>frame</span><b>' + ms.toFixed(1) + ' ms</b></div>';
+}
+let cellCount = 0;
+for (let q = CQ - RADIUS; q <= CQ + RADIUS; q++)
+for (let r = CR - RADIUS; r <= CR + RADIUS; r++) if (inRange(q, r)) cellCount++;
+cellCount *= (2 * FLOORS + 1);
+
+/* ---- input ---------------------------------------------------------- */
+let drag = null;
+cv.addEventListener("pointerdown", e => {
+  drag = { x: e.clientX, y: e.clientY, pan: e.shiftKey || e.button === 1 };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan){
+    const s = st.dist * 0.0016;
+    st.tx += (-Math.cos(st.yaw) * dx + Math.sin(st.yaw) * dy * Math.sin(st.pitch)) * s;
+    st.tz += (-Math.sin(st.yaw) * dx - Math.cos(st.yaw) * dy * Math.sin(st.pitch)) * s;
+    st.ty += dy * s * Math.cos(st.pitch);
+  } else {
+    st.yaw   += dx * 0.007;
+    st.pitch  = Math.max(-1.45, Math.min(1.45, st.pitch + dy * 0.007));
+  }
+});
+for (const ev of ["pointerup", "pointercancel"]) cv.addEventListener(ev, () => drag = null);
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  st.dist = Math.max(6, Math.min(600, st.dist * Math.exp(e.deltaY * 0.0012)));
+}, { passive: false });
+
+function setSlice(lo, hi){
+  st.lo = Math.max(-FLOORS, Math.min(FLOORS, lo));
+  st.hi = Math.max(st.lo, Math.min(FLOORS, hi));
+  renderLegend();
+}
+addEventListener("keydown", e => {
+  const k = e.key;
+  if (k === "?"){ el.help.hidden = !el.help.hidden; return; }
+  if (e.code === "F1"){ e.preventDefault(); el.stats.hidden = !el.stats.hidden; renderStats(0); return; }
+  if (e.code === "KeyR"){
+    Object.assign(st, { yaw: HOME.yaw, pitch: HOME.pitch, dist: HOME.dist,
+                        tx: HOME.tx, ty: HOME.ty, tz: HOME.tz });
+    say("Back to the first view."); return;
+  }
+  if (e.code === "KeyG"){
+    st.grain = (st.grain + 1) % 4; say("Grain " + GRAINS[st.grain] + "."); renderStats(0); return;
+  }
+  if (e.code === "Minus" || e.code === "NumpadSubtract" ||
+      e.code === "Equal" || e.code === "NumpadAdd"){
+    const d = (e.code === "Minus" || e.code === "NumpadSubtract") ? 1 : -1;
+    st.div = Math.max(1, Math.min(4, st.div + d));
+    resize(); say("Render scale 1:" + st.div + "."); renderStats(0); return;
+  }
+  if (e.code === "BracketLeft"){ setSlice(st.lo + 1, st.hi - 1); return; }
+  if (e.code === "BracketRight"){ setSlice(st.lo - 1, st.hi + 1); return; }
+  if (e.code === "Backslash"){
+    if (st.lo === st.hi) { setSlice(-FLOORS, FLOORS); say("Every storey."); }
+    else { setSlice(0, 0); say("One storey, the origin's."); }
+    return;
+  }
+  /* e.code, not e.key: shifted digits are "!" on one layout and "±" on
+     another, and a diagnostic tool that only isolates stairwells on a US
+     keyboard is not a diagnostic tool. */
+  const n = KINDS.findIndex(x => e.code === "Digit" + x.key || e.code === "Numpad" + x.key);
+  if (n >= 0){
+    const id = KINDS[n].id === DOOR ? DOOR : KINDS[n].id;
+    e.shiftKey ? isolate(id) : toggle(id);
+    return;
+  }
+  const turn = { ArrowLeft: [-0.06, 0], ArrowRight: [0.06, 0],
+                 ArrowUp: [0, -0.05], ArrowDown: [0, 0.05] }[e.code];
+  if (turn){
+    e.preventDefault();
+    st.yaw += turn[0];
+    st.pitch = Math.max(-1.45, Math.min(1.45, st.pitch + turn[1]));
+  }
+});
+
+/* ---- the loop ------------------------------------------------------- */
+const showBuf = new Float32Array(6);
+let last = performance.now();
+function frame(now){
+  const ms = now - last; last = now;
+  resize();
+  const cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+  const eye = [st.tx + Math.sin(st.yaw) * cp * st.dist,
+               st.ty + sp * st.dist,
+               st.tz + Math.cos(st.yaw) * cp * st.dist];
+  const far = st.dist + RADIUS * 12 + FLOORS * G.H_FLOOR * 2 + 40;
+  const mvp = mul(perspective(0.9, cv.width / cv.height, 0.35, far),
+                  lookAt(eye, [st.tx, st.ty, st.tz], [0, 1, 0]));
+  for (let i = 0; i < 6; i++){
+    const k = KINDS[i];
+    showBuf[i] = st.show.get(k.id === DOOR ? DOOR : k.id) ?? 1;
+  }
+  gl.uniformMatrix4fv(U.uMVP, false, mvp);
+  gl.uniform1fv(U.uShow, showBuf);
+  gl.uniform2f(U.uSlice, st.lo, st.hi);
+  gl.uniform1i(U.uGrain, st.grain);
+  gl.uniform1f(U.uFar, far);
+
+  const sky = cssRGB("--model-sky");
+  gl.clearColor(sky[0], sky[1], sky[2], 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, nVerts);
+  renderStats(ms);
+  requestAnimationFrame(frame);
+}
+renderLegend();
+resize();
+requestAnimationFrame(frame);
+
+/* A count worth saying out loud, because it is the reason this page is
+   useful: the flights that go nowhere are invisible from inside. */
+{
+  let dead = 0, stairs = 0;
+  for (let q = CQ - RADIUS; q <= CQ + RADIUS; q++)
+  for (let r = CR - RADIUS; r <= CR + RADIUS; r++){
+    if (!inRange(q, r) || cellType(q, r) !== TYPE.STAIRWELL) continue;
+    stairs++; if (!stairCrossable(q, r, 0)) dead++;
+  }
+  say(cellCount.toLocaleString() + " cells · " + stairs + " flights, " +
+      dead + " of them dead ends. Press ? for the keys.");
+}
+</script>

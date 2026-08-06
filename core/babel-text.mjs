@@ -44,7 +44,7 @@
    something that does not exist there -- which is exactly the bug this
    comment replaces. core/test-core.mjs now evaluates the inlined blocks
    rather than only comparing their text, so a repeat would be caught. */
-import { u32, uhash, cellKey, cellType, gapAt, TYPE, GAP, CELL_TYPE_NAME,
+import { u32, uhash, cellKey, cellType, roomAt, gapAt, TYPE, GAP, CELL_TYPE_NAME,
          shelvedWalls, SHELVES_PER_WALL, BOOKS_PER_SHELF,
          stepHash, wander, findSeat, findMirror } from "./babel-core.mjs";
 
@@ -195,7 +195,7 @@ function validate(a){
     if (a.offset + a.phrase.length > C) return { ok: false, reason: "phrase runs past the book" };
     return { ok: true };
   }
-  const t = cellType(a.q, a.r);
+  const t = roomAt(a.q, a.r, a.floor ?? 0);
   /* A room address only has to name somewhere you could be. A shaft is the
      one cell type you cannot stand in -- you look into it, you do not cross
      it -- so that is the only rejection. */

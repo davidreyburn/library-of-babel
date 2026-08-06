@@ -14,7 +14,7 @@
  * probability can never drift between the CPU and the GPU.
  * ==================================================================== */
 
-import { P_OPEN, P_SHAFT, P_STAIR, P_STUDY, P_CORR,
+import { P_OPEN, P_SHAFT, P_STAIR, P_ROOM, P_CORR,
          P_ALC_NONE, P_ALC_ONE } from "./babel-core.mjs";
 
 /* uhash .. sdBox3 -- hashing, cell types, gaps, and the hex helpers */
@@ -26,12 +26,12 @@ uint uhash(uint x){
 }
 uint cellKey(ivec2 c){ return uhash(uint(c.x + 32768) | (uint(c.y + 32768) << 16)); }
 uint studyKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 2654435761u)); }
+uint studyRoll(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 374761393u) ^ 0x2545f491u); }
 uint corrKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 0x7ed55d16u)); }
 int cellType(ivec2 c){
   uint h = cellKey(c) >> 16;
   if (h < ${P_SHAFT}u) return 1;
   if (h < ${P_STAIR}u) return 2;
-  if (h < ${P_STUDY}u) return 3;      // a reading room: no shelves, some furniture
   if (h >= ${P_CORR}u) return 4;      // a corridor: mirror, latrine, standing closet
   return 0;
 }
@@ -74,6 +74,19 @@ int axisEnd(ivec2 c, int a, int i){       // 0 nothing . 1 open ground . 2 a fli
   if (t == 0 || t == 3) return 1;
   if (t == 2 && a == axisOf(n)) return 2;
   return 0;
+}
+/* Which galleries are furnished, decided per storey. This is the one
+   type that can move, because a reading room is not part of the
+   structure: openGround counts it as open ground, axisEnd returns the
+   same 1 for it as for a gallery, and gapAt never mentions it. So which
+   rooms are furnished changes no gap, no axis and no route -- proved
+   over 198,744 edges rather than asserted.
+
+   Two call sites, both already holding a floor: cellDesc, which packs
+   the answer into bit 23 so mapAt need not ask a second time, and the
+   lamp loop, which wants it per storey anyway. */
+bool studyAt(ivec2 c, int fl){
+  return cellType(c) == 0 && (studyRoll(c, fl) >> 16) < ${P_ROOM}u;
 }
 int corridorAxis(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x1d3f9a7bu) % 3u);
@@ -272,10 +285,25 @@ int cellDesc(ivec2 c, int fl){
   for (int i = 0; i < 6; i++) packed |= gapAt(c, i, fl) << (i * 2);
   int t = cellType(c);
   if (t == 2){                                 // stash axis and rise, bits 12-14
-    packed |= axisOf(c) << 12;
-    packed |= (riseOf(c) > 0.0 ? 1 : 0) << 14;
+    int a = axisOf(c);
+    bool up = riseOf(c) > 0.0;
+    packed |= a << 12;
+    packed |= (up ? 1 : 0) << 14;
+    /* bits 15-16: does each end of the flight open? The overhang that meets
+       a neighbour doorway must not be cut where there is no doorway, or it
+       runs through the rock (BUG-LOG 19). Resolved here rather than in
+       mapAt, which is inlined at eight call sites -- doing it there cost 94
+       seconds of link time. Spelled out per axis so every shift is a
+       constant: packed >> (a * 2) is a dynamic shift, and that was most of
+       the 94 seconds. A study never shares these bits. */
+    int lo, hi;
+    if      (a == 0){ lo = (packed >> 0) & 3; hi = (packed >>  6) & 3; }
+    else if (a == 1){ lo = (packed >> 2) & 3; hi = (packed >>  8) & 3; }
+    else            { lo = (packed >> 4) & 3; hi = (packed >> 10) & 3; }
+    if ((up ? lo : hi) != 0) packed |= 1 << 15;   // the +u end
+    if ((up ? hi : lo) != 0) packed |= 1 << 16;   //     -u
   }
-  if (t == 3){                                 // the study anchor, bits 15-17
+  if (studyAt(c, fl)){                         // the study anchor, bits 15-17
     /* one rule, from the generated block above -- this used to carry its
        own copy of the best-fit loop while studyAnchor() implemented a
        different rule for the lamp */
@@ -294,6 +322,11 @@ int cellDesc(ivec2 c, int fl){
         !clearOfDoors(ax * 1.06, 0.25, packed)) m &= ~8;
     if (!clearOfDoors(ax * 1.79, 0.06, packed)) m &= ~16;
     packed |= m << 18;
+    /* bit 23: this room is furnished. mapAt gates its whole reading-room
+       branch on this, so cellType stays a fact about the column and no
+       shading path asks studyAt a second time. A corridor uses 23-24 for
+       its own axis and is never a study, so the bit is free here. */
+    packed |= 1 << 23;
   }
   if (t == 4){                                 // the corridor, bits 23-28
     /* Which alcove holds what is a fact about the cell, not about the

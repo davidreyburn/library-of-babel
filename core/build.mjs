@@ -45,6 +45,15 @@ const GLSL_REGIONS = [
   ["@glsl-desc",     () => DESC_GLSL.trim() + "\n"]
 ];
 const HTML_REGIONS = [
+  /* The prototype ships as one file, so the kit's palette is inlined rather
+     than linked; app/babel-atlas.html links the same file. Two readers, one
+     source -- the moment a second page wanted a panel, a copied palette would
+     have stopped the kit being a kit. The header comment is dropped and the
+     rest indented to sit inside the page's own <style>. */
+  ["@tokens", () => {
+    const css = readFileSync(new URL("./ui-kit.css", import.meta.url), "utf8");
+    return css.slice(css.indexOf("*/") + 2).trim().replace(/^/gm, "  ") + "\n";
+  }],
   ["@core", () => stripModuleSyntax(readFileSync(new URL("./babel-core.mjs", import.meta.url), "utf8"))],
   ["@text", () => stripModuleSyntax(readFileSync(new URL("./babel-text.mjs", import.meta.url), "utf8"))],
   ["@frag", () => fragDeclaration(readFileSync(FRAG, "utf8"))]

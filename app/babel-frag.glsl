@@ -72,12 +72,12 @@ uint uhash(uint x){
 }
 uint cellKey(ivec2 c){ return uhash(uint(c.x + 32768) | (uint(c.y + 32768) << 16)); }
 uint studyKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 2654435761u)); }
+uint studyRoll(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 374761393u) ^ 0x2545f491u); }
 uint corrKey(ivec2 c, int fl){ return uhash(cellKey(c) ^ (uint(fl + 32768) * 0x7ed55d16u)); }
 int cellType(ivec2 c){
   uint h = cellKey(c) >> 16;
-  if (h < 1311u) return 1;
-  if (h < 9175u) return 2;
-  if (h < 10486u) return 3;      // a reading room: no shelves, some furniture
+  if (h < 1966u) return 1;
+  if (h < 7864u) return 2;
   if (h >= 58982u) return 4;      // a corridor: mirror, latrine, standing closet
   return 0;
 }
@@ -120,6 +120,19 @@ int axisEnd(ivec2 c, int a, int i){       // 0 nothing . 1 open ground . 2 a fli
   if (t == 0 || t == 3) return 1;
   if (t == 2 && a == axisOf(n)) return 2;
   return 0;
+}
+/* Which galleries are furnished, decided per storey. This is the one
+   type that can move, because a reading room is not part of the
+   structure: openGround counts it as open ground, axisEnd returns the
+   same 1 for it as for a gallery, and gapAt never mentions it. So which
+   rooms are furnished changes no gap, no axis and no route -- proved
+   over 198,744 edges rather than asserted.
+
+   Two call sites, both already holding a floor: cellDesc, which packs
+   the answer into bit 23 so mapAt need not ask a second time, and the
+   lamp loop, which wants it per storey anyway. */
+bool studyAt(ivec2 c, int fl){
+  return cellType(c) == 0 && (studyRoll(c, fl) >> 16) < 1819u;
 }
 int corridorAxis(ivec2 c){
   int base = int(uhash(cellKey(c) ^ 0x1d3f9a7bu) % 3u);
@@ -458,16 +471,32 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
        of the cell and climbing exactly one storey: a narrow hallway, not a
        well. Copies sit every storey, so entering low puts you out one floor
        up, and entering high puts you out one floor down.                */
-    vec2 ax = dirW((desc >> 12) & 3);
-    float u = dot(lp, ax) * (((desc >> 14) & 1) == 1 ? 1.0 : -1.0);
+    int sax = (desc >> 12) & 3;
+    bool sup = ((desc >> 14) & 1) == 1;
+    vec2 ax = dirW(sax);
+    float u = dot(lp, ax) * (sup ? 1.0 : -1.0);
     float v = dot(lp, vec2(-ax.y, ax.x));
     float t = clamp((u + STAIR_RUN) / (2.0 * STAIR_RUN), 0.0, 1.0);
     float smoothY = t * H_FLOOR;
     float stepY   = ceil(t * 14.0) * (H_FLOOR / 14.0);
+    /* The overhang belongs to a doorway, not to the flight. STAIR_RUN is
+       exactly the cell radius, so the run ends on the boundary and EXT
+       carries it 0.75 m into the neighbour to meet that neighbour's opening.
+       Carrying it into a neighbour there is no opening to meet drives the
+       cut straight through the rock: from the gallery it reads as a stair
+       climbing into a black hole, and a walker who followed it came out
+       inside the next cell, across an edge gapAt calls WALL (BUG-LOG 19).
+       So each end is extended only if that end is open.
+       Two constant bits, resolved once per cell in cellDesc. Working the
+       same thing out here instead cost 94 seconds of link time: mapAt is
+       inlined at eight call sites, and it took two dynamic shifts. */
+    float extP = ((desc >> 15) & 1) == 1 ? STAIR_EXT : 0.0;
+    float extM = ((desc >> 16) & 1) == 1 ? STAIR_EXT : 0.0;
+    float run  = max(u - (STAIR_RUN + extP), -u - (STAIR_RUN + extM));
     dv = 1e5;
     for (int k = -1; k <= 1; k++){
       float h = p.y - float(fl + k) * H_FLOOR;
-      dv = min(dv, max(max(abs(u) - (STAIR_RUN + STAIR_EXT), abs(v) - STAIR_HW),
+      dv = min(dv, max(max(run, abs(v) - STAIR_HW),
                        max(stepY - h, h - smoothY - 2.05)));
     }
   } else {
@@ -543,7 +572,10 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     if (f < d){ d = f; gMat = float(gFurnMat); }
     return d;
   }
-  if (ctype == 3){                                        // a reading room
+  /* Gated on the packed bit, not on the type: a reading room is a fact
+     about the room and the storey now, and cellDesc already worked it out
+     once for this cell. */
+  if (((desc >> 23) & 1) == 1){                           // a reading room
     float f = furniture(lp, fy, studyKey(c, fl), desc, d);
     if (f < d){ d = f; gMat = float(gFurnMat); }
     return d;
@@ -671,10 +703,25 @@ int cellDesc(ivec2 c, int fl){
   for (int i = 0; i < 6; i++) packed |= gapAt(c, i, fl) << (i * 2);
   int t = cellType(c);
   if (t == 2){                                 // stash axis and rise, bits 12-14
-    packed |= axisOf(c) << 12;
-    packed |= (riseOf(c) > 0.0 ? 1 : 0) << 14;
+    int a = axisOf(c);
+    bool up = riseOf(c) > 0.0;
+    packed |= a << 12;
+    packed |= (up ? 1 : 0) << 14;
+    /* bits 15-16: does each end of the flight open? The overhang that meets
+       a neighbour doorway must not be cut where there is no doorway, or it
+       runs through the rock (BUG-LOG 19). Resolved here rather than in
+       mapAt, which is inlined at eight call sites -- doing it there cost 94
+       seconds of link time. Spelled out per axis so every shift is a
+       constant: packed >> (a * 2) is a dynamic shift, and that was most of
+       the 94 seconds. A study never shares these bits. */
+    int lo, hi;
+    if      (a == 0){ lo = (packed >> 0) & 3; hi = (packed >>  6) & 3; }
+    else if (a == 1){ lo = (packed >> 2) & 3; hi = (packed >>  8) & 3; }
+    else            { lo = (packed >> 4) & 3; hi = (packed >> 10) & 3; }
+    if ((up ? lo : hi) != 0) packed |= 1 << 15;   // the +u end
+    if ((up ? hi : lo) != 0) packed |= 1 << 16;   //     -u
   }
-  if (t == 3){                                 // the study anchor, bits 15-17
+  if (studyAt(c, fl)){                         // the study anchor, bits 15-17
     /* one rule, from the generated block above -- this used to carry its
        own copy of the best-fit loop while studyAnchor() implemented a
        different rule for the lamp */
@@ -693,6 +740,11 @@ int cellDesc(ivec2 c, int fl){
         !clearOfDoors(ax * 1.06, 0.25, packed)) m &= ~8;
     if (!clearOfDoors(ax * 1.79, 0.06, packed)) m &= ~16;
     packed |= m << 18;
+    /* bit 23: this room is furnished. mapAt gates its whole reading-room
+       branch on this, so cellType stays a fact about the column and no
+       shading path asks studyAt a second time. A corridor uses 23-24 for
+       its own axis and is never a study, so the bit is free here. */
+    packed |= 1 << 23;
   }
   if (t == 4){                                 // the corridor, bits 23-28
     /* Which alcove holds what is a fact about the cell, not about the
@@ -767,7 +819,11 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
        ends of a corridor read a little darker for it, which LIB-P-012 is
        not going to complain about. */
 
-    if (ct == 3){
+    /* A gallery, because a reading room is now one that happens to be
+       furnished on THIS storey. The loop already ran per storey to find the
+       lamp; it just used to be able to assume the room was a reading room on
+       all of them, and cannot any more. */
+    if (ct == 0){
       for (int f = -1; f <= 1; f++){           // the reading lamp is a real source
         int flf = fl0 + f;
         /* Reject on the room before working out where its lamp is. Whatever
@@ -775,9 +831,12 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
            centre, so beyond 7 + 1.646 it cannot reach us. Without this the
            anchor scan ran three times per neighbouring room -- once per
            storey -- and the dl > 7.0 test below then threw two of them away.
-           That scan is the most expensive thing in this function. */
+           That scan is the most expensive thing in this function.
+           Distance first, then whether the room is furnished at all: the
+           reject is a subtract and a compare, and studyAt is a hash. */
         vec3 mid = vec3(wc.x, float(flf) * H_FLOOR + 1.40, wc.y);
         if (distance(p, mid) > 8.65) continue;
+        if (!studyAt(c, flf)) continue;
         uint k = studyKey(c, flf);
         if ((studyKit(k) & 4) == 0) continue;
         /* The anchor, and only the anchor. Going through cellDesc would also

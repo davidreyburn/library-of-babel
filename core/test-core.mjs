@@ -376,7 +376,9 @@ section("VALIDITY -- a claimed coordinate can be checked");
       const t = core.cellType(q, r);
       if (t === core.TYPE.SHAFT && !shaft) shaft = [q, r];
       if (t === core.TYPE.STAIRWELL && !stair) stair = [q, r];
-      if (t === core.TYPE.STUDY && !study) study = [q, r];
+      /* on floor 0, because that is the floor walkAddress defaults to: a
+         reading room is a room on a storey now, not a column */
+      if (core.studyAt(q, r, 0) && !study) study = [q, r];
     }
   ok("a shaft holds no shelves", !text.validate(text.walkAddress({ q: shaft[0], r: shaft[1] })).ok);
   ok("a stairwell holds no shelves", !text.validate(text.walkAddress({ q: stair[0], r: stair[1] })).ok);
@@ -411,14 +413,18 @@ section("LATTICE -- the figures §17 of the spec quotes");
     const t = core.cellType(q, r);
     if (t === core.TYPE.SHAFT) shafts++;
     else if (t === core.TYPE.STAIRWELL) stairs++;
-    else if (t === core.TYPE.STUDY) studies++;
     else if (t === core.TYPE.CORRIDOR) corridors++;
+    else if (core.studyAt(q, r, 0)) studies++;
     else { galleries++; shelved += core.shelvedWalls(q, r, 0).length; }
   }
   const pct = n => (n / N) * 100;
-  ok("shafts about 2%", Math.abs(pct(shafts) - 2) < 0.6, `${pct(shafts).toFixed(2)}%`);
-  ok("stairwells about 12%", Math.abs(pct(stairs) - 12) < 1.2, `${pct(stairs).toFixed(2)}%`);
-  ok("reading rooms about 2%", Math.abs(pct(studies) - 2) < 0.6, `${pct(studies).toFixed(2)}%`);
+  ok("shafts about 3%", Math.abs(pct(shafts) - 3) < 0.6, `${pct(shafts).toFixed(2)}%`);
+  ok("stairwells about 9%", Math.abs(pct(stairs) - 9) < 1.0, `${pct(stairs).toFixed(2)}%`);
+  /* Counted on one storey. It used to be a share of columns and is now a
+     share of rooms, which is the change -- the number is deliberately the
+     same, so the Library has as many reading rooms as it ever did and they
+     are simply no longer stacked. */
+  ok("reading rooms about 2% of a storey", Math.abs(pct(studies) - 2) < 0.6, `${pct(studies).toFixed(2)}%`);
   ok("corridors about 10%", Math.abs(pct(corridors) - 10) < 1.0, `${pct(corridors).toFixed(2)}%`);
   const mean = shelved / galleries;
   ok("mean shelved walls about 3.14", Math.abs(mean - 3.14) < 0.15, `${mean.toFixed(3)}`);
@@ -440,7 +446,7 @@ section("THE MIRROR -- the one fixture the story argues about");
   for (let q = -45; q <= 45; q++) for (let r = -45; r <= 45; r++){
     cells++;
     const t = core.cellType(q, r);
-    if (t === core.TYPE.STUDY){
+    if (core.studyAt(q, r, 0)){
       studies++;
       const kit = core.studyVisible(q, r, 0);
       if (kit & core.FURN_MIRROR){ withMirror++; if (kit === core.FURN_MIRROR) onlyMirror++; }
@@ -457,7 +463,7 @@ section("THE MIRROR -- the one fixture the story argues about");
      so the cull that drops furniture blocking a door can never drop it. */
   ok("the mirror is never culled by a doorway",
      (() => { for (let q = -45; q <= 45; q++) for (let r = -45; r <= 45; r++){
-        if (core.cellType(q, r) !== core.TYPE.STUDY) continue;
+        if (!core.studyAt(q, r, 0)) continue;
         const key = core.studyKey(q, r, 0);
         if ((core.studyKit(key) & core.FURN_MIRROR) &&
             !(core.studyVisible(q, r, 0) & core.FURN_MIRROR)) return false;
@@ -548,7 +554,7 @@ section("SEATS -- find a chair, sit down");
   const s = core.findSeat({ q: 0, r: 0, floor: 0, seed: 1, maxSteps: 400 });
   ok("a seat turns up within 400 steps", s.room !== null, `after ${s.steps} steps`);
   ok("the room it stopped in is a reading room",
-     core.cellType(s.room.q, s.room.r) === core.TYPE.STUDY);
+     core.studyAt(s.room.q, s.room.r, s.room.floor ?? 0));
   ok("the room really contains something sittable",
      s.room.pieces.some(p => p.sittable),
      s.room.pieces.map(p => p.piece).join(", "));
@@ -641,7 +647,7 @@ section("PACKED DESC -- the int the shader and the CPU both read");
   ok("the culled kit never exceeds the room's kit",
      (() => { for (let k = 0; k < 6000; k++){
         const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
-        if (core.cellType(q, r) !== core.TYPE.STUDY) continue;
+        if (!core.studyAt(q, r, 0)) continue;
         const key = core.studyKey(q, r, 0);
         if (core.descKit(core.cellDesc(q, r, 0)) & ~core.studyKit(key)) return false;
       } return true; })());
@@ -655,12 +661,24 @@ section("PACKED DESC -- the int the shader and the CPU both read");
      type will alias one of these and the shader will read furniture out of
      an alcove -- which is exactly what a fifth kit bit would have done had
      the corridor still started at 22. */
-  ok("a corridor's fields do not collide with a reading room's",
+  /* Bit 23 is read two ways -- the low bit of a corridor's axis, and the
+     flag that says a gallery is furnished this storey -- which is only safe
+     because a cell is never both. Say what each type may use, so the next
+     field to want a bit has to come here and take one. */
+  ok("every type keeps to its own fields",
      (() => { for (let k = 0; k < 6000; k++){
         const q = (k % 100) - 50, r = Math.floor(k / 100) - 30;
         const d = core.cellDesc(q, r, 0), t = core.cellType(q, r);
-        if (t !== core.TYPE.CORRIDOR && (d >>> 23)) return false;
-        if (t === core.TYPE.CORRIDOR && ((d >> 12) & 0x7FF)) return false;
+        if (t === core.TYPE.CORRIDOR){          // 23-24 axis, 25-28 alcoves
+          if ((d >> 12) & 0x7FF) return false;
+        } else if (core.studyAt(q, r, 0)){      // 15-17 anchor, 18-22 kit, 23 furnished
+          if (d >>> 24) return false;
+          if (!core.descStudy(d)) return false;
+        } else if (t === core.TYPE.STAIRWELL){  // 12-14 axis and rise, 15-16 the ends
+          if (d >>> 17) return false;
+        } else {                                // a gallery or a shaft: gaps, nothing else
+          if (d >>> 12) return false;
+        }
       } return true; })());
 }
 
@@ -888,7 +906,7 @@ section("ROUTING -- a route is a promise the lattice has to keep");
     }
   }
   ok("riseOf and the shader's tread agree on which way every flight runs",
-     disagree === 0 && agree > 900, `${agree} flights, ${disagree} disagreeing`);
+     disagree === 0 && agree > 600, `${agree} flights, ${disagree} disagreeing`);
   ok("a flight is never reversible into the wrong storey",
      inconsistent === 0, `${oneWay} of ${agree} are one-way, which the doorway pattern allows`);
 
@@ -990,6 +1008,132 @@ section("ROUTING -- a route is a promise the lattice has to keep");
  * These numbers are not sacred. If a change needs one more call site,
  * raise the budget deliberately and say why in the commit -- the point is
  * that it cannot happen silently. */
+/* The seam and the renderer have to agree about where a person may go. They
+   are written twice -- apply() walks the graph, voidDist2D pushes a body out
+   of rock -- and when they disagree the walker is the one who finds out, by
+   being somewhere they did not walk to. §17 was one such report and it took
+   a reproduction nobody could produce. This is the reproduction, as a rule:
+   no doorway the renderer carves may lead somewhere the seam refuses. */
+section("SEAM AND RENDERER -- no cut may run past a wall");
+{
+  /* The renderer and the seam are written twice, and when they disagree the
+     walker is the one who finds out -- by being somewhere they did not walk
+     to. §17 was one such report and nobody could reproduce it.
+
+     The cause was geometry, not topology: a flight is cut STAIR_EXT past the
+     cell boundary at each end so it meets the doorway box its neighbour
+     draws, and it was cut past *walled* ends too, straight through the rock.
+     31 of 684 approaches walked a body across an edge gapAt calls WALL.
+
+     So the rule is: a flight extends only at an end that opens. cellDesc
+     packs that as bits 15-16 and the shader reads them, which makes the bit
+     and the gap two spellings of one fact -- and two spellings drift. This
+     is the assertion that they have not. */
+  let stairs = 0, walled = 0, wrongBit = 0, past = 0;
+  for (let q = -40; q <= 40; q++) for (let r = -40; r <= 40; r++){
+    if (core.cellType(q, r) !== core.TYPE.STAIRWELL) continue;
+    stairs++;
+    const a = core.axisOf(q, r), up = core.riseOf(q, r) > 0;
+    const dP = (up ? a : a + 3) % 6, dM = (up ? a + 3 : a) % 6;
+    const openP = core.gapAt(q, r, dP, 0) !== core.GAP.WALL;
+    const openM = core.gapAt(q, r, dM, 0) !== core.GAP.WALL;
+    if (!openP || !openM) walled++;
+
+    const [ep, em] = core.stairExtends(q, r, 0);
+    if (ep !== openP || em !== openM) wrongBit++;
+
+    const d = core.cellDesc(q, r, 0);          // what the shader actually reads
+    if (core.descExtP(d) !== openP || core.descExtM(d) !== openM) wrongBit++;
+
+    /* and the geometry itself: a walled end must not reach the neighbour */
+    for (const [open, ext] of [[openP, ep], [openM, em]]){
+      const half = core.G.STAIR_RUN + (ext ? core.G.STAIR_EXT : 0);
+      if (!open && half > core.G.HALF_D) past++;
+    }
+  }
+  ok("every flight has a walled end recorded in the bit the shader reads",
+     wrongBit === 0, `${stairs} flights, ${walled} with a walled end, ${wrongBit} wrong`);
+  /* Teeth: if this sample ever stopped containing walled ends the test above
+     would pass by being vacuous. */
+  ok("and the sample still contains some, so the test is not vacuous",
+     walled > 0, `${walled} of ${stairs}`);
+  ok("no flight is cut past a wall", past === 0,
+     past === 0 ? "the cut stops on the boundary at every walled end"
+                : `${past} run past`);
+}
+
+/* A kit with one page is a stylesheet. The rules below are the same three the
+   prototype is held to, applied to the atlas, because the moment they were not
+   the atlas grew its own palette and the kit quietly stopped being one. */
+section("THE ATLAS -- held to the kit, like everything else");
+{
+  const atlas = readFileSync(new URL("../app/babel-atlas.html", import.meta.url), "utf8");
+  const kit   = readFileSync(new URL("./ui-kit.css", import.meta.url), "utf8");
+
+  ok("the atlas links the kit rather than copying it",
+     atlas.includes('href="../core/ui-kit.css"'), "core/ui-kit.css");
+
+  /* every token the kit defines must be defined ONCE, there */
+  const tokens = [...kit.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map(m => m[1]);
+  const redeclared = tokens.filter(t => new RegExp("^\\s*" + t + "\\s*:", "m").test(
+    (atlas.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1]));
+  ok("and does not redeclare a token the kit already names",
+     redeclared.length === 0,
+     redeclared.length ? "redeclared: " + redeclared.join(", ")
+                       : tokens.length + " tokens, all from the kit");
+
+  /* the model's own colours are named in its :root and spelled nowhere else --
+     the same rule as the chrome, applied to the thing being rendered */
+  const css  = (atlas.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1];
+  const root = (css.match(/:root\{[\s\S]*?\n\s*\}/) ?? [""])[0];
+  const strays = [...css.replace(root, "").matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map(m => m[0]);
+  const named  = [...root.matchAll(/--cell-[a-z]+|--model-[a-z]+/g)].length;
+  ok("the model names its colours and spells them once",
+     strays.length === 0 && named > 0,
+     strays.length ? "spelled: " + strays.join(", ") : named + " model colours named");
+
+  /* and no colour reaches the shader except through a named custom property */
+  const script = (atlas.match(/<script type="module">([\s\S]*)<\/script>/) ?? ["", ""])[1];
+  const jsHex = [...script.matchAll(/["'`]#[0-9a-fA-F]{3,8}["'`]/g)].map(m => m[0]);
+  ok("no colour is spelled in the atlas's script either",
+     jsHex.length === 0, jsHex.length ? jsHex.join(", ") : "read from the stylesheet");
+
+  /* every key it handles is documented, exactly as the prototype's is */
+  const handled = new Set();
+  for (const m of script.matchAll(/e\.code === "(\w+)"/g)) handled.add(m[1]);
+  for (const m of script.matchAll(/^\s{17}(Arrow\w+):/gm)) handled.add(m[1]);
+  if (/e\.code === "Digit" \+ x\.key/.test(script)) handled.add("Digit");
+  if (/k === "\?"/.test(script)) handled.add("?");
+  const bindings = (script.match(/const BINDINGS = \[[\s\S]*?\n\];/) ?? [""])[0];
+  const spoken = {
+    F1:"F1", KeyR:"R", KeyG:"G", Digit:"1 – 6", Numpad:"1 – 6", "?":"?",
+    BracketLeft:"[ ]", BracketRight:"[ ]", Backslash:"\\\\",
+    ArrowUp:"Arrows", ArrowDown:"Arrows", ArrowLeft:"Arrows", ArrowRight:"Arrows",
+    Minus:"− +", Equal:"− +", NumpadSubtract:"− +", NumpadAdd:"− +"
+  };
+  const undocumented = [...handled].filter(k => {
+    const name = spoken[k];
+    return name === undefined || !bindings.includes('"' + name + '"');
+  });
+  ok("every key the atlas handles appears in its BINDINGS",
+     undocumented.length === 0,
+     undocumented.length ? "missing: " + undocumented.join(", ")
+                         : handled.size + " keys, all listed");
+
+  /* it must read the lattice, not reimplement it */
+  ok("the atlas imports core rather than carrying a copy",
+     /import \{[\s\S]*?\} from "\.\.\/core\/babel-core\.mjs"/.test(atlas) &&
+     !/\nfunction cellType\b/.test(atlas),
+     "one lattice, imported");
+
+  /* It asked cellType what a room was, and drew every reading room as a
+     gallery the day reading rooms stopped being columns -- on the one page
+     whose whole job is to show you that sort of thing. A page that draws
+     rooms has to ask the storey. */
+  ok("and asks the storey what a room is, not the column",
+     /roomAt\(q, r, fl\)/.test(script), "roomAt in the mesh");
+}
+
 section("BUDGETS -- the shader's shape, which is what link time tracks");
 {
   const glsl = readFileSync(new URL("../app/babel-frag.glsl", import.meta.url), "utf8");
