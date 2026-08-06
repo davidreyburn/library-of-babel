@@ -1763,6 +1763,7 @@ const VERT = `#version 300 es
 in vec2 a;
 void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
 
+/* @frag:begin */
 const FRAG = `#version 300 es
 precision highp float;
 precision highp int;
@@ -2965,6 +2966,7 @@ void main(){
   }
   outColor = vec4(final, 1.0);
 }`;
+/* @frag:end */
 
 /* ------------------------------------------------------------------ */
 const cv = document.getElementById("gl");
@@ -3012,13 +3014,6 @@ const ABLATIONS = {
      returns to the hole the reporter photographed twice. */
   dimstair: [/if \(ct2 == 2\) lightSum \+= vec3\(0\.155, 0\.130, 0\.092\) \* \(0\.40 \+ 0\.60 \* max\(-n\.y, 0\.0\)\);/,
              "if (ct2 == 2) lightSum += vec3(0.055, 0.047, 0.033);"],
-  /* The ambient probe with an explicit 4 mm bias off the surface. Kept as
-     the negative result it is: the loose tolerance used to supply this
-     offset by accident, so the theory was that tightening it made a flat
-     wall read its own surface as occlusion. It moved occ from 0.335 to
-     0.341. Flat stone reads 0.946 unbiased. Do not re-derive it. */
-  aobias: [/float occ = aoCtx\(hp, n, c, d2, ct2, fl\);/,
-           "float occ = aoCtx(hp + n * 0.004, n, c, d2, ct2, fl);"],
   albedo: [/base = mix\(C_INK, C_STONE, 0\.55 \+ 0\.45 \* occ\);/,
            "base = mix(C_INK, C_STONE, 1.0);"],
   lift:   [/lum = min\(1\.0, lum \+ 0\.30 \* smoothstep\([\s\S]*?lit\)\)\);/,
@@ -3028,13 +3023,6 @@ const ABLATIONS = {
      in an opening read black while the wall beside it read bright. */
   hardknee: [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
              "smoothstep(0.18, 0.38, lit)"],
-  /* The knee sweep. The reveal inside a gap measures lit ~0.135 and the wall
-     around it 1.0, so what matters is how much lift the gate gives at 0.135
-     and how little it changes at 1.0 -- raise the floor, lower the knee, or
-     both. Kept after the decision so the rejected settings cost one page
-     load to re-see rather than an edit and a rebuild. */
-  knee50:   [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
-             "(0.50 + 0.50 * smoothstep(0.18, 0.38, lit))"],
   /* The tint ramp, which is what actually separates the patch from the wall
      around it. It lerps stone from a GREEN cold end to a WARM end on lit, and
      the reveal sits at lit 0.17 while the wall beside it sits at 0.90 -- so
@@ -3044,12 +3032,6 @@ const ABLATIONS = {
      reaches its green extreme. */
   tintgreen: [/vec3 tint = mix\(vec3\(0\.94, 1\.00, 0\.80\), vec3\(1\.06, 0\.94, 0\.78\), lit\);/,
               "vec3 tint = mix(vec3(0.82, 1.04, 0.78), vec3(1.06, 0.94, 0.78), lit);"],
-  tintcomp:  [/vec3 tint = mix\(vec3\(0\.94, 1\.00, 0\.80\), vec3\(1\.06, 0\.94, 0\.78\), lit\);/,
-              "vec3 tint = mix(vec3(0.82, 1.04, 0.78), vec3(1.06, 0.94, 0.78), 0.40 + 0.60 * lit);"],
-  kneelow:  [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
-             "(0.35 + 0.65 * smoothstep(0.08, 0.30, lit))"],
-  kneeboth: [/\(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
-             "(0.55 + 0.45 * smoothstep(0.06, 0.28, lit))"],
   litocc: [/lit = clamp\(length\(lightSum\) \* 0\.62, 0\.0, 1\.0\) \* occ;/,
            "lit = clamp(length(lightSum) * 0.62, 0.0, 1.0);"],
 
@@ -3140,18 +3122,6 @@ const ABLATIONS = {
      "$1 gDbg = vec4(1.0, 1.0, 1.0, 1.0); $2"],
     [/  outColor = vec4\(final, 1\.0\);/, "  outColor = gDbg;"]
   ],
-  /* The candidate fix, not a suspect: lift stone in PROPORTION to how lit it
-     already is, instead of gating the lift on a narrow band of it. A ramp
-     between two thresholds still draws an iso-contour of `lit` across a wall
-     -- softer than a step, and still a shape. Multiplying cannot band. */
-  softlift: [/0\.30 \* smoothstep\(0\.80, 0\.92, horiz\)\s*\* \(0\.35 \+ 0\.65 \* smoothstep\(0\.18, 0\.38, lit\)\)/,
-             "0.42 * smoothstep(0.80, 0.92, horiz) * lit"],
-  /* Every lamp's contribution is truncated at a hard radius, and there are up
-     to 42 of them in range (7 cells x 3 storeys x 2). Each truncation is a
-     sphere, and a sphere meeting a flat wall is a CIRCLE -- several lamps,
-     several arcs. Ramp them to zero before the cull instead. */
-  lampramp: [/float att = 1\.0 \/ \(1\.0 \+ \(dl \/ 1\.35\) \* \(dl \/ 1\.35\)\);/g,
-             "float att = (1.0 / (1.0 + (dl / 1.35) * (dl / 1.35))) * (1.0 - smoothstep(8.0, 11.0, dl));"],
   /* The other family that draws rings on a flat surface: march precision.
      §11 found the spine version of it -- drop the step scale and see. */
   /* THE A/B THAT MATTERS. Put the loose tolerance back and the mottling
@@ -3176,23 +3146,6 @@ const ABLATIONS = {
      the step count that reached the tolerance is an integer, which is why
      the error comes out in rings. Scale the probe with the same tolerance
      the march used and the two are commensurate again. */
-  /* Rewritten against the SHIPPED tolerance. The original scaled by
-     0.0018*d + 0.0012 and was measured as a regression -- correctly, but that
-     was ten times the tolerance the march now uses, so it was testing a probe
-     an order of magnitude too big. What matters is the RATIO of probe to
-     positional error, and because the tolerance is proportional to range and
-     the probe is fixed, that ratio decays with distance: fine at 2.4 m,
-     one-to-one at about 8 m, and past that the rings come back. Grow the
-     probe only where it has to grow, and never below the 1.6 mm that near
-     surfaces are already clean at -- a level of detail for the normal.
-
-     REJECTED on measurement, twice now for different reasons. Bad normals at
-     3-6 m: 3.45% shipped, 3.35% with this. The reasoning was sound and the
-     premise was wrong -- the crossover it corrects for sits at about 8 m, and
-     the surfaces that actually degrade are nearer than that. Kept because the
-     schedule is right if the tolerance is ever loosened again. */
-  normeps: [/vec2 e = vec2\(1\.0, -1\.0\) \* 0\.0016;/,
-            "vec2 e = vec2(1.0, -1.0) * max(0.0016, 2.5 * (0.00018 * distance(p, uCam) + 0.00012));"],
 
   /* The same mismatch attacked at the other end, and for one add. The march
      stops when d is under tolerance and returns t -- leaving the hit point
@@ -3200,25 +3153,7 @@ const ABLATIONS = {
      remaining distance, so t + d is at or before the surface: closer, never
      past it, and no extra mapAt. Blurring the normal (normeps) treats the
      symptom; this removes the offset the normal was standing on. */
-  /* Kept so the regression can be reproduced on demand rather than
-     rediscovered: this is the change that blacked out the wall. */
-  badrefine: [/if \(d < 0\.00018 \* t \+ 0\.00012\) return t;/,
-              "if (d < 0.00018 * t + 0.00012) return t + d;"],
 
-  /* The same idea as badrefine with the failure mode structurally excluded
-     rather than argued away. badrefine stepped to t + d on the claim that d
-     is a lower bound; this field over-reports, so that step landed inside
-     solid and occ collapsed. Here the refined point is TESTED before it is
-     accepted: if mapAt says it is still outside, take it; otherwise keep the
-     conservative hit. One extra mapAt at loop exit -- one call in ~79, not
-     one per step. The cell is reused because t2 - t is under 12 mm, so it is
-     the cell the sample at t was already resolved to. */
-  refine2: [/if \(d < 0\.00018 \* t \+ 0\.00012\) return t;/,
-            "if (d < 0.0018 * t + 0.0012){\n" +
-            "      float t2 = t + d;\n" +
-            "      if (mapAt(ro + rd * t2, c, desc, ct, fl) > 0.0) return t2;\n" +
-            "      return t;\n" +
-            "    }"],
 
   /* WHAT IS IT. The render that should have been the first experiment, not the
      twelfth. Four facts per pixel, in four channels, one link -- because at

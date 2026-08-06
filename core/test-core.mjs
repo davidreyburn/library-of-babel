@@ -78,20 +78,45 @@ section("DRIFT -- the prototype's inlined copy vs this module");
        g ? `${g.trim().length} chars of GLSL` : "missing");
   }
 
-  /* A backtick anywhere in GLSL closes the JavaScript template literal that
-     carries it, and 150,000 characters of script stop parsing. I have done
-     this three times in one session -- twice in the prototype's hand-written
-     shader, once in a comment in babel-glsl.mjs, where it is a module-level
-     syntax error and takes the whole core down. There is no legitimate
-     backtick in GLSL, so this is a total rule and cheap to enforce. */
+  /* THE SHADER IS NOW A FILE, and the prototype's copy is generated from it.
+     Same rule as the modules above: byte-identical or the build is stale. */
   {
-    const open = html.indexOf("`", html.indexOf("const FRAG"));
-    const j = html.indexOf("void main(){", open);
-    const shader = open >= 0 && j >= 0 ? html.slice(open + 1, html.indexOf("`;", j)) : "";
-    ok("no backtick anywhere in the prototype's shader source",
-       shader.length > 1000 && !shader.includes("`"),
-       shader.length > 1000 ? `${shader.length} chars checked`
-                            : "could not locate the shader");
+    const glsl = readFileSync(new URL("./babel-frag.glsl", import.meta.url), "utf8");
+    const decl = between("/* @frag:begin */", "/* @frag:end */");
+    const open = decl === null ? -1 : decl.indexOf("`");
+    const close = decl === null ? -1 : decl.lastIndexOf("`");
+    const inlined = open >= 0 && close > open ? decl.slice(open + 1, close) : null;
+    /* undo what build.mjs escaped on the way in */
+    const back = inlined === null ? null
+      : inlined.replace(/\\`/g, "`").replace(/\\\\/g, "\\");
+    ok("inlined @frag is byte-identical to babel-frag.glsl",
+       back !== null && norm(back) === norm(glsl),
+       back === null ? "markers not found -- run: node core/build.mjs"
+                     : `${norm(back).length} chars`);
+    ok("the shader still declares #version on its first line",
+       glsl.split("\n")[0].trim() === "#version 300 es",
+       "ANGLE rejects even a comment above it, whatever the spec allows");
+  }
+
+  /* A backtick anywhere in GLSL used to close the JavaScript template literal
+     that carried it, and 150,000 characters of script stopped parsing. I did
+     that three times in one session -- twice in the prototype's hand-written
+     shader, once in a comment in babel-glsl.mjs, where it is a module-level
+     syntax error and takes the whole core down.
+
+     Since the shader moved into babel-frag.glsl, build.mjs escapes backticks
+     on the way in, so this can no longer break the page. The rule is kept
+     anyway, one level down: what must hold now is that the ESCAPING works,
+     which is what these two assertions check. */
+  {
+    const glsl = readFileSync(new URL("./babel-frag.glsl", import.meta.url), "utf8");
+    const decl = between("/* @frag:begin */", "/* @frag:end */") ?? "";
+    const bare = (decl.match(/(?<!\\)`/g) ?? []).length;
+    ok("the generated FRAG literal has exactly two unescaped backticks",
+       bare === 2, `${bare} found -- one opening, one closing, none from the GLSL`);
+    ok("every backtick in the shader source is escaped when inlined",
+       (glsl.match(/`/g) ?? []).length === (decl.match(/\\`/g) ?? []).length,
+       `${(glsl.match(/`/g) ?? []).length} in the .glsl file`);
   }
   /* a stray import or export would throw in a classic <script> and take
      the whole prototype down, not just the core */
@@ -945,6 +970,69 @@ section("ROUTING -- a route is a promise the lattice has to keep");
   ok("the volume it reaches for is on a shelved wall and is really there",
      picked > 250 && absent === 0 && offWall === 0,
      `${picked} picked, ${absent} absent, ${offWall} off the wall`);
+}
+
+
+/* ---- BUDGETS -------------------------------------------------------- *
+ * The performance review of Aug 2026 measured where the frame goes and
+ * nothing then defended the numbers. These are the parts that can be
+ * checked without a GPU, so they run in `npm test` rather than in a
+ * browser someone has to remember to open.
+ *
+ * WHY CALL SITES. §17.13: what blows up the ANGLE linker is not loop
+ * bounds, it is the number of places a big function is inlined. Writing
+ * the mirror bounce as "march, shade, and if it was a mirror march and
+ * shade again" gave main() two inlined copies of a body already holding
+ * eight mapAt calls; it compiled in 17 ms and the linker then ran 127
+ * seconds and returned false with an empty log. A budget on call sites
+ * is a budget on that, and it costs nothing to check.
+ *
+ * These numbers are not sacred. If a change needs one more call site,
+ * raise the budget deliberately and say why in the commit -- the point is
+ * that it cannot happen silently. */
+section("BUDGETS -- the shader's shape, which is what link time tracks");
+{
+  const glsl = readFileSync(new URL("./babel-frag.glsl", import.meta.url), "utf8");
+  const code = glsl.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const sites = re => (code.match(re) ?? []).length;
+
+  const budgets = [
+    ["mapAt",    /\bmapAt\s*\(/g,    8,  "the field itself; the linker's usual victim"],
+    ["cellDesc", /\bcellDesc\s*\(/g, 3,  "calls gapAt six times each"],
+    ["gapAt",    /\bgapAt\s*\(/g,    3,  ""],
+    ["shadeHit", /\bshadeHit\s*\(/g, 2,  "one per bounce; must stay inside the loop"],
+    ["marchRay", /\bmarchRay\s*\(/g, 2,  ""]
+  ];
+  for (const [name, re, budget, why] of budgets){
+    const n = sites(re);
+    ok(`${name} has at most ${budget} call sites`, n <= budget,
+       `${n} found${why ? " -- " + why : ""}`);
+  }
+
+  /* The bounce is a LOOP over a uniform, not two written-out copies. A loop
+     whose bound is a uniform cannot be unrolled, so it has one call site --
+     that is the whole reason this shader links at all. */
+  ok("the mirror bounce is a loop over a uniform, not an unrollable constant",
+     /for\s*\(\s*int\s+b\s*=\s*0;\s*b\s*<\s*uBounce;/.test(code),
+     "see §17.13 -- a constant bound here cost a 127-second link");
+
+  /* The march's step count is deterministic, so it is a budget rather than a
+     measurement. 20.8/pixel was the worst canonical view before the step went
+     to 1.00; 16.6 after. The loop bound caps the tail at 72. */
+  const march = code.slice(code.indexOf("float marchRay("));
+  const cap = march.match(/for\s*\(int i = 0; i < (\d+); i\+\+\)/);
+  ok("the march is still capped at 72 steps",
+     cap !== null && cap[1] === "72",
+     cap ? `bound is ${cap[1]}` : "could not find the march loop");
+
+  /* Under-relaxation was removed in P3 after measuring that the field
+     tolerates a full step. If someone puts it back, the step-count budget
+     above is wrong and this says so. */
+  const step = code.match(/t \+= d \* ([0-9.]+);/);
+  ok("the march step is 1.00, as P3 measured it could be",
+     step !== null && step[1] === "1.00",
+     step ? `step is ${step[1]} -- if this changed on purpose, update the review`
+          : "could not find the step");
 }
 
 /* ---- report -------------------------------------------------------- */
