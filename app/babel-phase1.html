@@ -2060,10 +2060,25 @@ int studyAnchor(int desc, uint key){
   return best;
 }
 /* @glsl-study:end */
-float furniture(vec2 lp, float fy, uint key, int desc){
+float furniture(vec2 lp, float fy, uint key, int desc, float dBest){
   vec2 ax = dirW((desc >> 15) & 7);
   vec2 pv = vec2(-ax.y, ax.x);
   vec2 q = vec2(dot(lp, ax), dot(lp, pv));
+  /* THE GROUP BOUND, and it is exact rather than an approximation. Every
+     piece below is anchored to one wall, so the whole set lies inside
+     x [0.87, 1.82], y [0, 1.87], z [-0.69, 0.93] about that anchor -- read
+     off the extents of the boxes themselves, and padded outward. A box
+     containing the furniture is never further away than the furniture, so if
+     the distance to the box already exceeds the best distance the caller has,
+     nothing in here can win and the whole body can be skipped. Culling
+     against the caller's best rather than a fixed margin is what makes it
+     exact: it changes which samples are evaluated, never the field.
+
+     Worth 30.1% of a reading-room frame and 19.2% of a corridor's, because
+     mapAt runs 18-29 times a pixel and this used to run in full every time.
+     The measurement is in the performance review at the end of the bug log. */
+  if (sdBox3(vec3(q.x - 1.34, fy - 0.94, q.y - 0.12),
+             vec3(0.50, 0.95, 0.83)) > dBest){ gFurnMat = 5; return 1e5; }
   /* Which pieces survive the doorway culling was worked out once, in
      cellDesc, and stashed in bits 18-21. It used to be recomputed here --
      four clearOfDoors scans, each walking all six walls -- on every one of
@@ -2129,9 +2144,18 @@ float furniture(vec2 lp, float fy, uint key, int desc){
    bored block, unglazed, and the mirror is a bare plate set into the back
    face, framed by the rock it is let into rather than by any joinery
    (LIB-P-021, LIB-P-023; D-50 forbids ornament).                         */
-float alcoveFixtures(vec2 lp, float fy, int desc){
+float alcoveFixtures(vec2 lp, float fy, int desc, float dBest){
   vec2 ax = dirW((desc >> 23) & 3);
   float u = dot(lp, ax), v = dot(lp, vec2(-ax.y, ax.x));
+  /* The same exact bound the furniture gets, and it bites harder here: a
+     corridor is long in u and every fixture sits within 0.30 of the alcove
+     centre, so most of its length culls on the first compare. |u| <= 0.30,
+     |v| <= CORR_HW + ALC_D = 1.24, fy in [0, 1.82], padded outward. A box
+     containing the fixtures is never further than the fixtures, so exceeding
+     the caller's best distance means none of them can win. */
+  if (sdBox3(vec3(u, fy - 0.91, v), vec3(0.32, 0.93, 1.27)) > dBest){
+    gFurnMat = 3; return 1e5;
+  }
   float d = 1e5;
   gFurnMat = 3;
   for (int s = 0; s < 2; s++){
@@ -2280,12 +2304,12 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
   if (ctype == 2){ if (d > 0.0) gMat = 5.0; return d; }   // treads read as wood
   if (ctype == 1) return d;
   if (ctype == 4){                                        // a corridor
-    float f = alcoveFixtures(lp, fy, desc);
+    float f = alcoveFixtures(lp, fy, desc, d);
     if (f < d){ d = f; gMat = float(gFurnMat); }
     return d;
   }
   if (ctype == 3){                                        // a reading room
-    float f = furniture(lp, fy, studyKey(c, fl), desc);
+    float f = furniture(lp, fy, studyKey(c, fl), desc, d);
     if (f < d){ d = f; gMat = float(gFurnMat); }
     return d;
   }
@@ -2634,7 +2658,7 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        where it stops -- and the residual offset the tolerance leaves is what
        corrupts the normal. Tightening the tolerance 10x beat step 0.25 on
        quality while being faster than step 0.60, so the step came back up. */
-    t += d * 0.80;
+    t += d * 1.00;
     if (t > 70.0) break;
   }
   return -1.0;
@@ -3039,10 +3063,16 @@ const ABLATIONS = {
   /* The shelving case, out. It is the longest straight-line block in mapAt
      and runs for every gallery sample. */
   noshelf: [/  \/\* ---- shelving ------/, "  return d;\n  /* ---- shelving ------"],
+  /* P1's group bound removed, so furniture is evaluated in full on every
+     sample as it used to be. The A/B for the cull, inside one page load --
+     comparing against a number from a different load is what made a gallery
+     look 9.5% slower from a change that does not run in galleries. */
+  nofurnbound: [/if \(sdBox3\(vec3\(q\.x - 1\.34, fy - 0\.94, q\.y - 0\.12\),\s*\n\s*vec3\(0\.50, 0\.95, 0\.83\)\) > dBest\)\{ gFurnMat = 5; return 1e5; \}/,
+                "if (false){ gFurnMat = 5; return 1e5; }"],
   /* Reading-room furniture and corridor fixtures, out. */
-  nofurn:  [[/    float f = furniture\(lp, fy, studyKey\(c, fl\), desc\);/,
+  nofurn:  [[/    float f = furniture\(lp, fy, studyKey\(c, fl\), desc, d\);/,
              "    float f = 1e5;"],
-            [/    float f = alcoveFixtures\(lp, fy, desc\);/,
+            [/    float f = alcoveFixtures\(lp, fy, desc, d\);/,
              "    float f = 1e5;"]],
   /* Lamps from the cell you are standing in only, instead of it and its six
      neighbours -- seven cellType/worldOf lookups a shaded pixel become one. */
@@ -3131,8 +3161,12 @@ const ABLATIONS = {
      "0.30 costs 6.7x the frame" reproduces at none of them. */
   looseeps: [/if \(d < 0\.00018 \* t \+ 0\.00012\) return t;/,
              "if (d < 0.0018 * t + 0.0012) return t;"],
-  march60:  [/t \+= d \* 0\.80;/, "t += d * 0.60;"],
-  march25:  [/t \+= d \* 0\.80;/, "t += d * 0.25;"],
+  /* The step scale is 1.00 now. march80 restores the under-relaxation that
+     shipped for most of this renderer's life; 60 and 25 are kept because four
+     sessions were spent on this knob and someone will want to check it again. */
+  march80:  [/t \+= d \* 1\.00;/, "t += d * 0.80;"],
+  march60:  [/t \+= d \* 1\.00;/, "t += d * 0.60;"],
+  march25:  [/t \+= d \* 1\.00;/, "t += d * 0.25;"],
 
   /* THE CANDIDATE FIX. marchRay stops when d < 0.0018*t + 0.0012, so the hit
      point sits up to ~7 mm off the surface at 3 m and ~12 mm at 6 m -- while
@@ -4363,8 +4397,13 @@ function frame(now){
 
   st.emaMs = st.emaMs * 0.88 + (dt * 1000) * 0.12;
   if (st.autoScale && frames === 0 && document.visibilityState === "visible"){
-    // integer divisors only, so the dither never lands between pixels
-    if (st.emaMs > 28 && st.div < 3){ st.div++; resize(); }
+    /* Integer divisors only, so the dither never lands between pixels -- 4
+       satisfies that as well as 3 did. The floor was 1:3, and the performance
+       review found that the floor rather than the shader is what fails on a
+       slow device: frame time is 4.81 ns a pixel plus 0.39 ms, so a machine 8x
+       slower than this one is already at the bound with nothing left to give.
+       1:4 buys it another 1.8x. */
+    if (st.emaMs > 28 && st.div < 4){ st.div++; resize(); }
     else if (st.emaMs < 11 && st.div > 1){ st.div--; resize(); }
   }
   el.res.textContent = "1:" + st.div;

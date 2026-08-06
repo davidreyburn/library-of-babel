@@ -159,7 +159,27 @@ crossover region has never actually been sampled.
 **Done when:** the curve has a named cause, or a longer sightline shows the rise
 is an artefact of what happens to be at 3–6 m in that one view.
 
-### P1. Bound the shelving and the furniture before evaluating them
+### P1. Bound the shelving and the furniture before evaluating them — **furniture done, shelving open**
+
+**Shipped: exact group bounds on `furniture()` and `alcoveFixtures()`.** Every
+piece is anchored to one wall, so the whole set lies in a known box about that
+anchor — `x [0.87, 1.82], y [0, 1.87], z [-0.69, 0.93]` for the furniture,
+`|u| <= 0.30, |v| <= 1.24, y [0, 1.82]` for the alcoves. A box containing the
+geometry is never further away than the geometry, so if the distance to the box
+already exceeds the caller's best, nothing inside can win. Culling against the
+caller's `d` rather than a fixed margin is what makes it **exact**: it changes
+which samples are evaluated, never the field.
+
+**A reading room is 8.6–12.5% faster and the render is pixel-identical** — FNV
+checksums over the whole buffer match on all three test views. The corridor
+bound measured within run-to-run noise (its timings vary ~8% between page
+loads) and is kept because it is exact and cannot hurt.
+
+**Still open: the shelving**, which is the larger half at 41.3% of a gallery
+frame. Its existing `dh < -(CARC_D + 0.24)` early-out is already the same idea,
+so the cost is in samples *near* a wall — where the hit point, its four normal
+taps and its three ambient probes all land. Cutting it means making the
+near-wall path itself cheaper, not culling more of it.
 
 **The two biggest costs in the renderer, and the same shape.** Measured by
 ablation: the shelving case is **41.3% of a gallery frame** and 21.1% of the
@@ -185,7 +205,15 @@ until A/B'd inside one page load, and §15's link budget applies to all of it.
 **Done when:** a gallery and a reading room are measurably cheaper at a pinned
 `st.div`, with the render unchanged pixel-for-pixel outside the intended area.
 
-### P2. The auto-scaler's floor, not the shader, is what fails on a weak device
+### P2. The auto-scaler's floor, not the shader, is what fails on a weak device — **done**
+
+**Shipped: the floor is 1:4.** One bound, `st.div < 3` → `st.div < 4`. The
+constraint on it was that the dither must land on whole pixels, which needs an
+integer divisor — 4 satisfies that as well as 3 did. It buys a slow device
+another 1.8× of headroom before the scaler runs out of moves.
+
+**Untested where it matters:** everything below is still measured on one GPU.
+The curve is what predicts other devices, not a reading from one.
 
 Frame time is linear in pixels with a negligible intercept — **4.81 ns/px plus
 0.39 ms** on the development GPU, so ~4.8 ms at 720p and ~10.4 ms at 1080p at
@@ -202,7 +230,33 @@ something that is not this GPU before assuming the curve holds.
 **Done when:** the scaler has been exercised on a genuinely slow device, or the
 floor is raised and the dither is verified at 1:4.
 
-### P3. A conservative stone field would cut march steps ~20%
+### P3. A conservative stone field would cut march steps ~20% — **done, and the premise was wrong**
+
+**Shipped: the march step is 1.00.** The plan was to make the field
+conservative *first* and then raise the step. Measuring first showed the field
+did not need the work: at a full step the bad-normal share is unchanged or
+better on every view tested, including the three the reporter sent, where mean
+normal error *fell* (0.0144 → 0.0108, 0.0118 → 0.0086, 0.0091 → 0.0079).
+
+| | steps/pixel at 0.80 | at 1.00 | fewer |
+|---|---|---|---|
+| shaft | 10.0 | 6.8 | 32% |
+| corridor | 15.1 | 11.2 | 26% |
+| stairwell | 14.3 | 10.7 | 25% |
+| gallery | 18.6 | 14.4 | 23% |
+| reading | 20.8 | 16.6 | 20% |
+
+**20–32% fewer `mapAt` calls on the march, for 5.1% of the frame** (2.3–9.9%).
+The gap between the two is the fixed 8 shading probes, which do not change, and
+the fact that the shader is not purely ALU-bound. `?ablate=march80` restores the
+under-relaxation.
+
+**What this retires:** the under-relaxation was there because the field
+over-reports somewhere, and four sessions treated the step as the mottling knob.
+§13 established the mottling was the tolerance instead; with that fixed, the
+margin the step was buying is no longer needed. A conservative `mapAt` is still
+the right thing for its own sake — it is what would let the *tolerance* loosen —
+but it is no longer blocking a performance win.
 
 The march averages 18.6 `mapAt` calls a pixel in a gallery and 20.8 in a
 reading room, against a fixed 8 for the normal, ambient probe and material. It
