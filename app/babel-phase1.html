@@ -3469,6 +3469,35 @@ const ABLATIONS = {
      symptom; this removes the offset the normal was standing on. */
 
 
+  /* WHERE THE SHELVING GOES. P1 says the shelving is 41.3% of a gallery frame
+     and that cutting it means making the near-wall path cheaper rather than
+     culling more of it -- and then says to instrument which samples take
+     which branch before widening anything. This is that instrument.
+
+     Three counters, accumulated across every mapAt call in the pixel, so the
+     march, the four normal taps and the three ambient probes are all counted:
+       R  samples that reached the shelving section at all
+       G  ... and took the deep-inside early-out, doing no casework
+       B  ... and reached a wall's casework, which is the expensive path
+     Rendered at 1/40 so a count of 40 saturates.
+
+     What the numbers decide: if B is a small fraction of R the path is
+     already well culled and the win has to come from making it cheaper; if B
+     is most of R, better culling is the lever. Guessing between those two is
+     what the aoCtx attempt did, at 20 minutes a guess. */
+  shelfwork: [
+    [/float gSpineY; \/\/ 0 at the tail of the spine, 1 at the head/,
+     "float gSpineY; // 0 at the tail of the spine, 1 at the head\nvec3 gShelfW;"],
+    [/  if \(fy < -SHELF_BASE \|\| fy > H_ROOM \+ SHELF_BASE\) return d;/,
+     "  if (fy < -SHELF_BASE || fy > H_ROOM + SHELF_BASE) return d;\n  gShelfW.x += 1.0;"],
+    [/  if \(dh < -\(CARC_D \+ 0\.24\)\) return min\(d, -dh - CARC_D\);/,
+     "  if (dh < -(CARC_D + 0.24)){ gShelfW.y += 1.0; return min(d, -dh - CARC_D); }"],
+    [/    if \(abs\(w\.y\) - \(CASE_HALF \+ 0\.03\) > d\) continue;/,
+     "    if (abs(w.y) - (CASE_HALF + 0.03) > d) continue;\n    gShelfW.z += 1.0;"],
+    [/  vec3 final = clamp\(sub \* \(0\.050 \+ 1\.35 \* q\), 0\.0, 1\.0\);/,
+     "  vec3 final = clamp(gShelfW / 40.0, 0.0, 1.0);"]
+  ],
+
   /* WHAT IS IT. The render that should have been the first experiment, not the
      twelfth. Four facts per pixel, in four channels, one link -- because at
      60-85 s per shader variant the cost of this hunt was dominated by the
@@ -4965,5 +4994,22 @@ function frame(now){
 arriveFromURL();
 markStartAfterArrival();
 hudPerf();
+
+/* A handle for the instruments, and it earns its place by having been lost.
+ *
+ * The whole ?ablate= method is: render a measurement instead of the scene,
+ * then read the pixels. Reading them means driving a frame and calling
+ * readPixels in the SAME task -- a read after compositing returns a cleared
+ * buffer, which once scored a hole as a perfect normal (§17.14) -- and that
+ * needs a handle on frame() and the context.
+ *
+ * Making the script a module (BUG-LOG 20) put every binding in module scope,
+ * so the console lost both, and with them the technique. A background tab
+ * has no frames either, so waiting for one is not a substitute.
+ *
+ * Three references, no behaviour. The alternative is instruments that only
+ * work if the tab happens to be in front. */
+window.__render = { frame, gl, cv, st };
+
 requestAnimationFrame(frame);
 </script>

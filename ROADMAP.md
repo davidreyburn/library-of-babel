@@ -290,6 +290,43 @@ checksums over the whole buffer match on all three test views. The corridor
 bound measured within run-to-run noise (its timings vary ~8% between page
 loads) and is kept because it is exact and cannot hurt.
 
+**The shelving is now instrumented, which is what this item asked for first.**
+`?ablate=shelfwork` renders three counters instead of the scene, accumulated
+over every `mapAt` call in a pixel — so the march, the four normal taps and
+the three ambient probes are all counted. In a gallery, per pixel:
+
+| | per pixel |
+|---|---|
+| samples reaching the shelving section | **23.6** |
+| ...taking the deep-inside early-out, doing no casework | 8.4 (36%) |
+| ...reaching a wall's casework | 9.4 |
+
+**So the early-out is already doing its job and the cost is where this item
+predicted: 64% of shelving samples are in the near-wall band and run the full
+path.** Better culling is not the lever. Two specific costs are now visible:
+
+1. **The wall-selection loop runs 6 iterations on ~15 samples a pixel** —
+   about 91 dot products per pixel — to pick two walls.
+2. **The casework loop iterates 6 times to run 2 bodies.** That one is
+   exactly replaceable: `for (int k = 0; k < 2; k++){ int i = k == 0 ? w1 : w2; ... }`
+   is the same walls, the same work and the same field, in two iterations
+   instead of six, with the body written once — so it does not duplicate the
+   body the way §15's 127-second link did.
+
+**Not attempted yet, and the reason is the harness, not the change.** Frame
+timing from a background tab came back **bimodal — six batches at 1.0 ms and
+three at 2.1 ms**, a 2× spread that swamps any plausible win. And a change
+like this cannot be A/B'd inside one page load the way the review requires:
+making it a uniform-guarded branch is precisely what took the link to 81
+seconds in §15.
+
+**The protocol it needs**, written down so the next attempt does not rediscover
+it: a foreground tab, `st.div` pinned, the old form kept as an ablation so
+both can be measured under identical canvas and view, nine batches of 14 with
+one `readPixels` sync per batch, and the FNV checksum of the buffer compared
+to prove the field did not move. **`gl.finish()` is not a substitute for that
+sync — it returned in 0.007 ms, having stalled on nothing.**
+
 **Still open: the shelving**, which is the larger half at 41.3% of a gallery
 frame. Its existing `dh < -(CARC_D + 0.24)` early-out is already the same idea,
 so the cost is in samples *near* a wall — where the hit point, its four normal
