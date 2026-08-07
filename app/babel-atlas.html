@@ -99,7 +99,7 @@ import { CORE_VERSION, G, DIRS, DIRW, TYPE, GAP, CELL_TYPE_NAME,
 
 /* A day old, and it says so. The atlas moves on its own line from the
    renderer: they draw the same Library and share nothing else. */
-const ATLAS_VERSION = "0.1.0";
+const ATLAS_VERSION = "0.2.0";
 
 const qs = new URLSearchParams(location.search);
 const RADIUS = Math.max(0, Math.min(12, +(qs.get("r") ?? 6)));
@@ -383,9 +383,21 @@ const norm  = a => { const l = Math.hypot(...a) || 1; return [a[0]/l, a[1]/l, a[
 const [ox, oz] = worldOf(CQ, CR);
 const HOME = { yaw: -0.9, pitch: 0.62, dist: RADIUS * 9 + 18,
                tx: ox, ty: 0, tz: oz };
+/* A floor and a number of layers, rather than a low and a high. Thirteen
+   storeys stacked is a solid block you cannot see into: the storey is the
+   unit anybody actually reasons about, so one of them is what arrives, and
+   the rest are asked for.
+
+   Layers grow upward first, then down -- 1 is the floor alone, 2 is it and
+   the one above, 3 is one either side -- so the floor you are on stays in
+   view as the stack thickens rather than sliding off the bottom. */
 const st = { ...HOME, grain: 1, div: 2,
              show: new Map(KINDS.map(k => [k.id === DOOR ? DOOR : k.id, 1])),
-             lo: -FLOORS, hi: FLOORS, isolate: null };
+             floor: 0, layers: 1, isolate: null };
+function slice(){
+  const up = Math.ceil((st.layers - 1) / 2), down = Math.floor((st.layers - 1) / 2);
+  return [Math.max(-FLOORS, st.floor - down), Math.min(FLOORS, st.floor + up)];
+}
 
 function resize(){
   const w = Math.max(1, Math.round(cv.clientWidth  / st.div));
@@ -397,10 +409,11 @@ addEventListener("resize", resize);
 
 /* ---- the legend, which is also the control -------------------------- */
 function renderLegend(){
+  const [lo, hi] = slice();
   el.legend.innerHTML =
     '<div class="ver">core ' + CORE_VERSION + ' &middot; atlas ' + ATLAS_VERSION + '</div>' +
-    '<div class="hd">Around ' + CQ + ',' + CR + ' &middot; ' + RADIUS +
-    ' cells, ' + FLOORS + ' storeys either way</div>' +
+    '<div class="hd"><b>Floor ' + (st.floor > 0 ? '+' : '') + st.floor +
+    '</b> &middot; Layers: <b>' + (hi - lo + 1) + '</b></div>' +
     KINDS.map(k => {
       const id = k.id === DOOR ? DOOR : k.id;
       const on = st.show.get(id) === 1;
@@ -409,7 +422,8 @@ function renderLegend(){
              '<span class="n">' + k.name + '</span>' +
              '<span class="c">' + k.key + '</span></div>';
     }).join("") +
-    '<div class="ft">Storeys <b>' + st.lo + '</b> to <b>' + st.hi + '</b>' +
+    '<div class="ft">' + (lo === hi ? 'one storey' : 'storeys ' + lo + ' to ' + hi) +
+    ' &middot; around ' + CQ + ',' + CR +
     (st.isolate !== null ? ' &middot; isolated' : '') + '</div>';
   for (const row of el.legend.querySelectorAll(".row"))
     row.onclick = () => toggle(+row.dataset.id);
@@ -457,7 +471,8 @@ const BINDINGS = [
   { grp: "What you can see", keys: [
     ["1 – 6", "Show or hide one kind"],
     ["Shift 1 – 6", "That kind alone"],
-    ["[ ]", "Fewer or more storeys"],
+    ["[ ]", "Down or up a floor"],
+    ["H J", "One more or one fewer layer"],
     ["\\", "One storey, or all of them"] ] },
   { grp: "The page itself", keys: [
     ["?", "Show or hide this list"],
@@ -470,13 +485,19 @@ el.help.innerHTML = BINDINGS.map(g =>
   g.keys.map(([k, d]) => '<b>' + k + '</b> <span class="t">' + d + '</span>').join(' &middot; ') +
   '</div>').join("");
 
+const floorSaid = () => "Floor " + (st.floor > 0 ? "+" : "") + st.floor + ", alone.";
+const layersSaid = () => {
+  const [lo, hi] = slice();
+  return st.layers === 1 ? floorSaid()
+       : (hi - lo + 1) + " storeys, " + lo + " to " + hi + ".";
+};
 const GRAINS = ["ordered", "noise", "fine", "smooth"];
 function renderStats(ms){
   if (el.stats.hidden) return;
   el.stats.innerHTML =
     '<div class="row"><span>cells</span><b>' + cellCount + '</b></div>' +
     '<div class="row"><span>triangles</span><b>' + (nVerts / 3).toLocaleString() + '</b></div>' +
-    '<div class="row"><span>storeys</span><b>' + (st.hi - st.lo + 1) + '</b></div>' +
+    '<div class="row"><span>storeys</span><b>' + (slice()[1] - slice()[0] + 1) + '</b></div>' +
     '<div class="row"><span>scale</span><b>1:' + st.div + '</b></div>' +
     '<div class="row"><span>grain</span><b>' + GRAINS[st.grain] + '</b></div>' +
     '<div class="row"><span>frame</span><b>' + ms.toFixed(1) + ' ms</b></div>';
@@ -512,9 +533,15 @@ cv.addEventListener("wheel", e => {
   st.dist = Math.max(6, Math.min(600, st.dist * Math.exp(e.deltaY * 0.0012)));
 }, { passive: false });
 
-function setSlice(lo, hi){
-  st.lo = Math.max(-FLOORS, Math.min(FLOORS, lo));
-  st.hi = Math.max(st.lo, Math.min(FLOORS, hi));
+/* The camera follows the floor. Without this, six storeys up is six storeys
+   off the top of the screen and the tool looks broken. */
+function setFloor(f){
+  st.floor = Math.max(-FLOORS, Math.min(FLOORS, f));
+  st.ty = st.floor * G.H_FLOOR;
+  renderLegend();
+}
+function setLayers(n){
+  st.layers = Math.max(1, Math.min(2 * FLOORS + 1, n));
   renderLegend();
 }
 addEventListener("keydown", e => {
@@ -535,11 +562,13 @@ addEventListener("keydown", e => {
     st.div = Math.max(1, Math.min(4, st.div + d));
     resize(); say("Render scale 1:" + st.div + "."); renderStats(0); return;
   }
-  if (e.code === "BracketLeft"){ setSlice(st.lo + 1, st.hi - 1); return; }
-  if (e.code === "BracketRight"){ setSlice(st.lo - 1, st.hi + 1); return; }
+  if (e.code === "BracketLeft"){  setFloor(st.floor - 1); say(floorSaid()); return; }
+  if (e.code === "BracketRight"){ setFloor(st.floor + 1); say(floorSaid()); return; }
+  if (e.code === "KeyH"){ setLayers(st.layers + 1); say(layersSaid()); return; }
+  if (e.code === "KeyJ"){ setLayers(st.layers - 1); say(layersSaid()); return; }
   if (e.code === "Backslash"){
-    if (st.lo === st.hi) { setSlice(-FLOORS, FLOORS); say("Every storey."); }
-    else { setSlice(0, 0); say("One storey, the origin's."); }
+    if (st.layers === 1){ setLayers(2 * FLOORS + 1); say("Every storey at once."); }
+    else { setLayers(1); say(floorSaid()); }
     return;
   }
   /* e.code, not e.key: shifted digits are "!" on one layout and "±" on
@@ -579,7 +608,8 @@ function frame(now){
   }
   gl.uniformMatrix4fv(U.uMVP, false, mvp);
   gl.uniform1fv(U.uShow, showBuf);
-  gl.uniform2f(U.uSlice, st.lo, st.hi);
+  const [slo, shi] = slice();
+  gl.uniform2f(U.uSlice, slo, shi);
   gl.uniform1i(U.uGrain, st.grain);
   gl.uniform1f(U.uFar, far);
 
@@ -603,7 +633,7 @@ requestAnimationFrame(frame);
     if (!inRange(q, r) || cellType(q, r) !== TYPE.STAIRWELL) continue;
     stairs++; if (!stairCrossable(q, r, 0)) dead++;
   }
-  say(cellCount.toLocaleString() + " cells · " + stairs + " flights, " +
-      dead + " of them dead ends. Press ? for the keys.");
+  say(stairs + " flights in the cluster, " + dead + " of them dead ends. " +
+      "Floor 0. Press ? for the keys.");
 }
 </script>
