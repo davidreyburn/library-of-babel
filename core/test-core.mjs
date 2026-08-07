@@ -1116,7 +1116,7 @@ section("THE ATLAS -- held to the kit, like everything else");
   const spoken = {
     F1:"F1", KeyR:"R", KeyG:"G", Digit:"1 – 6", Numpad:"1 – 6", "?":"?",
     BracketLeft:"[ ]", BracketRight:"[ ]", Backslash:"\\\\",
-    KeyH:"H J", KeyJ:"H J",
+    KeyH:"H J", KeyJ:"H J", KeyU:"U", Escape:"Esc",
     ArrowUp:"Arrows", ArrowDown:"Arrows", ArrowLeft:"Arrows", ArrowRight:"Arrows",
     Minus:"− +", Equal:"− +", NumpadSubtract:"− +", NumpadAdd:"− +"
   };

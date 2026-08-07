@@ -15,7 +15,8 @@
     --cell-study:#E8C87A;     /* a reading room: the brightest thing here  */
     --cell-corridor:#9A6B2F;  /* a hallway, a value below the gallery      */
     --cell-stair:#B5762A;     /* a flight, warmer so a ramp reads as one   */
-    --cell-shaft:#5E3B22;     /* a well: the deepest, and the one you fall */
+    --cell-shaft:#5E3B22;
+    --cell-lost:#7A2E24;      /* a room with no way to it: the one cold note */     /* a well: the deepest, and the one you fall */
     --cell-door:#D8A75A;      /* what joins them, brighter than either     */
     --model-sky:#12140F;      /* the same ink the chrome sits on           */
   }
@@ -42,6 +43,17 @@
   #legend .hd{color:var(--faint);margin-bottom:.25rem;}
   #legend .ft{color:var(--mute);margin-top:.35rem;font-size:var(--sz-sm);}
   #legend .ver{color:var(--mute);font-size:var(--sz-sm);margin-bottom:.3rem;}
+
+  /* What one cell is. Opens on a click and closes on Esc: it answers a
+     question you asked, so it should not be there before you ask. */
+  #cell{bottom:var(--gap);right:var(--gap);min-width:15rem;max-width:21rem;}
+  #cell .hd{color:var(--pale);margin-bottom:.25rem;}
+  #cell .row{display:flex;justify-content:space-between;gap:1.2rem;}
+  #cell .k{color:var(--faint);}
+  #cell .v{color:var(--pale);font-variant-numeric:tabular-nums;}
+  #cell .note{color:var(--dim);font-size:var(--sz-sm);margin-top:.35rem;line-height:1.5;}
+  #cell .lost{color:var(--warn);}
+  #cell .uri{color:var(--faint);font-size:var(--sz-sm);margin-top:.35rem;word-break:break-all;}
   #legend .ft b{color:var(--faint);font-weight:400;}
 
   #stats{top:var(--gap);right:var(--gap);font-size:var(--sz-sm);color:var(--faint);
@@ -70,6 +82,7 @@
 <canvas id="gl"></canvas>
 
 <div class="panel" id="legend"></div>
+<div class="panel" id="cell" hidden></div>
 <div class="panel" id="stats" hidden></div>
 <div class="panel" id="help" hidden></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -93,13 +106,15 @@
  * shape of the questions this page exists to answer: what is next to what,
  * which way does a flight run, and where does the network stop.
  * ==================================================================== */
-import { CORE_VERSION, G, DIRS, DIRW, TYPE, GAP, CELL_TYPE_NAME,
-         cellType, roomAt, gapAt, axisOf, riseOf, corridorAxis,
-         worldOf, stairCrossable } from "../core/babel-core.mjs";
+import { CORE_VERSION, G, DIRS, DIRW, TYPE, GAP, GAP_NAME, CELL_TYPE_NAME,
+         cellType, roomAt, gapAt, axisOf, riseOf, corridorAxis, alcoveAt,
+         ALCOVE_NAME, studyPieces, shelvedWalls, descGaps, cellDesc,
+         worldOf, cellOf, sdHexFlat, stairUV, corridorUV, stairCrossable,
+         movesFrom, isStandable, nodeKey } from "../core/babel-core.mjs";
 
 /* A day old, and it says so. The atlas moves on its own line from the
    renderer: they draw the same Library and share nothing else. */
-const ATLAS_VERSION = "0.2.0";
+const ATLAS_VERSION = "0.3.0";
 
 const qs = new URLSearchParams(location.search);
 const RADIUS = Math.max(0, Math.min(12, +(qs.get("r") ?? 6)));
@@ -108,6 +123,7 @@ const [CQ, CR] = (qs.get("at") ?? "0,0").split(",").map(n => +n || 0);
 
 const cv = document.getElementById("gl");
 const el = { legend: document.getElementById("legend"),
+             cell:   document.getElementById("cell"),
              stats:  document.getElementById("stats"),
              help:   document.getElementById("help"),
              toast:  document.getElementById("toast") };
@@ -143,13 +159,65 @@ const KINDS = [
 ];
 const DOOR = 5;                                   // not a cell type: what joins them
 
+/* ---- which rooms you can actually walk to --------------------------- *
+ * The walk graph from the centre, breadth-first through doorways and up
+ * flights, exactly as the agent walks it -- so a room this marks as lost is
+ * one core/ agrees is lost, not one the renderer merely failed to join.
+ *
+ * Stairwells and shafts are excluded rather than marked: the seam models a
+ * flight as an EDGE, not a place, so a stairwell cell never appears as a
+ * graph node and would be reported lost every time. A shaft is not somewhere
+ * anyone can be at all. */
+/* Bounded to the neighbourhood, and that bound is the honest part.
+ *
+ * core's walkGraph explores the Library outward with no notion of this
+ * cluster, so a cap of 30,000 was spent on cells far outside it and came back
+ * exactly at the cap -- which would have marked rooms "lost" that were only
+ * "not visited yet". A mark that cannot tell those apart is worse than none.
+ *
+ * So the search is the seam's own rules -- movesFrom, which refuses a shaft
+ * and refuses a flight that arrives nowhere -- over a box two cells and one
+ * storey wider than what is drawn. Rooms are allowed to route out and back
+ * through that margin. A route that needs to go further than the margin to
+ * come back is not one anybody would call reachable from here anyway, and
+ * the panel says "within this neighbourhood" rather than pretending to know
+ * about the whole Library. */
+const REACH_R = RADIUS + 2, REACH_F = FLOORS + 1;
+const nearby = (q, r, fl) =>
+  Math.abs(fl) <= REACH_F &&
+  (Math.abs(q - CQ) + Math.abs(r - CR) + Math.abs((q - CQ) + (r - CR))) / 2 <= REACH_R;
+const REACH = (() => {
+  const seen = new Set(), start = { q: CQ, r: CR, floor: 0 };
+  if (!isStandable(start.q, start.r, start.floor)) return seen;
+  seen.add(nodeKey(start));
+  const queue = [start];
+  for (let head = 0; head < queue.length; head++){
+    for (const m of movesFrom(queue[head])){
+      if (!nearby(m.to.q, m.to.r, m.to.floor)) continue;
+      const k = nodeKey(m.to);
+      if (seen.has(k)) continue;
+      seen.add(k); queue.push(m.to);
+    }
+  }
+  return seen;
+})();
+const lostAt = (q, r, fl) => {
+  const t = cellType(q, r);
+  if (t === TYPE.SHAFT || t === TYPE.STAIRWELL) return false;
+  return !REACH.has(nodeKey({ q, r, floor: fl }));
+};
+
 /* ---- mesh ----------------------------------------------------------- *
  * One static buffer. Eight floats a vertex: position, normal, kind, and
  * the storey it belongs to, so slicing and hiding are uniforms rather
  * than a rebuild -- a toggle has to be instant or nobody toggles. */
 const V = [];
+/* Set by the build loop before it emits a cell, rather than threaded through
+   tri/quad/prism/beam as a seventh argument nobody would read. */
+let curLost = 0;
 function tri(a, b, c, n, kind, fl){
-  for (const p of [a, b, c]) V.push(p[0], p[1], p[2], n[0], n[1], n[2], kind, fl);
+  for (const p of [a, b, c])
+    V.push(p[0], p[1], p[2], n[0], n[1], n[2], kind, fl, curLost);
 }
 function quad(a, b, c, d, n, kind, fl){ tri(a, b, c, n, kind, fl); tri(a, c, d, n, kind, fl); }
 
@@ -213,6 +281,7 @@ for (let r = CR - RADIUS; r <= CR + RADIUS; r++){
   const [wx, wz] = worldOf(q, r);
   for (let fl = -FLOORS; fl <= FLOORS; fl++){
     const base = fl * G.H_FLOOR;
+    curLost = lostAt(q, r, fl) ? 1 : 0;
     if (t === TYPE.SHAFT){
       /* A well is one shaft through every storey, so it is drawn full
          height and butts against its own copies. It reads as a column. */
@@ -259,10 +328,13 @@ layout(location=0) in vec3 aPos;
 layout(location=1) in vec3 aNrm;
 layout(location=2) in float aKind;
 layout(location=3) in float aFloor;
+layout(location=4) in float aLost;
 uniform mat4 uMVP;
 out vec3 vN; out float vKind; out float vFloor; out float vDepth;
+out float vLost; out vec2 vWorld;
 void main(){
-  vN = aNrm; vKind = aKind; vFloor = aFloor;
+  vN = aNrm; vKind = aKind; vFloor = aFloor; vLost = aLost;
+  vWorld = aPos.xz;
   vec4 c = uMVP * vec4(aPos, 1.0);
   vDepth = c.w;
   gl_Position = c;
@@ -271,7 +343,12 @@ void main(){
 const FS = `#version 300 es
 precision highp float;
 in vec3 vN; in float vKind; in float vFloor; in float vDepth;
+in float vLost; in vec2 vWorld;
 uniform vec3  uTint[6];
+uniform vec3  uLost;         // the colour of a room with no way to it
+uniform float uMarkLost;     // 1 while the mark is on
+uniform vec2  uPick;         // the selected cell's centre, in world
+uniform float uPicked;       // 1 while something is selected
 uniform float uShow[6];      // 1 shown, 0 hidden, 0.22 pushed back
 uniform vec2  uSlice;        // the storeys still standing
 uniform int   uGrain;
@@ -292,6 +369,7 @@ float bayer8(ivec2 c){
 float ign(vec2 c){
   return fract(52.9829189 * fract(dot(c, vec2(0.06711056, 0.00583715))));
 }
+const float R_CELL = 2.793;
 void main(){
   int k = int(vKind + 0.5);
   if (vFloor < uSlice.x - 0.5 || vFloor > uSlice.y + 0.5) discard;
@@ -314,7 +392,14 @@ void main(){
                                            : bayer8(ivec2(gl_FragCoord.xy)) - 0.5;
   float q = (uGrain == 3) ? lum
           : clamp(floor(lum * (L - 1.0) + 0.5 + dth * amp) / (L - 1.0), 0.0, 1.0);
-  outColor = vec4(clamp(uTint[k] * (0.050 + 1.35 * q), 0.0, 1.0), 1.0);
+  /* A lost room is recoloured rather than dimmed: it is a fact about the
+     Library, so it should read at the same brightness as everything else
+     and differ in hue -- which is the lesson §14 spent four reports on. */
+  vec3 tint = mix(uTint[k], uLost, uMarkLost * vLost);
+  /* The selection is a lift, not an outline: an outline needs the cell's own
+     id in the fragment and this needs one distance. */
+  float sel = uPicked * (1.0 - smoothstep(R_CELL * 0.72, R_CELL, distance(vWorld, uPick)));
+  outColor = vec4(clamp(tint * (0.050 + 1.35 * q) + sel * 0.22, 0.0, 1.0), 1.0);
 }`;
 
 function compile(type, src){
@@ -337,15 +422,17 @@ gl.bindVertexArray(vao);
 const vbo = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
-const STRIDE = 32;
-for (const [loc, size, off] of [[0, 3, 0], [1, 3, 12], [2, 1, 24], [3, 1, 28]]){
+const STRIDE = 36;
+for (const [loc, size, off] of [[0, 3, 0], [1, 3, 12], [2, 1, 24], [3, 1, 28], [4, 1, 32]]){
   gl.enableVertexAttribArray(loc);
   gl.vertexAttribPointer(loc, size, gl.FLOAT, false, STRIDE, off);
 }
 const U = {};
-for (const n of ["uMVP", "uTint", "uShow", "uSlice", "uGrain", "uFar"])
+for (const n of ["uMVP", "uTint", "uShow", "uSlice", "uGrain", "uFar",
+                 "uLost", "uMarkLost", "uPick", "uPicked"])
   U[n] = gl.getUniformLocation(prog, n);
 gl.uniform3fv(U.uTint, new Float32Array(KINDS.flatMap(k => cssRGB(k.css))));
+gl.uniform3fv(U.uLost, new Float32Array(cssRGB("--cell-lost")));
 gl.enable(gl.DEPTH_TEST);
 gl.enable(gl.CULL_FACE);
 
@@ -393,7 +480,7 @@ const HOME = { yaw: -0.9, pitch: 0.62, dist: RADIUS * 9 + 18,
    view as the stack thickens rather than sliding off the bottom. */
 const st = { ...HOME, grain: 1, div: 2,
              show: new Map(KINDS.map(k => [k.id === DOOR ? DOOR : k.id, 1])),
-             floor: 0, layers: 1, isolate: null };
+             floor: 0, layers: 1, isolate: null, markLost: false, pick: null };
 function slice(){
   const up = Math.ceil((st.layers - 1) / 2), down = Math.floor((st.layers - 1) / 2);
   return [Math.max(-FLOORS, st.floor - down), Math.min(FLOORS, st.floor + up)];
@@ -473,6 +560,9 @@ const BINDINGS = [
     ["Shift 1 – 6", "That kind alone"],
     ["[ ]", "Down or up a floor"],
     ["H J", "One more or one fewer layer"],
+    ["U", "Mark rooms with no route from the centre"],
+    ["Click", "Read a cell"],
+    ["Esc", "Put the cell down"],
     ["\\", "One storey, or all of them"] ] },
   { grp: "The page itself", keys: [
     ["?", "Show or hide this list"],
@@ -491,6 +581,21 @@ const layersSaid = () => {
   return st.layers === 1 ? floorSaid()
        : (hi - lo + 1) + " storeys, " + lo + " to " + hi + ".";
 };
+function lostSaid(){
+  let lost = 0, rooms = 0;
+  const [lo, hi] = slice();
+  for (let q = CQ - RADIUS; q <= CQ + RADIUS; q++)
+  for (let r = CR - RADIUS; r <= CR + RADIUS; r++){
+    if (!inRange(q, r)) continue;
+    const ty = cellType(q, r);
+    if (ty === TYPE.SHAFT || ty === TYPE.STAIRWELL) continue;
+    for (let fl = lo; fl <= hi; fl++){ rooms++; if (lostAt(q, r, fl)) lost++; }
+  }
+  return lost === 0
+    ? "Every room on show can be walked to from " + CQ + "," + CR + "."
+    : lost + " of " + rooms + " rooms on show have no route from " + CQ + "," + CR +
+      " within this neighbourhood.";
+}
 const GRAINS = ["ordered", "noise", "fine", "smooth"];
 function renderStats(ms){
   if (el.stats.hidden) return;
@@ -507,10 +612,110 @@ for (let q = CQ - RADIUS; q <= CQ + RADIUS; q++)
 for (let r = CR - RADIUS; r <= CR + RADIUS; r++) if (inRange(q, r)) cellCount++;
 cellCount *= (2 * FLOORS + 1);
 
+/* ---- reading one cell ----------------------------------------------- *
+ * A ray from the cursor, marched until it is inside something drawn. Not a
+ * GPU id-buffer: this needs a CELL, not a triangle, and the cell is what the
+ * point already tells us -- cellOf(x,z) and the storey. What the march adds
+ * is WHICH solid, so clicking the gap between two rooms selects neither.
+ *
+ * The predicates below are the mesh's own, in the same order: change one
+ * there and the click stops agreeing with what you can see, which is the
+ * twin-drift this repository keeps meeting. They are close enough together
+ * to notice. */
+function solidAt(x, y, z, lo, hi){
+  const [q, r] = cellOf(x, z);
+  if (!inRange(q, r)) return null;
+  const fl = Math.floor(y / G.H_FLOOR);
+  if (fl < lo || fl > hi) return null;
+  const t = cellType(q, r);
+  const kid = t === TYPE.GALLERY && roomAt(q, r, fl) === TYPE.STUDY ? TYPE.STUDY : t;
+  if ((st.show.get(kid) ?? 1) < 0.5) return null;
+  const [wx, wz] = worldOf(q, r);
+  const lx = x - wx, lz = z - wz, base = fl * G.H_FLOOR, h = y - base;
+  if (t === TYPE.SHAFT)
+    return (h >= 0 && h <= G.H_FLOOR && sdHexFlat(lx, lz, G.APO_SHAFT * 0.72) < 0)
+      ? { q, r, fl } : null;
+  if (t === TYPE.STAIRWELL){
+    const [u, v] = stairUV(lx, lz, q, r);
+    return (h >= 0 && h <= G.H_FLOOR &&
+            Math.abs(u) <= G.STAIR_RUN && Math.abs(v) <= G.STAIR_HW) ? { q, r, fl } : null;
+  }
+  if (t === TYPE.CORRIDOR){
+    const [u, v] = corridorUV(lx, lz, q, r);
+    return (h >= 0 && h <= G.H_ROOM &&
+            Math.abs(u) <= G.HALF_D && Math.abs(v) <= G.CORR_HW) ? { q, r, fl } : null;
+  }
+  return (h >= 0 && h <= G.H_ROOM && sdHexFlat(lx, lz, G.APO_ROOM) < 0) ? { q, r, fl } : null;
+}
+function pickAt(mx, my){
+  const [lo, hi] = slice();
+  const cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+  const eye = [st.tx + Math.sin(st.yaw) * cp * st.dist,
+               st.ty + sp * st.dist,
+               st.tz + Math.cos(st.yaw) * cp * st.dist];
+  /* the same projection the frame uses, inverted for one point */
+  const ndcX = (mx / cv.clientWidth) * 2 - 1, ndcY = 1 - (my / cv.clientHeight) * 2;
+  const fwd = norm([st.tx - eye[0], st.ty - eye[1], st.tz - eye[2]]);
+  const right = norm(cross(fwd, [0, 1, 0])), up = cross(right, fwd);
+  const th = Math.tan(0.9 / 2), aspect = cv.clientWidth / cv.clientHeight;
+  const dir = norm([fwd[0] + right[0] * ndcX * th * aspect + up[0] * ndcY * th,
+                    fwd[1] + right[1] * ndcX * th * aspect + up[1] * ndcY * th,
+                    fwd[2] + right[2] * ndcX * th * aspect + up[2] * ndcY * th]);
+  const far = st.dist + RADIUS * 12 + FLOORS * G.H_FLOOR * 2 + 40;
+  for (let s = 0.5; s < far; s += 0.12){
+    const hit = solidAt(eye[0] + dir[0] * s, eye[1] + dir[1] * s, eye[2] + dir[2] * s, lo, hi);
+    if (hit) return hit;
+  }
+  return null;
+}
+/* Everything core/ knows about one cell, in the order you would ask. */
+function renderCell(){
+  const p = st.pick;
+  if (!p){ el.cell.hidden = true; return; }
+  const { q, r, fl } = p;
+  const t = roomAt(q, r, fl), stru = cellType(q, r);
+  const row = (k, v, cls) => '<div class="row"><span class="k">' + k +
+    '</span><span class="v ' + (cls || "") + '">' + v + '</span></div>';
+  let h = '<div class="hd">' + CELL_TYPE_NAME[t] + ' at ' + q + ',' + r +
+          ' &middot; floor ' + (fl > 0 ? '+' : '') + fl + '</div>';
+  const gaps = descGaps(cellDesc(q, r, fl));
+  h += row("exits", gaps.map((g, i) => g === GAP.WALL ? null : i)
+                        .filter(i => i !== null).join(", ") || "none");
+  h += row("gaps", gaps.map(g => GAP_NAME[g][0].toUpperCase()).join(" "));
+  if (stru === TYPE.STAIRWELL){
+    h += row("axis", axisOf(q, r) + (riseOf(q, r) > 0 ? "  rises +u" : "  rises -u"));
+    const cross = stairCrossable(q, r, fl);
+    h += row("crossable", cross ? "yes" : "no — a dead end", cross ? "" : "lost");
+  }
+  if (stru === TYPE.CORRIDOR){
+    h += row("axis", corridorAxis(q, r));
+    h += row("alcoves", [0, 1].map(s => ALCOVE_NAME[alcoveAt(q, r, fl, s)]).join(", "));
+  }
+  if (t === TYPE.STUDY){
+    const pieces = studyPieces(q, r, fl).map(x => x.piece);
+    h += row("furniture", pieces.length ? pieces.join(", ") : "none");
+  }
+  const walls = shelvedWalls(q, r, fl);
+  if (walls.length) h += row("shelved walls", walls.join(", ") + "  (" + walls.length * 175 + " vols)");
+  const lost = lostAt(q, r, fl);
+  if (lost) h += '<div class="note lost">No route here from ' + CQ + ',' + CR +
+                 ' on floor 0, within this neighbourhood.</div>';
+  h += '<div class="uri">babel://walk/00001594/floor/' + fl + '/cell/' + q + ',' + r + '</div>';
+  el.cell.innerHTML = h;
+  el.cell.hidden = false;
+}
+
+/* A handle on the tool itself. Picking is arithmetic that can be wrong in
+   ways a screenshot cannot show -- a ray a few degrees off still lands on
+   SOMETHING -- so it is measurable from the console rather than inspected
+   by eye. Same reason the prototype publishes __linkMs. */
+window.__atlas = { pickAt, solidAt, slice, st, lostAt, REACH };
+
 /* ---- input ---------------------------------------------------------- */
 let drag = null;
 cv.addEventListener("pointerdown", e => {
-  drag = { x: e.clientX, y: e.clientY, pan: e.shiftKey || e.button === 1 };
+  drag = { x: e.clientX, y: e.clientY, pan: e.shiftKey || e.button === 1,
+           x0: e.clientX, y0: e.clientY };
   cv.setPointerCapture(e.pointerId);
 });
 cv.addEventListener("pointermove", e => {
@@ -527,7 +732,18 @@ cv.addEventListener("pointermove", e => {
     st.pitch  = Math.max(-1.45, Math.min(1.45, st.pitch + dy * 0.007));
   }
 });
-for (const ev of ["pointerup", "pointercancel"]) cv.addEventListener(ev, () => drag = null);
+/* A click reads a cell; a drag turns the model. Four pixels of travel is the
+   difference, because a mouse moves a little on every real click. */
+cv.addEventListener("pointerup", e => {
+  if (drag && !drag.pan &&
+      Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4){
+    st.pick = pickAt(e.clientX, e.clientY);
+    renderCell();
+    if (!st.pick) say("Nothing there.");
+  }
+  drag = null;
+});
+cv.addEventListener("pointercancel", () => drag = null);
 cv.addEventListener("wheel", e => {
   e.preventDefault();
   st.dist = Math.max(6, Math.min(600, st.dist * Math.exp(e.deltaY * 0.0012)));
@@ -564,6 +780,12 @@ addEventListener("keydown", e => {
   }
   if (e.code === "BracketLeft"){  setFloor(st.floor - 1); say(floorSaid()); return; }
   if (e.code === "BracketRight"){ setFloor(st.floor + 1); say(floorSaid()); return; }
+  if (e.code === "KeyU"){
+    st.markLost = !st.markLost;
+    say(st.markLost ? lostSaid() : "Reachability off.");
+    return;
+  }
+  if (e.code === "Escape"){ st.pick = null; renderCell(); return; }
   if (e.code === "KeyH"){ setLayers(st.layers + 1); say(layersSaid()); return; }
   if (e.code === "KeyJ"){ setLayers(st.layers - 1); say(layersSaid()); return; }
   if (e.code === "Backslash"){
@@ -612,6 +834,9 @@ function frame(now){
   gl.uniform2f(U.uSlice, slo, shi);
   gl.uniform1i(U.uGrain, st.grain);
   gl.uniform1f(U.uFar, far);
+  gl.uniform1f(U.uMarkLost, st.markLost ? 1 : 0);
+  gl.uniform1f(U.uPicked, st.pick ? 1 : 0);
+  if (st.pick){ const [px, pz] = worldOf(st.pick.q, st.pick.r); gl.uniform2f(U.uPick, px, pz); }
 
   const sky = cssRGB("--model-sky");
   gl.clearColor(sky[0], sky[1], sky[2], 1);

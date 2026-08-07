@@ -967,6 +967,23 @@ Three things about it are deliberate:
   redeclare none of its 38 tokens, name its own model colours and spell them
   nowhere else, and document every key it handles.
 
+Two of its controls are diagnostics rather than views. **Clicking a cell**
+reads it out of `core/` -- type, exits, the gap grammar of all six walls, a
+flight's axis and whether it is crossable, a corridor's alcoves, a reading
+room's furniture, shelved walls, and the `babel://` address to cite it by.
+The pick is a ray marched against the same predicates the mesh was built
+from, so what a click selects and what you can see cannot disagree.
+
+**U marks rooms with no route from the centre**, using `movesFrom` -- the
+seam's own rules, refusing a shaft and refusing a flight that arrives
+nowhere -- so a room it marks is one the agent agrees is cut off. The search
+is bounded to two cells and one storey beyond what is drawn, and says so:
+core's `walkGraph` explores outward with no notion of the cluster, and a cap
+of 30,000 came back exactly at the cap, which would have marked rooms lost
+that were merely unvisited. Marked rooms are recoloured rather than dimmed,
+because a fact about the Library should read at full brightness and differ
+in hue -- §14 spent four reports learning that.
+
 The model palette is amber separated by **value, not hue** — the dither has six
 steps to spend, and two colours one step apart are two colours nobody can tell
 apart. `--alert` is not reused for a room type: it means attention, and a type
