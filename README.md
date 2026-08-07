@@ -6,7 +6,10 @@ address, so the renderer, an agent and the tests all see the same Library — an
 coordinate in it can be cited and checked.
 
 Walking reaches about **1.8 × 10¹⁹** distinct volumes of that corpus, on some
-8 × 10²¹ shelves. Reaching an *arbitrary* one instead takes a text address, and
+8 × 10²¹ shelf **slots** — of which about 3.5% stand empty, the gaps the
+Purifiers left. A room therefore holds fewer books than it has room for, and
+`describeCell` reports both the volumes and the slots rather than the capacity
+alone. Reaching an *arbitrary* one instead takes a text address, and
 that is not a shortcoming but arithmetic: a coordinate able to name any book is
 778 KiB long, at which size the address **is** the book. §17.12 of the
 specification has the numbers, and how a 32-bit key once capped the walkable part

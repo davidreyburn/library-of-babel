@@ -493,7 +493,9 @@ by writing its address down.
 **Search can only ever answer in the second system, and this is arithmetic
 rather than a limitation.** A chosen 3,200-symbol page occupies a fraction
 29^-3200 ≈ 10^-4680 of the corpus. Walking reaches about 1.8 × 10¹⁹ **distinct**
-volumes (2⁶⁴ — see §17.12), on some 8 × 10²¹ shelves. Expecting a chosen page to
+volumes (2⁶⁴ — see §17.12), on some 8 × 10²¹ shelf **slots** — the table in
+§17.12 has always said slots, and the prose here used to say shelves, which is
+wrong by the 35 slots a shelf holds. Expecting a chosen page to
 sit on a walkable shelf is therefore short by some **4,660 orders of magnitude**.
 
 Count distinct texts and not shelves for this argument: every copy of a text
@@ -889,6 +891,31 @@ past a wall.
 nowhere. Putting that rule in `gapAt`, where it belongs, was measured at +5 to
 +53 s of cold link time (BUG-LOG §18, corrected by §20) and has not been needed
 since §19.
+
+**A room holds fewer books than it has room for, and now says so.** Four
+shelved walls is 700 *slots*; 3.5% of slots stand empty — the gaps the
+Purifiers left, D-42 — so the room holds about 676 volumes. Every count in the
+build reported the capacity and called it volumes.
+
+That is worse than a mislabelled number, because `describeCell` is the agent
+surface. A reader told "700 volumes" that picks a slot and cites it has a
+1-in-29 chance of citing a hole, and `verify` then scores that citation false.
+Grading a reader down for believing us is the worst shape a defect can take in
+an environment whose whole claim is that integrity is measurable exactly.
+
+`volumesIn(q, r, fl)` counts rather than scales — 3.5% is the expectation over
+the Library and not the figure for any one room, so multiplying would be wrong
+everywhere except on average. `describeCell` reports **both** `volumes` and
+`slots`: an agent that knows only the first cannot tell a full gallery from a
+gutted one. Measured at no cost to either suite.
+
+One thing this makes visible and does not fix: `volumeHash` takes no floor, so
+which slots are empty repeats identically on every storey of a column — the
+same shape of accident the reading rooms had. It is also the hand-written twin
+its own comment warns about, unshared with the shader and guarded only by a
+statistical test, and this change puts a number on its output in the panel and
+in the agent's world model. Extracting it belongs with P1, which opens
+`mapAt`.
 
 **A reading room is a room, not a column.** `cellType` is a function of
 `(q,r)` and cannot see a floor, so every type it returns runs the whole height

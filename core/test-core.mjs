@@ -436,8 +436,14 @@ section("LATTICE -- the figures §17 of the spec quotes");
   ok("corridors about 10%", Math.abs(pct(corridors) - 10) < 1.0, `${pct(corridors).toFixed(2)}%`);
   const mean = shelved / galleries;
   ok("mean shelved walls about 3.14", Math.abs(mean - 3.14) < 0.15, `${mean.toFixed(3)}`);
-  ok("a gallery therefore departs from 700 volumes",
-     Math.abs(mean * 5 * 35 - 700) > 50, `${Math.round(mean * 5 * 35)} volumes on average`);
+  ok("a gallery therefore departs from 700 slots",
+     Math.abs(mean * 5 * 35 - 700) > 50, `${Math.round(mean * 5 * 35)} slots on average`);
+  /* Slots, not volumes, and the distinction is the point: 700 was always
+     four full walls, and a gallery has neither four shelved walls nor full
+     ones. Both corrections point the same way and they compound. */
+  const vols = core.volumesIn(15, 94, 0), slots = core.describeCell(15, 94, 0).slots;
+  ok("and departs again once the empty slots are counted",
+     vols < slots, `the landmark gallery: ${vols} volumes in ${slots} slots`);
 }
 
 section("THE MIRROR -- the one fixture the story argues about");
@@ -496,7 +502,15 @@ section("TRAVERSAL -- the agent surface");
   ok("shelved walls and exits partition the six walls",
      d.shelvedWalls.length + d.exits.length === 6,
      `${d.shelvedWalls.length} shelved + ${d.exits.length} open`);
-  ok("volumes follows from shelved walls", d.volumes === d.shelvedWalls.length * 5 * 35);
+  ok("slots follow from shelved walls", d.slots === d.shelvedWalls.length * 5 * 35);
+  /* And volumes do NOT: 3.5% of slots are empty, so a room always holds
+     fewer books than it has room for. This is the assertion that stops the
+     capacity being reported as an inventory again -- which it was, to the
+     one reader who cannot check it cheaply and is then scored on believing
+     it. The band is wide because the gaps are a hash, not a quota. */
+  ok("volumes are counted, and always fewer than slots",
+     d.volumes < d.slots && d.volumes > d.slots * 0.90,
+     `${d.volumes} of ${d.slots}, ${d.slots - d.volumes} empty`);
   /* walking through an exit and back must return you to where you were */
   let bad = 0;
   for (const e of d.exits){

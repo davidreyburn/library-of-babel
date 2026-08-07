@@ -417,6 +417,29 @@ function shelvedWalls(q, r, fl){
   return out;
 }
 const SHELVES_PER_WALL = 5, BOOKS_PER_SHELF = 35;
+/* What is on the shelves, as opposed to what would fit.
+ *
+ * A gallery with four shelved walls has 700 SLOTS and about 676 volumes:
+ * 3.5% of slots stand empty, the gaps the Purifiers left (D-42). Reporting
+ * the capacity and calling it volumes was a lie told to the one reader who
+ * cannot check it cheaply -- an agent that takes "700 volumes" at face
+ * value, picks a slot and cites it has a 1-in-29 chance of citing a hole,
+ * and verify() will then score that citation false. Grading a reader down
+ * for believing us is the worst shape a bug can take in an environment
+ * whose whole claim is that integrity is measurable exactly.
+ *
+ * Counted, not scaled: 3.5% is the expectation over the whole Library and
+ * not the figure for any particular room, so multiplying would be wrong
+ * everywhere except on average. 175 hashes a wall, and pickVolume already
+ * pays more than that skipping holes. */
+function volumesIn(q, r, fl){
+  let n = 0;
+  for (const wall of shelvedWalls(q, r, fl))
+    for (let shelf = 0; shelf < SHELVES_PER_WALL; shelf++)
+      for (let slot = 0; slot < BOOKS_PER_SHELF; slot++)
+        if (volumePresent(q, r, wall, shelf, slot)) n++;
+  return n;
+}
 /* Where the shelves sit on a wall, mirroring the shader's own indexing so
    that the slot you are looking at and the slot you open are the same one. */
 const SHELF_PITCH = G.SHELF_P, SHELF_BASE = G.SHELF_BASE;
@@ -473,7 +496,11 @@ function describeCell(q, r, fl){
     cell: { q, r, floor: fl },
     type: CELL_TYPE_NAME[t],
     shelvedWalls: walls,
-    volumes: walls.length * SHELVES_PER_WALL * BOOKS_PER_SHELF,
+    /* Both, because they answer different questions: how much is here to
+       read, and how much of this room is holes. An agent that knows only
+       the first cannot tell a full gallery from a gutted one. */
+    volumes: volumesIn(q, r, fl),
+    slots: walls.length * SHELVES_PER_WALL * BOOKS_PER_SHELF,
     exits: exitsFrom(q, r, fl),
     furniture: t === TYPE.STUDY ? studyItems(q, r, fl).length : 0,
     alcoves: alcovesIn(q, r, fl),
@@ -923,5 +950,5 @@ export {
   alcovesIn, holdsIn, mirrorsIn,
   /* routing: the same topology, searched instead of sampled */
   movesFrom, isStandable, walkGraph, routeTo, routeToShelves,
-  someStanding, pickVolume, nodeKey
+  someStanding, pickVolume, nodeKey, volumesIn
 };
