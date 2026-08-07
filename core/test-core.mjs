@@ -1128,6 +1128,17 @@ section("THE ATLAS -- held to the kit, like everything else");
      undocumented.length ? "missing: " + undocumented.join(", ")
                          : handled.size + " keys, all listed");
 
+  /* Provenance, and the one way it can go wrong: a version typed twice is a
+     version that can disagree with the thing it names, which is worse than
+     showing none. Both pages must READ the constant. */
+  ok("the atlas declares its own version and reads core's",
+     /const ATLAS_VERSION = "\d+\.\d+\.\d+";/.test(script) &&
+     /import \{ CORE_VERSION,/.test(script) &&
+     !/core \d+\.\d+\.\d+/.test(script),
+     (script.match(/const ATLAS_VERSION = "([\d.]+)"/) ?? [])[1] ?? "missing");
+  ok("and shows both in the legend",
+     /CORE_VERSION \+ [^\n]*ATLAS_VERSION/.test(script), "core X · atlas Y");
+
   /* it must read the lattice, not reimplement it */
   ok("the atlas imports core rather than carrying a copy",
      /import \{[\s\S]*?\} from "\.\.\/core\/babel-core\.mjs"/.test(atlas) &&
@@ -1226,6 +1237,18 @@ section("UI KIT -- the standards, as rules");
      undocumented.length === 0,
      undocumented.length ? "missing: " + undocumented.join(", ")
                          : handled.size + " keys, all listed");
+
+  /* Same rule for the prototype: it declares its own version, and takes the
+     Library's from CORE_VERSION rather than repeating the number. A bug
+     report carries both, and the two move at different times. */
+  ok("the renderer declares its own version",
+     /const RENDERER_VERSION = "\d+\.\d+\.\d+";/.test(script),
+     (script.match(/const RENDERER_VERSION = "([\d.]+)"/) ?? [])[1] ?? "missing");
+  ok("and the panel reads both constants rather than repeating them",
+     /getElementById\("a-core"\)\.textContent = CORE_VERSION;/.test(script) &&
+     /getElementById\("a-rend"\)\.textContent = RENDERER_VERSION;/.test(script) &&
+     html.includes('id="a-core"') && html.includes('id="a-rend"'),
+     "core and renderer, from the constants");
 
   /* the chrome's CSS may name colours but not spell them */
   const css = (html.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1];

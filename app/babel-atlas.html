@@ -41,6 +41,7 @@
   #legend .row.off .sw{opacity:.22;}
   #legend .hd{color:var(--faint);margin-bottom:.25rem;}
   #legend .ft{color:var(--mute);margin-top:.35rem;font-size:var(--sz-sm);}
+  #legend .ver{color:var(--mute);font-size:var(--sz-sm);margin-bottom:.3rem;}
   #legend .ft b{color:var(--faint);font-weight:400;}
 
   #stats{top:var(--gap);right:var(--gap);font-size:var(--sz-sm);color:var(--faint);
@@ -92,9 +93,13 @@
  * shape of the questions this page exists to answer: what is next to what,
  * which way does a flight run, and where does the network stop.
  * ==================================================================== */
-import { G, DIRS, DIRW, TYPE, GAP, CELL_TYPE_NAME,
+import { CORE_VERSION, G, DIRS, DIRW, TYPE, GAP, CELL_TYPE_NAME,
          cellType, roomAt, gapAt, axisOf, riseOf, corridorAxis,
          worldOf, stairCrossable } from "../core/babel-core.mjs";
+
+/* A day old, and it says so. The atlas moves on its own line from the
+   renderer: they draw the same Library and share nothing else. */
+const ATLAS_VERSION = "0.1.0";
 
 const qs = new URLSearchParams(location.search);
 const RADIUS = Math.max(0, Math.min(12, +(qs.get("r") ?? 6)));
@@ -393,6 +398,7 @@ addEventListener("resize", resize);
 /* ---- the legend, which is also the control -------------------------- */
 function renderLegend(){
   el.legend.innerHTML =
+    '<div class="ver">core ' + CORE_VERSION + ' &middot; atlas ' + ATLAS_VERSION + '</div>' +
     '<div class="hd">Around ' + CQ + ',' + CR + ' &middot; ' + RADIUS +
     ' cells, ' + FLOORS + ' storeys either way</div>' +
     KINDS.map(k => {

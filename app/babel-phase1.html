@@ -82,6 +82,12 @@
   #addr hr{border:0;border-top:1px solid var(--panel-line);margin:.4rem 0;}
   #addr .note{color:var(--dim);font-size:var(--sz-sm);letter-spacing:.04em;line-height:1.5;margin-top:.35rem;}
   #addr .cr{color:var(--crimson);}
+  /* Provenance sits above the Library and reads below it: same rhythm, one
+     step quieter, so it is there when a bug report needs it and does not
+     compete with the address when one does not. */
+  #addr .ver{font-size:var(--sz-sm);}
+  #addr .ver .k,#addr .ver .v{color:var(--mute);}
+  #addr .ver + .row:not(.ver){margin-top:.3rem;}
   #addr .uri{
     font-size:.56rem;letter-spacing:.02em;color:var(--pale);word-break:break-all;
     user-select:all;cursor:text;line-height:1.45;
@@ -354,6 +360,8 @@
      words; the chips read as jargon ("the readout that says things like Gap
      and Corridor in small pill containers"); the note never changed. -->
 <div id="addr" class="panel">
+  <div class="row ver"><span class="k">core</span><span class="v" id="a-core">&mdash;</span></div>
+  <div class="row ver"><span class="k">renderer</span><span class="v" id="a-rend">&mdash;</span></div>
   <div class="row"><span class="k">Floor</span><span class="v" id="a-floor">+0</span></div>
   <div class="row"><span class="k">Cell</span><span class="v" id="a-cell">0, 0</span></div>
   <div class="note" id="a-note"></div>
@@ -452,6 +460,22 @@
 
 <script type="module">
 "use strict";
+
+/* Which build is drawing, as opposed to which Library is being drawn.
+ *
+ * Two numbers because they answer two different questions and move at
+ * different times. CORE_VERSION is a fact about the Library: the lattice, the
+ * corpus and the seam, stamped on every transcript, and a run recorded under
+ * one replays only against that one. This is a fact about the renderer: what
+ * the shading, the geometry and the chrome were doing. A bug report needs
+ * both, because "the stairs look wrong" is a different report depending on
+ * whether the stairs moved or the light did.
+ *
+ * 1.0.0 because nothing in the specification is specified-and-unbuilt: this
+ * is the Phase 1 renderer the spec describes, whole. It moves on its own
+ * from here, and it is not tied to CORE_VERSION -- the two being equal would
+ * be a coincidence, and showing both would then be pointless. */
+const RENDERER_VERSION = "1.0.0";
 
 /* ------------------------------------------------------------------ *
  *  Deviations from the specs, recorded deliberately:
@@ -4751,6 +4775,11 @@ function renderHelp(){
     '</div>').join("");
 }
 renderHelp();
+
+/* Read from the constants, never typed twice: a version that can disagree
+   with the thing it names is worse than no version at all. */
+document.getElementById("a-core").textContent = CORE_VERSION;
+document.getElementById("a-rend").textContent = RENDERER_VERSION;
 
 let lastKey = "";
 function hud(){
