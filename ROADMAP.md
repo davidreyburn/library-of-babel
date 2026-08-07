@@ -21,7 +21,8 @@ threw. Nothing in the Node suite executes either page, and every browser-side
 defect this project has had was found by a person looking at one.
 
 
-Green: **169 core assertions**, **52 gates**, 500 GPU integers, build current
+Green: **177 core assertions**, **57 gates**, **23 in the browser**, 500 GPU
+integers, build current
 against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
 
@@ -219,6 +220,24 @@ the bounding that closed the furniture half is the shape of it.
 **Done when:** a cold link is short enough that a public demo link is honest,
 and a change that lengthens it fails a test rather than a session.
 
+### 1d. Bad normals rise with range, cause unknown
+
+**0.72% at 0–3 m against 3.45% at 3–6 m**, measured with `?ablate=nydist` on a
+single view. Real, reproducible, and unexplained.
+
+**The obvious theory is wrong and is already tested.** The march tolerance is
+proportional to range (`0.00018 * t + 0.00012`) while `normalCtx` probes a fixed
+±1.6 mm, so the two cross over at about 8 m — but at 3–6 m the tolerance is
+0.84–1.20 mm and the probe is still the larger of the pair. Scaling the probe to
+track the tolerance (`?ablate=normeps`, rewritten against the shipped tolerance)
+moves 3.45% to **3.35%**. Not the cause.
+
+**Lever:** `?ablate=nydist` bins bad normals by range in one page load. Find a
+view with a long sightline — everything measured so far is under 6 m, so the
+crossover region has never actually been sampled.
+**Done when:** the curve has a named cause, or a longer sightline shows the rise
+is an artefact of what happens to be at 3–6 m in that one view.
+
 ### 1e. What the reader pays, now measured — **first cut taken**
 
 The environment's cost to an agent is **output, not compute**. Measured: a
@@ -265,25 +284,69 @@ link time went unmeasured (§20).
 distribution across policies would say whether 17,700 tokens is typical or a
 best case, and item 5 already wants that harness run for integrity.
 
-### 1d. Bad normals rise with range, cause unknown
+### 1f. Corridors are still columns — **measured, costed, not started**
 
-**0.72% at 0–3 m against 3.45% at 3–6 m**, measured with `?ablate=nydist` on a
-single view. Real, reproducible, and unexplained.
+The reading rooms moved; corridors did not, and the same argument applies to
+them: a hallway running unbroken through every storey of an infinite building
+is an architectural claim nobody made.
 
-**The obvious theory is wrong and is already tested.** The march tolerance is
-proportional to range (`0.00018 * t + 0.00012`) while `normalCtx` probes a fixed
-±1.6 mm, so the two cross over at about 8 m — but at 3–6 m the tolerance is
-0.84–1.20 mm and the probe is still the larger of the pair. Scaling the probe to
-track the tolerance (`?ablate=normeps`, rewritten against the shipped tolerance)
-moves 3.45% to **3.35%**. Not the cause.
+**The clustering half of the complaint is not real, and that is worth writing
+down before somebody chases it.** Over 58,081 cells at 9.79% corridors, the
+mean number of corridor neighbours a corridor has is **0.581 against 0.587
+expected** if they were placed independently, and the whole distribution fits
+the binomial:
 
-**Lever:** `?ablate=nydist` bins bad normals by range in one page load. Find a
-view with a long sightline — everything measured so far is under 6 m, so the
-crossover region has never actually been sampled.
-**Done when:** the curve has a named cause, or a longer sightline shows the rise
-is an artefact of what happens to be at 3–6 m in that one view.
+| corridor neighbours | observed | expected |
+|---|---|---|
+| 0 | 3,098 | 3,064 |
+| 1 | 1,957 | 1,994 |
+| 2 | 544 | 541 |
+| 3 | 82 | 78 |
 
-### P1. Bound the shelving and the furniture before evaluating them — **furniture done, casework loop done, wall selection open**
+75% are singletons and the largest cluster anywhere in the sample is 9 cells.
+The hash is placing them independently. **What looks like clustering is the
+columns**: in a thirteen-storey view the same 10% of positions repeat on every
+floor and read as continuous vertical slabs. One cause, two symptoms — which is
+convenient, because one fix addresses both.
+
+**The invariant that governs the change: `axisOf` must stay floor-independent,**
+or a flight changes direction between storeys and everything about stairs
+assumes it does not. Reading rooms were free because `openGround` treats a
+study exactly like a gallery; corridors are not, because `axisEnd` returns 0
+for a corridor where it returns 1 for a gallery, and `gapAt` has a corridor
+branch.
+
+The split that survives it: **`cellType(q, r)` returns the structural class —
+shaft, stairwell, or open — and a floor-aware refinement picks gallery, study
+or corridor among the open ones.** Then `openGround` is invariant by
+construction, `axisOf` never moves, and `gapAt`, `corridorAxis` and `axisEnd`
+take the floor they mostly already have. It generalises the reading-room split
+by one step.
+
+**§19 already built half of it.** Per-floor stairwell doorways are handled now —
+`stairExtends` and `stairCrossable` take a floor and `cellDesc` packs bits 15-16
+per cell per storey — so a corridor that exists on one storey and not another no
+longer produces the walk-through-a-wall defect it would have a week ago.
+
+**Cost:** `vectors.json` regenerates and routes move, which is a bigger change
+to the agent's world than the reading rooms were. `corridorAxis` and `axisEnd`
+gain a floor. `marchRay` and `shadeHit` need the refined type rather than
+`cellType`, because `ctype == 4` drives a whole geometry branch and the
+desc-bit trick that worked for studies will not work here.
+**The risk to watch is link time:** `corridorAxis` is the most-inlined function
+in the program, and reaching it from `gapAt` is what made §18's topology fix
+unaffordable. Threading a floor adds no call sites, so it may be free — measure
+cold with `?fresh=`, both fresh.
+**Measure before committing:** rooms with no working flight inside thirty and
+mean walk to one, the same metric that settled the 3%/9% rebalance; the
+stairway-in-the-hallway rate, which LIB-P-022 cares about; and the atlas as
+the acceptance test — isolate corridors over thirteen storeys and confirm the
+slabs are gone.
+**Done when:** a corridor is a fact about a room on a storey, no flight's
+doorways vary in a way the seam disagrees with, and nobody is further from a
+way upstairs than they were.
+
+### P1. Bound the shelving and the furniture before evaluating them — **furniture done, the two exact wins taken, the casework itself open**
 
 **Shipped: exact group bounds on `furniture()` and `alcoveFixtures()`.** Every
 piece is anchored to one wall, so the whole set lies in a known box about that

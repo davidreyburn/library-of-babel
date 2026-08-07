@@ -95,7 +95,7 @@ magnitude. Walking yields walk addresses; search yields text addresses.
 Two different counts hide in "how big is the walkable Library", and it is worth
 keeping them apart. **Shelves:** ~8 × 10²¹ — the cell hash packs `q` and `r` into
 16 bits each, so the layout repeats every 65,536 × 65,536 cells, times ~2³² floors
-times 537 volumes a gallery. **Distinct texts:** bounded by the width of
+times 537 shelf *slots* a gallery. **Distinct texts:** bounded by the width of
 `walkKey`, because a volume's content is a function of that key alone. It returns
 two 32-bit lanes, so 2⁶⁴ ≈ 1.8 × 10¹⁹ — see §17.12 of the spec, which records what
 happened when it returned one. Count distinct texts whenever the question is
@@ -189,11 +189,42 @@ a book is no dearer than the first, which `test-core.mjs` asserts rather than as
 import { describeCell, exitsFrom } from "./core/babel-core.mjs";
 import { readBook, findPhrase, validate, parseAddress } from "./core/babel-text.mjs";
 
-describeCell(15, 94, 0);          // type, shelved walls, volumes, every exit
+describeCell(15, 94, 0);          // type, shelved walls, volumes AND slots, exits
+volumesIn(15, 94, 0);             // what is on the shelves, counted
+roomAt(15, 94, 0);                // what the room IS on this storey
+stairCrossable(q, r, fl);         // does this flight go anywhere at all
 readBook("babel://walk/00001594/floor/0/cell/15,94/wall/1/shelf/2/slot/17", 0);
 findPhrase("the library is unlimited and cyclical.");
 validate(parseAddress(claimedUri));   // check an agent's coordinates
 ```
+
+## What a cell is, and on which storey
+
+`cellType(q, r)` is a function of the cell and **cannot see a floor**, so every
+type it returns runs the whole height of the Library. That is required of a
+shaft and of a flight — a stair has to arrive at a doorway on every storey, or
+it climbs into a floor — and it was an accident for a reading room, which is
+why `studyAt(q, r, fl)` now decides those per storey and `roomAt(q, r, fl)`
+reports what a room *is*.
+
+The rule for callers: **ask `roomAt` when you want to know what a room is, and
+`cellType` when you want to know where a wall goes.** Getting it the wrong way
+round is not hypothetical — the atlas asked the column and drew every reading
+room as a gallery.
+
+Corridors are still columns. They can move too, but they are structural where a
+reading room is not, and the cost is in `ROADMAP.md` under item 1f.
+
+## Volumes and slots are different numbers
+
+A gallery with four shelved walls has **700 slots** and about **676 volumes**:
+3.5% of slots stand empty, the gaps the Purifiers left. `describeCell` reports
+both, and `volumes` is *counted* rather than scaled, because 3.5% is the
+expectation over the Library and not the figure for any one room.
+
+Read that carefully if you are citing: taking the capacity for an inventory
+means picking a slot that has no book in it, and `validate` will refuse the
+address. `pickVolume` already skips the holes; anything hand-rolled should too.
 
 ## Editing
 

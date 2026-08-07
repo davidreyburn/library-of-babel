@@ -1707,6 +1707,41 @@ published numbers died to this: the "−30% frame time" retracted in §13, and t
 "16–36%" cost accepted for the reveal material in §14. **A/B two ablations
 inside one page load; never compare across loads or canvas sizes.**
 
+**Five more ways to measure this shader wrong**, all found by measuring it
+wrong first, and all of them produced a confident number before they were
+caught. They belong here beside the readPixels stall, because that is the one
+this project already knew about and these are the same kind of thing.
+
+1. **`gl.finish()` is not a sync.** It returned in **0.007 ms** having stalled
+   on nothing, which would have reported this shader at 140,000 fps. The stall
+   is a `readPixels`, one per batch of 14.
+2. **A checksum across two page loads measures the clock.** `uMotion` drives
+   the lamps off `uTime`, so two frames of the *same build* a moment apart
+   differ in **22 of 300 tiles**. That convicted a loop rewrite of moving 21
+   tiles, and a control — one build, two timestamps — showed it had moved
+   none. Pin the timestamp, or the checksum is noise.
+3. **The browser window changes size while you are not looking.** It happened
+   three times during one afternoon's measurements and turned a 6% win into a
+   17% regression, because 21% more pixels is 21% more work. Pin the canvas in
+   CSS — `resize()` computes the backing store from `clientWidth` — rather
+   than trusting the window to hold still.
+4. **A background tab has no frames and barely any timers.** `requestAnimationFrame`
+   never fires, `setTimeout(20)` takes a second, and anything waiting on either
+   simply stops. It is also why the shader's own completion poll now races a
+   frame against a timer against `visibilitychange`.
+5. **The link time is Chrome's program cache** — §20, which is what these are
+   all a variation of: the instrument was measuring something other than the
+   thing.
+
+**And a rule that came out of three null results.** `onelamp` made every view
+but one *slower*; `aoCtx` made the link **22% worse**; a depth cull on the
+shelving measured **0.700 ms against 0.700 ms**. Removing work from this shader
+is not reliably cheaper, and the asymmetry that follows is worth stating: **a
+change that ADDS a test to `mapAt` needs a number; a change that removes work
+does not.** The two shelving changes that shipped are strictly fewer
+instructions and bit-identical, which is why they shipped on a measurement
+whose ranges overlap.
+
 **The shape of the cost.** It is `mapAt` calls, and almost nothing else.
 
 | per pixel | `mapAt` calls |

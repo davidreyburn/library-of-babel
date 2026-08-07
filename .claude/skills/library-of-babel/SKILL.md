@@ -132,6 +132,8 @@ babel://text/<seed>/at/<offset>/<phrase>                       a volume by its t
 
 A room address names somewhere to stand and has no content; asking it for a page
 is an error rather than a guess. Walls that are doorways hold no books, and
+a gallery holds fewer volumes than it has slots — about 3.5% of slots stand
+empty, so `here` reports what is actually there and not the capacity; and
 shafts, stairwells, reading rooms and corridors hold no shelves — `verify`
 rejects all of them, which is what makes a claimed coordinate falsifiable.
 

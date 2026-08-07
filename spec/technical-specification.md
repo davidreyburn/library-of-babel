@@ -730,7 +730,7 @@ the real size of the walkable Library. *[derived]*
 
 | | one lane (was) | two lanes (is) |
 |---|---|---|
-| Shelf slots in one period | ~8 × 10²¹ — 2³² cells × ~2³² floors × 537 volumes, 84% galleries | unchanged |
+| Shelf slots in one period | ~8 × 10²¹ — 2³² cells × ~2³² floors × 537 slots, 84% galleries | unchanged |
 | Distinct books those slots can hold | **2³² = 4,294,967,296** | **2⁶⁴ = 18,446,744,073,709,551,616** |
 | Times each text is repeated | ~2 × 10¹² | ~440 |
 | First duplicate pair | ~93,000 slots — about 173 galleries | ~6.1 × 10⁹ slots — about 11.3 million galleries |

@@ -63,6 +63,19 @@ result, so every load after the first opens at once. The page says so while it
 waits, and stays responsive. This is [item 1c](ROADMAP.md) and it is being
 worked on — the wait is honest, not acceptable.
 
+## Checking it
+
+```sh
+npm test                  # 177 assertions and 57 gates, no browser needed
+```
+
+Two more gates need a browser and `npm test` says so when it finishes, because
+a gate nobody is reminded of is a gate nobody runs. With `npm start` running,
+open **core/conformance.html** — the GPU agrees with the CPU about the lattice,
+500 integers — and **core/pagecheck.html**, which opens both pages for real and
+asserts they work: that they boot, that the panel fills, that the keys do
+something, that neither threw.
+
 ## Run it
 
 Node 18+. No dependencies, nothing to install.
