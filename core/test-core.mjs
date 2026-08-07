@@ -1179,6 +1179,20 @@ section("THE ATLAS -- held to the kit, like everything else");
      /roomAt\(q, r, fl\)/.test(script), "roomAt in the mesh");
 }
 
+/* The shelving picks its two walls from three dot products and three
+   negations, which is only exact because the six wall normals are opposite
+   pairs. That is a property of a table, and a table can be edited. */
+section("OPPOSITE PAIRS -- what the three-dot wall pick rests on");
+{
+  let bad = 0;
+  for (let i = 0; i < 3; i++){
+    const a = core.DIRW[i], b = core.DIRW[i + 3];
+    if (a[0] !== -b[0] || a[1] !== -b[1]) bad++;
+  }
+  ok("dirW(i + 3) is exactly -dirW(i) for all three axes", bad === 0,
+     bad === 0 ? "three pairs, exact negation" : bad + " pairs are not opposite");
+}
+
 section("BUDGETS -- the shader's shape, which is what link time tracks");
 {
   const glsl = readFileSync(new URL("../app/babel-frag.glsl", import.meta.url), "utf8");

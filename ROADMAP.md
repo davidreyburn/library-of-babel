@@ -343,13 +343,40 @@ answer.** They belong with the review's own note about the readPixels stall.
    and a control — one build, two timestamps — showed it moved none. **Pin
    the timestamp or the checksum is noise.**
 
-**Still open: the wall-selection loop**, which is the other cost `shelfwork`
-found — 6 iterations of `dot(lp, dirW(i))` on ~15 samples a pixel, about 91
-dot products, to name two walls. The six directions are 60° apart and fixed,
-so the nearest is an angle rather than a search; the complication is that
-only *shelved* walls count, so a cheap angular pick needs a fallback when the
-nearest wall has a doorway in it. Worth the same treatment: an exact rewrite,
-kept as an ablation, checked bit-identical at a pinned clock.
+**Done: the wall selection takes three dot products, not six.** The six wall
+normals are three opposite pairs — `dirW(i + 3)` is exactly `-dirW(i)`, which
+the suite now asserts because it is a property of a table and tables get
+edited — so the far wall's projection is the near one negated, and negation is
+exact. No approximation, and no angular pick with a fallback for doorways: the
+loop still walks 0..5 in order, because `w1`/`w2` are chosen with a strict
+`>` and reordering would resolve a tie to a different wall.
+
+| | frame, 621×458, div 1 | checksum |
+|---|---|---|
+| six-dot | 0.764 ms | `b0aa9848` |
+| **three-dot** | **0.721 ms** | `b0aa9848` |
+
+**Bit-identical and about 6%.** `?ablate=sixdots` restores the six.
+
+**The shelving half of P1, end to end: 0.814 → 0.721 ms, about 11%**, in two
+exact steps that leave the buffer unchanged. Both medians are separated by
+more than the step between them but their ranges overlap, so the confidence
+comes from the changes being *exact and strictly fewer instructions* rather
+than from the timing alone — which is the right order for this shader, where
+removing work has twice measured slower.
+
+**A fourth harness fact, and the one that cost the most.** The browser window
+changed size three times mid-experiment, silently, each time invalidating both
+the checksum and the timing. Pin the canvas in CSS — `cv.style.width` — rather
+than trusting the window: `resize()` computes the backing store from
+`clientWidth`, so a fixed CSS size makes a measurement independent of whatever
+the window is doing. Flush layout before reading `cv.width`.
+
+**Still open: the near-wall casework itself.** `shelfwork` counts 9.4 casework
+evaluations a pixel, each 3–4 `sdBox3` plus a hash, and that is now the
+remainder of the 41.3%. It is real geometry rather than bookkeeping, so the
+next step is a bound rather than a rewrite — which is what this item was
+originally about.
 
 **Still open: the shelving**, which is the larger half at 41.3% of a gallery
 frame. Its existing `dh < -(CARC_D + 0.24)` early-out is already the same idea,

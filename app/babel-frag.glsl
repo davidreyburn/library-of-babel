@@ -608,10 +608,23 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
      the ablation that convicted AO here was run on a shelf.               */
   if (dh < -(CARC_D + 0.24)) return min(d, -dh - CARC_D);
 
+  /* Three dot products, not six. The six wall normals are three opposite
+     pairs -- dirW(i + 3) is exactly -dirW(i), asserted in the suite -- so
+     the far wall's projection is the near wall's negated, and negation is
+     exact in floating point. Nothing is approximated here.
+
+     The loop still walks 0..5 in order rather than by axis, because w1 and
+     w2 are chosen with a strict > and reordering the visit would resolve a
+     tie to a different wall. The last change in this function was accused
+     of exactly that and acquitted; this one does not raise the question.
+
+     ?ablate=sixdots puts the six dot products back. */
+  float pa = dot(lp, dirW(0)), pb = dot(lp, dirW(1)), pc = dot(lp, dirW(2));
   int w1 = -1, w2 = -1; float p1 = -1e9, p2 = -1e9;
   for (int i = 0; i < 6; i++){
     if (((desc >> (i * 2)) & 3) != 0) continue;
-    float pr = dot(lp, dirW(i));
+    float pr = (i == 0) ?  pa : (i == 1) ?  pb : (i == 2) ?  pc
+             : (i == 3) ? -pa : (i == 4) ? -pb : -pc;
     if (pr > p1){ p2 = p1; w2 = w1; p1 = pr; w1 = i; }
     else if (pr > p2){ p2 = pr; w2 = i; }
   }
