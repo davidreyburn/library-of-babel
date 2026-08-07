@@ -3558,12 +3558,23 @@ if (linkExt){
       waitEl.innerHTML = "Building the Library &mdash; <b>" + secs.toFixed(0) +
         "s</b>. This happens once on a machine; after that it opens at once.";
     }
-    /* A frame at a time, not a quarter-second: polling on a timer taxed the
-       warm load -- the case that is 0.2 s and every load after the first --
-       with up to a second of waiting for a link that had already finished.
-       COMPLETION_STATUS_KHR is a cheap query and this is what it is for.
-       A hidden tab gets no frames, so it falls back to a timer. */
-    await new Promise(r => document.hidden ? setTimeout(r, 500) : requestAnimationFrame(r));
+    /* Whichever comes first: a frame, a timer, or the tab being looked at.
+       A frame alone taxed nothing and was wrong -- a background tab gets no
+       frames at all, so a page opened in one (middle-click a link, then
+       switch: the ordinary way anybody opens anything) sat at "Building the
+       Library -- 59s" forever, long after the driver had finished. Choosing
+       the timer instead of the frame was also wrong: it cost the warm load,
+       which is every load after the first, up to a second of waiting for a
+       link that was already done. Racing them costs neither, and the
+       visibility wake means coming back to the tab starts it at once rather
+       than at whatever rate Chrome is throttling timers to by then. */
+    await new Promise(r => {
+      let fired = false;
+      const go = () => { if (!fired){ fired = true; r(); } };
+      requestAnimationFrame(go);
+      setTimeout(go, 250);
+      document.addEventListener("visibilitychange", go, { once: true });
+    });
   }
   waitEl.textContent = "";
   document.querySelector("#veil .go").style.opacity = "";

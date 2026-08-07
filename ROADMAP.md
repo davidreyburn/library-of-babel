@@ -63,8 +63,6 @@ frontier where that number is still zero.
 
 ---
 
----
-
 ## Open
 
 ### 1b. A doorway into a stairwell that arrives nowhere — **closed, and the diagnosis was wrong**
@@ -195,9 +193,20 @@ while the page polls a frame at a time. A first load now stays responsive and
 says *"Building the Library — 43s. This happens once on a machine; after that
 it opens at once."*
 
-**Lever:** `mapAt`'s eight call sites — one march, four `normalCtx`, three
-`aoCtx`. Ambient occlusion is soft and low-frequency and probably does not need
-shelf casework in the field it samples.
+**The obvious lever was tried and is not one.** Giving `aoCtx` a coarser field
+would remove three of `mapAt`'s eight call sites. Measured before building:
+baseline **97.3 s**, `ablate=occ` — AO removed entirely, which is more than a
+coarse field would do — **118.5 s**. Removing three of eight call sites makes
+the link **22% worse**.
+
+That corrects the model. §15 concluded that link time tracks call sites, from a
+case where it did. The bisect says removing *geometry from mapAt's body* helps
+and removing *call sites of mapAt* hurts. Neither is a rule; only an A/B
+settles it, and `?fresh=` makes an A/B cheap.
+
+**Lever:** P1 below — make the shelving cheaper to express rather than cheaper
+to call. It is 41.3% of a gallery frame and roughly a quarter of the link, and
+the bounding that closed the furniture half is the shape of it.
 **Done when:** a cold link is short enough that a public demo link is honest,
 and a change that lengthens it fails a test rather than a session.
 

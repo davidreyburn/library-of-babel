@@ -1645,15 +1645,44 @@ Two things the measurement caught that reasoning would not have:
   is up and its click handler is not attached. A click in it used to vanish.
   It is now remembered and honoured when the door works.
 
-**Still open: the link is still 89 seconds.** The lever the bisect points at
-is not shelving or furniture themselves but **`mapAt`'s eight call sites** —
-one for the march, four for `normalCtx`, three for `aoCtx`. Ambient occlusion
-is a soft, low-frequency term and almost certainly does not need shelf
-casework in the field it samples; giving `aoCtx` a coarser field would remove
-three of the eight expansions of the expensive half. On these numbers that is
-worth roughly 20% of the link, and it may be worth some of the 9.1% of frame
-time AO costs as well. It changes the render, so it needs an A/B on the look
-before it is worth anything.
+**The lever that pointed at was tried next, and it is not one.** The plan was
+to give `aoCtx` a coarser field, on the reasoning that ambient occlusion is
+soft and low-frequency and does not need shelf casework — removing three of
+`mapAt`'s eight expansions of the expensive half, for perhaps 20%. Measured
+first, like against like, both fresh and both under the polling path:
+
+| | cold link |
+|---|---|
+| baseline | **97.3 s** |
+| `ablate=occ` — AO gone entirely, 3 of 8 call sites removed | **118.5 s** |
+
+**Removing three of eight call sites made the link 22% worse**, and that is the
+ceiling on the idea, not an approximation of it: `ablate=occ` deletes more than
+a coarse field would. The work was never started.
+
+That is the fourth sighting of §17.13's non-monotonic inlining and the most
+expensive one to have believed. It also corrects the model this repository has
+been running on. §15 concluded *link time tracks call sites*, from a case where
+it did — two copies of the shade body cost 127 seconds and deleting one made
+the link instant. The bisect above says the opposite as clearly: removing
+**geometry from mapAt's body** helps (−23 s, −25 s), removing **call sites of
+mapAt** hurts (+21 s). Both observations are real. What is not real is any rule
+that predicts which. **Only an A/B settles it, and the A/B is cheap now that
+`?fresh=` exists — so measure the ceiling before building the thing.**
+
+**Where that leaves the link.** The lever is the one already on the roadmap as
+P1: make the shelving cheaper to *express*, not to call. It is 41.3% of a
+gallery frame and about a quarter of the link, and the bounding work that
+closed the furniture half is the shape of it.
+
+**A bug of my own, found while measuring this.** The polling loop above woke on
+`requestAnimationFrame`, and a background tab gets no frames. A page opened in
+one — middle-click a link, then switch, which is how anybody opens anything —
+sat at *"Building the Library — 59s"* indefinitely, long after the driver had
+finished. The blocking path it replaced had no such failure. It now races a
+frame against a timer against `visibilitychange`, so a hidden tab still makes
+progress and returning to it resumes at once. Caught because a measurement
+came back frozen at the same number twice, which is not a number.
 
 **Open, and more urgent than anything §18 was worried
 about.**
