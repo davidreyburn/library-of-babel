@@ -692,6 +692,16 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
        abs(w.y) > CASE_HALF + 0.03 dropped the casework out of the field
        outright, which is what tore the corners. */
     if (abs(w.y) - (CASE_HALF + 0.03) > d) continue;
+    /* A cull in DEPTH was tried here and removed. Every piece in this loop
+       lies in one slab about cx along the wall normal -- the casework by
+       construction, and the deepest volume because BOOK_D is 0.20 against
+       CARC_D's 0.26 -- so `abs(w.x - cx) - CARC_D*0.5 > d` is exact, cannot
+       lie, and skips three sdBox3 and a hash when it fires.
+       It measured 0.700 ms against 0.700 ms. Bit-identical, and worth
+       nothing. Removing work from this shader has now measured neutral or
+       WORSE three times -- onelamp, aoCtx, this -- so a change that ADDS a
+       test to mapAt needs evidence in a way that a change removing work does
+       not, and this one has none. Do not add it back without a number. */
 
     float up = sdBox3(vec3(w.x - cx, fy - 1.075, abs(w.y) - UP_C),
                       vec3(CARC_D*0.5, 1.075, UP_HW));

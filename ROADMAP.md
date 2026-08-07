@@ -372,11 +372,31 @@ than trusting the window: `resize()` computes the backing store from
 `clientWidth`, so a fixed CSS size makes a measurement independent of whatever
 the window is doing. Flush layout before reading `cv.width`.
 
-**Still open: the near-wall casework itself.** `shelfwork` counts 9.4 casework
-evaluations a pixel, each 3–4 `sdBox3` plus a hash, and that is now the
-remainder of the 41.3%. It is real geometry rather than bookkeeping, so the
-next step is a bound rather than a rewrite — which is what this item was
-originally about.
+**The bound this item was originally about was built, measured, and removed.**
+Every piece in the casework loop lies in one slab about `cx` along the wall
+normal — the uprights, board and plinth by construction, and the deepest
+volume because `BOOK_D` is 0.20 against `CARC_D`'s 0.26 — so a cull in
+**depth** is exact, cannot lie, and skips three `sdBox3` and a hash when it
+fires. It was the missing axis: the existing cull tests *along* the wall, and
+nothing tested across it.
+
+**0.700 ms against 0.700 ms.** Bit-identical, and worth nothing.
+
+That is the third time removing work from this shader has measured neutral or
+worse — `onelamp` made every view but one *slower*, `aoCtx` cost 22% more link
+time, and now this. The rule that falls out is asymmetric and worth stating:
+**a change that ADDS a test to `mapAt` needs a number; a change that removes
+work does not.** The two that shipped are strictly fewer instructions and
+bit-identical; this one is more instructions on the chance of skipping some,
+and the chance did not pay. Reverted, with the reasoning left at the site so
+the next person does not rediscover the idea and assume it is untried.
+
+**So the shelving is where the two exact wins left it: 0.814 → 0.721 ms.** The
+9.4 casework evaluations a pixel are real geometry, and this shader is
+evidently not bound by the arithmetic that count suggests. Anything further
+should start by finding out what it *is* bound by — bandwidth, occupancy,
+divergence — rather than by removing more instructions, because three
+attempts now say instructions are not the currency.
 
 **Still open: the shelving**, which is the larger half at 41.3% of a gallery
 frame. Its existing `dh < -(CARC_D + 0.24)` early-out is already the same idea,
