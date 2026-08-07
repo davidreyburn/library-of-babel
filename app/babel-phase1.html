@@ -333,6 +333,10 @@
     font-weight:400;font-size:clamp(1.4rem,4vw,2.2rem);margin:0 0 .6rem;color:var(--title);
   }
   #veil p{font-size:.72rem;color:var(--dim);margin:.2rem 0;letter-spacing:.06em;}
+  /* Shown only when the link is slow enough to need explaining, which is
+     the first load on a machine and no other. */
+  #veil .wait{color:var(--faint);font-size:.66rem;margin-top:1rem;min-height:1rem;}
+  #veil .wait b{color:var(--pale);font-weight:400;font-variant-numeric:tabular-nums;}
   #veil .go{
     margin-top:1.2rem;border:1px solid var(--faint);padding:.5rem 1.4rem;display:inline-block;
     font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--pale);
@@ -441,11 +445,12 @@
     <p>Phase 1 &mdash; the space</p>
     <p style="margin-top:.8rem;">A hexagonal network just past its percolation threshold</p>
     <p>Two lamps per gallery &middot; insufficient, incessant</p>
+    <p class="wait" id="wait"></p>
     <div class="go">Click to enter</div>
   </div>
 </div>
 
-<script>
+<script type="module">
 "use strict";
 
 /* ------------------------------------------------------------------ *
@@ -3480,6 +3485,24 @@ for (const a of ABLATE){
   window.__ablated.push(a);
 }
 if (window.__ablated.length) console.log("ablated: " + window.__ablated.join(","));
+
+/* ?fresh=<anything> -- a cache-buster, and it has to exist.
+ *
+ * Chrome caches linked programs on disk, keyed by the source text. A shader
+ * it has seen links in ~0.2 s; a novel one takes ~90 s on this machine.
+ * So ANY link-time comparison between the shipped shader and a modified one
+ * is a comparison between a cache hit and a cache miss, and will report the
+ * modification costing ninety seconds whatever the modification is --
+ * including a change that folds at compile time, which is how this was
+ * finally caught (BUG-LOG 20, after 18 drew its conclusion from it).
+ *
+ * Appending a unique comment makes the link cold on purpose. Two variants
+ * are only comparable if BOTH are fresh, or both are warm; the useful form
+ * is ?fresh=1 against ?fresh=2&ablate=noshelf, never one of each. */
+const FRESH = new URLSearchParams(location.search).get("fresh");
+if (FRESH !== null)
+  FRAG_SRC += "\n/* fresh " + FRESH.replace(/[^\w.-]/g, "").slice(0, 32) + " */\n";
+
 gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG_SRC));
 /* A link can fail slowly, and silently. The corridor's first axis rule
    asked a neighbouring flight for its own axis, from inside gapAt, which
@@ -3489,8 +3512,62 @@ gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG_SRC));
    and after a few reloads Chrome disabled WebGL for the whole session. So
    the elapsed time is part of the message, and a link that merely takes a
    long time says so rather than waiting to become a link that fails. */
+/* The first load on a machine pays for this link and it is not quick:
+   Chrome caches linked programs by their source text, so a shader it has
+   seen starts in ~0.2 s and one it has not took 89.2 s on the development
+   GPU (BUG-LOG 20). Shelving and furniture are 55% of that between them,
+   because both sit inside mapAt and ANGLE inlines mapAt eight times.
+
+   The wait is not avoidable here. Spending it behind a blank page with
+   the tab frozen is. This script is a module, so it runs deferred and the
+   veil is on screen before any of it starts; and with
+   KHR_parallel_shader_compile the driver links on its own thread while
+   this one polls, so the page stays alive and can say how long it has
+   been at it. Without the extension the status query blocks, which is
+   what every load did until now -- the message still paints first.
+
+   Quiet on a warm load: nothing is said for the first 400 ms, so the
+   ordinary case never sees a progress line it did not need. */
+/* Deferred means there is a moment -- 0.7 s warm, a minute and a half
+   cold -- where the veil is on screen and its handler is not attached
+   yet. A click in that window used to vanish, which reads as a page that
+   ignored you. Remember it and honour it once the door works. */
+let earlyEnter = false;
+const rememberEnter = () => { earlyEnter = true; };
+document.getElementById("veil").addEventListener("click", rememberEnter);
+const waitEl = document.getElementById("wait");
+const linkExt = gl.getExtension("KHR_parallel_shader_compile");
 const linkT0 = performance.now();
 gl.linkProgram(prog);
+if (linkExt){
+  const done = () => gl.getProgramParameter(prog, linkExt.COMPLETION_STATUS_KHR);
+  let announced = false;
+  while (!done()){
+    const secs = (performance.now() - linkT0) / 1000;
+    /* 2.5 s, not half a second. Polling for completion instead of blocking
+       on it costs a warm load about 1.4 s of wall clock -- the driver does
+       not report done until it really is, where the blocking query forced
+       it -- so a lower threshold made every ordinary load flash a progress
+       line about a wait that was already over. Nobody is told about a
+       three-second delay; everybody is told about a ninety-second one. */
+    if (secs > 2.5){
+      if (!announced){
+        announced = true;
+        document.querySelector("#veil .go").style.opacity = ".35";
+      }
+      waitEl.innerHTML = "Building the Library &mdash; <b>" + secs.toFixed(0) +
+        "s</b>. This happens once on a machine; after that it opens at once.";
+    }
+    /* A frame at a time, not a quarter-second: polling on a timer taxed the
+       warm load -- the case that is 0.2 s and every load after the first --
+       with up to a second of waiting for a link that had already finished.
+       COMPLETION_STATUS_KHR is a cheap query and this is what it is for.
+       A hidden tab gets no frames, so it falls back to a timer. */
+    await new Promise(r => document.hidden ? setTimeout(r, 500) : requestAnimationFrame(r));
+  }
+  waitEl.textContent = "";
+  document.querySelector("#veil .go").style.opacity = "";
+}
 /* The status query, inside the timer. ANGLE defers the real work -- the
    HLSL translation and the D3D compile -- so linkProgram() returns in
    microseconds and getProgramParameter() is where the two minutes go.
@@ -3509,6 +3586,10 @@ if (!linkOK){
     'white-space:pre-wrap;font-size:.7rem;color:#8C9179">' + log + '</pre></div>';
   throw new Error(log);
 }
+/* Readable by anything measuring this, so a link time never again has to be
+   inferred from loadEventEnd -- which also counts the fetch and the parse. */
+window.__linkMs = linkMs;
+window.__linkFresh = FRESH !== null;
 if (linkMs > 4000)
   console.warn(`shader link took ${(linkMs / 1000).toFixed(1)} s -- close to the ` +
                `point where the driver gives up; see §17.13`);
@@ -4469,7 +4550,9 @@ function release(){
   note = "click to look";     // true whether or not capture is available
   showMode();
 }
+veil.removeEventListener("click", rememberEnter);
 veil.addEventListener("click", enter);
+if (earlyEnter) enter();          // they knocked while the door was being hung
 cv.addEventListener("mousedown", e => {
   if (reading) return;
   if (!entered){ enter(); return; }

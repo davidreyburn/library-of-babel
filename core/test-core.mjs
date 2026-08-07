@@ -50,10 +50,18 @@ section("DRIFT -- the prototype's inlined copy vs this module");
      backtick inside a comment in the GLSL template literal cost three page
      loads to find; this finds it in a millisecond. */
   {
-    const m = html.match(/<script>([\s\S]*)<\/script>/);
+    const m = html.match(/<script([^>]*)>([\s\S]*)<\/script>/);
     let err = null;
-    if (!m) err = "no classic <script> block found";
-    else try { new Function(m[1]); } catch (e){ err = `${e.constructor.name}: ${e.message}`; }
+    if (!m) err = "no <script> block found";
+    /* The block is a module now, so it may await at the top level and
+       new Function() would reject it as a syntax error. Wrapping it in an
+       async function accepts exactly what a module accepts, minus static
+       import and export -- which this script has none of, because core is
+       inlined rather than imported. Asserted, so the day it grows one this
+       check says so instead of silently going blind. */
+    else if (/^\s*(import|export)\s/m.test(m[2])) err = "static import/export: parse check is blind to it";
+    else try { new Function("return (async () => {" + m[2] + "})"); }
+         catch (e){ err = `${e.constructor.name}: ${e.message}`; }
     ok("the prototype's script parses as JavaScript", err === null,
        err ?? `${m[1].length} chars`);
   }
@@ -1194,7 +1202,7 @@ section("BUDGETS -- the shader's shape, which is what link time tracks");
 section("UI KIT -- the standards, as rules");
 {
   const html = readFileSync(new URL("../app/babel-phase1.html", import.meta.url), "utf8");
-  const script = (html.match(/<script>([\s\S]*)<\/script>/) ?? ["", ""])[1];
+  const script = (html.match(/<script[^>]*>([\s\S]*)<\/script>/) ?? ["", ""])[1];
 
   /* every key the listener acts on must appear in BINDINGS */
   const handled = new Set();

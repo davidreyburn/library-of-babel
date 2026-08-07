@@ -1589,7 +1589,73 @@ cache**. Nobody has ever measured that, because every measurement anyone made
 was on a machine that had already linked it. That is what a first-time visitor
 pays. §15's budget was written to prevent exactly this and has been passing
 because it counts call sites in the source, which is a proxy, and the proxy has
-drifted from the thing. **Open, and more urgent than anything §18 was worried
+drifted from the thing. **Addressed. The wait is unchanged; the frozen tab is gone.**
+
+*Measurable on purpose.* `?fresh=<anything>` appends a unique comment to the
+fragment source, so the link is a guaranteed cache miss and the number means
+something. `window.__linkMs` reports the link alone rather than
+`loadEventEnd`, which also counts the fetch and the parse. Two variants are
+comparable only if **both** are fresh or both are warm — the useful form is
+`?fresh=1` against `?fresh=2&ablate=noshelf`, never one of each. That is the
+tool whose absence made §18 wrong.
+
+*Where the 89 seconds goes*, each row a genuine cold link:
+
+| shader | cold link |
+|---|---|
+| as shipped | **89.2 s** |
+| `ablate=nobounce` | 92.6 s |
+| `ablate=noshelf` | 66.5 s |
+| `ablate=nofurn` | 64.6 s |
+| `ablate=noshelf,nofurn` | **40.1 s** |
+
+**Shelving and furniture are 55% of the link between them**, and they compose
+almost additively (−22.7 and −24.6 measured separately, −49.1 together). Both
+live inside `mapAt`, which ANGLE inlines at **eight** call sites — so the cost
+is the geometry detail multiplied by the number of places the field is
+sampled. The mirror's second bounce, which §15 caught as the original
+127-second link, now costs nothing: the `uBounce` loop fixed it and the
+measurement confirms the fix held.
+
+*The freeze, which is the part that mattered.* The link cannot be made short,
+but the tab does not have to be dead for it. Two changes:
+
+- **The script is a module.** Module scripts are deferred, so the veil is on
+  screen and painted before any of the shader work begins. Nothing else about
+  the script changed — it has no static imports, because `core/` is inlined
+  rather than imported, and there were no inline event handlers to break.
+- **`KHR_parallel_shader_compile`**, which this machine has. The driver links
+  on its own thread while the page polls `COMPLETION_STATUS_KHR` a frame at a
+  time, so the page stays alive and can say how long it has been at it:
+  *"Building the Library — 43s. This happens once on a machine; after that it
+  opens at once."* Without the extension the status query blocks as it always
+  did, and the message still paints first.
+
+Two things the measurement caught that reasoning would not have:
+
+- Polling on a **250 ms timer** taxed the warm load — the ordinary case, and
+  every load after the first — with up to a second of waiting for a link that
+  had already finished. A frame at a time costs nothing.
+- Announcing after **0.4 s** made every warm load flash a progress line about
+  a wait that was over: polling instead of blocking costs a warm link about
+  0.7–1.4 s of wall clock, because the driver does not report done until it
+  really is where the blocking query forced it. The threshold is 2.5 s, which
+  is above every warm load measured and far below the case worth explaining.
+- A deferred script leaves a window — 0.7 s warm, 90 s cold — where the veil
+  is up and its click handler is not attached. A click in it used to vanish.
+  It is now remembered and honoured when the door works.
+
+**Still open: the link is still 89 seconds.** The lever the bisect points at
+is not shelving or furniture themselves but **`mapAt`'s eight call sites** —
+one for the march, four for `normalCtx`, three for `aoCtx`. Ambient occlusion
+is a soft, low-frequency term and almost certainly does not need shelf
+casework in the field it samples; giving `aoCtx` a coarser field would remove
+three of the eight expansions of the expensive half. On these numbers that is
+worth roughly 20% of the link, and it may be worth some of the 9.1% of frame
+time AO costs as well. It changes the render, so it needs an A/B on the look
+before it is worth anything.
+
+**Open, and more urgent than anything §18 was worried
 about.**
 
 ## The performance review, Aug 2026
