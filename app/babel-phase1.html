@@ -461,6 +461,15 @@
 <script type="module">
 "use strict";
 
+/* Anything thrown after this line is kept rather than lost to the console.
+   A page can be badly broken and still look like it is running: a
+   ReferenceError inside the panel update left the room sentence blank on
+   every frame while 176 assertions passed, because nothing in the suite
+   executes this page. core/pagecheck.html reads this. */
+window.__errs = [];
+addEventListener("error", e => window.__errs.push(String(e.message)));
+addEventListener("unhandledrejection", e => window.__errs.push("unhandled: " + e.reason));
+
 /* Which build is drawing, as opposed to which Library is being drawn.
  *
  * Two numbers because they answer two different questions and move at

@@ -1,0 +1,158 @@
+<title>Babel -- page check</title>
+<link rel="stylesheet" href="./ui-kit.css">
+<style>
+  body{background:var(--ink);color:var(--pale);font:13px/1.6 var(--mono);
+       margin:0;padding:1.4rem 1.6rem;}
+  h1{font:400 1.1rem/1.4 var(--serif);color:var(--title);margin:0 0 .2rem;}
+  p.sub{color:var(--faint);margin:0 0 1.2rem;max-width:58rem;}
+  #out{white-space:pre-wrap;}
+  .ok{color:var(--focus-lit);} .bad{color:var(--crimson);} .dim{color:var(--mute);}
+  b{color:var(--title);font-weight:400;}
+  /* The pages under test are real pages, rendering at a real size. Hidden
+     would be cheaper and would also stop the compositor doing any work,
+     which is most of what is being checked. */
+  iframe{width:520px;height:340px;border:1px solid var(--panel-line);
+         margin:.6rem .6rem 0 0;background:var(--ink);}
+</style>
+
+<h1>Page check</h1>
+<p class="sub">Opens <b>app/babel-phase1.html</b> and <b>app/babel-atlas.html</b> for
+real, in frames, and asserts they work &mdash; that they boot, that the panels fill,
+that the keys do something, and that neither threw on the way. <b>Nothing in
+<span class="dim">npm test</span> executes either page.</b> Every browser-side defect
+this project has had was found by a person looking at it: a
+<span class="dim">ReferenceError</span> that blanked the room sentence while 176
+assertions passed, a completion poll that stalled forever in a background tab, an
+atlas drawing every reading room as a gallery. This is the gate for that class.
+Like <b>core/conformance.html</b>, it is run by opening it.</p>
+<p class="sub dim">The first load on a machine links the prototype's shader, which
+takes about a minute and a half; after that it is seconds. Both frames stay on
+screen so a failure can be looked at as well as read.</p>
+
+<div id="out">running&hellip;</div>
+<iframe id="proto"></iframe>
+<iframe id="atlas"></iframe>
+
+<script type="module">
+import { CORE_VERSION } from "./babel-core.mjs";
+
+const out = document.getElementById("out");
+let pass = 0, fail = 0;
+const line = (s, cls = "") => out.insertAdjacentHTML("beforeend",
+  `<span class="${cls}">${s}</span>\n`);
+function ok(name, cond, detail = ""){
+  if (cond){ pass++; line(`  ok   ${name}${detail ? "  " + detail : ""}`, "ok"); }
+  else     { fail++; line(`  FAIL ${name}${detail ? "  " + detail : ""}`, "bad"); }
+}
+const section = s => line(`\n${s}`, "dim");
+out.textContent = "";
+
+/* Wait for a page to say it is ready, rather than for `load` -- the module
+   runs deferred and the shader links after it, so `load` fires long before
+   anything works. A frame that is not on screen gets no rAF, so the poll is
+   a timer. */
+function ready(frame, url, handle, timeoutMs){
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    frame.src = url;
+    const tick = setInterval(() => {
+      const w = frame.contentWindow;
+      if (w && w[handle]){ clearInterval(tick); resolve({ w, ms: performance.now() - t0 }); }
+      else if (performance.now() - t0 > timeoutMs){ clearInterval(tick); resolve(null); }
+    }, 200);
+  });
+}
+const keydown = (w, code, key = "x") =>
+  w.dispatchEvent(new w.KeyboardEvent("keydown", { code, key, bubbles: true }));
+
+/* ---- the prototype -------------------------------------------------- */
+section("THE PROTOTYPE -- it has to start, and say where it is");
+{
+  const cell = "-3,0", at = `babel://walk/00001594/floor/0/cell/${cell}`;
+  /* `at` alone, and deliberately no `view`: view carries explicit world
+     coordinates and overrides the address, so a URL with both is a URL that
+     contradicts itself. That is what this check first reported -- the panel
+     said -4,2 because the view put the camera there. */
+  const url = `../app/babel-phase1.html?at=${encodeURIComponent(at)}`;
+  const r = await ready(document.getElementById("proto"), url, "__render", 240000);
+  ok("it boots and publishes __render", r !== null,
+     r ? `${(r.ms / 1000).toFixed(1)} s including the shader link` : "timed out after 240 s");
+
+  if (r){
+    const { w } = r, doc = w.document;
+    const { cv, st } = w.__render;
+    ok("the canvas has a size", cv.width > 0 && cv.height > 0, `${cv.width}x${cv.height}`);
+
+    doc.getElementById("veil").click();
+    ok("the veil opens on a click", doc.getElementById("veil").className === "gone");
+
+    /* Drive a frame rather than waiting for one. The panel is written by
+       aim(), which runs inside frame() when the pose has moved, so before
+       the first frame it still says 0,0 and the room sentence is empty --
+       and a frame that is not on screen never gets a rAF at all. Driving it
+       makes this check deterministic instead of dependent on whether the
+       browser felt like drawing. */
+    w.__render.frame(performance.now());
+
+    /* the panel, which is the whole of what the Library says about where you
+       are -- and which was blank for a session without anything noticing */
+    const txt = id => (doc.getElementById(id).textContent || "").trim();
+    ok("the address panel names the floor", txt("a-floor").length > 0, txt("a-floor"));
+    ok("and the cell", txt("a-cell").replace(/\s/g, "") === cell, txt("a-cell"));
+    ok("and carries the citation", txt("a-uri") === at, txt("a-uri"));
+    ok("the room sentence is not empty", txt("a-note").length > 10, txt("a-note"));
+    ok("and it counts volumes, not slots",
+       /\d/.test(txt("a-note")) && !/\b700 volumes\b/.test(txt("a-note")),
+       txt("a-note").match(/[\d,]+ volumes/)?.[0] ?? "no count");
+
+    ok("it says which Library it is drawing", txt("a-core") === CORE_VERSION,
+       `core ${txt("a-core")}`);
+    ok("and which build is drawing it", /^\d+\.\d+\.\d+$/.test(txt("a-rend")),
+       `renderer ${txt("a-rend")}`);
+
+    const help = doc.getElementById("help"), perf = doc.getElementById("perf");
+    const h0 = help.hidden; keydown(w, "Slash", "?");
+    ok("? opens the keys", help.hidden !== h0);
+    const p0 = perf.hidden; keydown(w, "F1", "F1");
+    ok("F1 opens the instruments", perf.hidden !== p0);
+
+    ok("the render scale is a real number", st.div >= 1 && st.div <= 4, `1:${st.div}`);
+    ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
+  }
+}
+
+/* ---- the atlas ------------------------------------------------------ */
+section("THE ATLAS -- it has to draw the lattice, and answer about it");
+{
+  const r = await ready(document.getElementById("atlas"),
+                        "../app/babel-atlas.html", "__atlas", 60000);
+  ok("it boots and publishes __atlas", r !== null,
+     r ? `${(r.ms / 1000).toFixed(1)} s` : "timed out after 60 s");
+
+  if (r){
+    const { w } = r, doc = w.document, A = w.__atlas;
+    ok("the legend lists every kind", doc.querySelectorAll("#legend .row").length === 6,
+       doc.querySelectorAll("#legend .row").length + " rows");
+    ok("and opens on one floor", /Floor 0/.test(doc.querySelector("#legend .hd").textContent),
+       doc.querySelector("#legend .hd").textContent.trim());
+
+    const [lo, hi] = A.slice();
+    ok("the slice is that one floor", lo === 0 && hi === 0, `${lo} to ${hi}`);
+    keydown(w, "BracketRight");
+    ok("] moves up a floor", A.st.floor === 1, "floor " + A.st.floor);
+    keydown(w, "KeyH");
+    ok("H adds a layer, upward first", A.slice()[1] === 2 && A.slice()[0] === 1,
+       `${A.slice()[0]} to ${A.slice()[1]}`);
+
+    /* the two diagnostics, which are the reason the page exists */
+    const hit = A.pickAt(w.innerWidth / 2, w.innerHeight / 2);
+    ok("a click in the middle reads a cell", hit !== null,
+       hit ? `${hit.q},${hit.r} floor ${hit.fl}` : "nothing there");
+    ok("reachability was computed and is not everything", A.REACH.size > 100,
+       A.REACH.size + " rooms reachable from the centre");
+    ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
+  }
+}
+
+line(`\n${pass} passed, ${fail} failed`, fail ? "bad" : "ok");
+</script>

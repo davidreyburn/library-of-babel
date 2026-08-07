@@ -4,10 +4,12 @@
   "description": "A deterministic, walkable Library of Babel: a WebGL simulator and an agent-readable core, sharing one implementation of the lattice and the corpus.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node core/test-core.mjs && node core/test-run.mjs",
+    "test": "node core/test-core.mjs && node core/test-run.mjs && node core/gates.mjs",
     "test:core": "node core/test-core.mjs",
     "test:gates": "node core/test-run.mjs",
     "build": "node core/build.mjs",
@@ -16,7 +18,8 @@
     "harness": "node core/harness.mjs",
     "babel": "node tools/babel.mjs",
     "play": "node core/agent-play.mjs",
-    "model": "node core/run-model.mjs"
+    "model": "node core/run-model.mjs",
+    "gates": "node core/gates.mjs"
   },
   "//dependencies": "None, on purpose: `npm install` here installs nothing. core/run-model.mjs is the one entry point that needs @anthropic-ai/sdk, and it says so when you run it without one."
 }

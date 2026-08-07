@@ -12,6 +12,15 @@ Where one of those records an unresolved gap, the item below carries the decisio
 
 ## Where it stands
 
+**Two of the gates need a browser and `npm test` cannot run them.** It says so
+when it finishes. [`core/conformance.html`](core/conformance.html) proves the
+GPU and the CPU agree about the lattice;
+[`core/pagecheck.html`](core/pagecheck.html) proves the pages *work* — that
+they boot, that the panel fills, that the keys do something, that neither
+threw. Nothing in the Node suite executes either page, and every browser-side
+defect this project has had was found by a person looking at one.
+
+
 Green: **169 core assertions**, **52 gates**, 500 GPU integers, build current
 against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
