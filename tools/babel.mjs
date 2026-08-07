@@ -139,7 +139,7 @@ case "verify": {
 case "wander": {
   const c = cell(flag("from", "0,0,0"));
   const j = text.journey({ ...c, route: Number(flag("route", 1)),
-                           steps: Number(flag("steps", 24)), take: Number(flag("take", 2)) });
+                           steps: Number(flag("steps", 24)), take: Number(flag("take", 1)) });
   if (JSONOUT) return out(j);
   out(`route ${j.route}, from ${j.from}\n`);
   for (const s of j.stops){

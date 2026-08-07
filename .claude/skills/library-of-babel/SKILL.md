@@ -59,7 +59,8 @@ node tools/babel.mjs find "the library is unlimited and cyclical."
 it.
 
 ```
-node tools/babel.mjs wander --route 1941 --steps 24 --take 2
+node tools/babel.mjs wander --route 1941 --steps 24        # one volume a stop
+node tools/babel.mjs wander --route 1941 --steps 24 --take 3  # ask for more
 node tools/babel.mjs seat --route 1941        # walk until there is a chair
 node tools/babel.mjs mirror --route 1941      # walk until a corridor holds one
 ```

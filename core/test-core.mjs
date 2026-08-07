@@ -619,10 +619,21 @@ section("JOURNEY -- every stop is a citation");
   ok("every volume handed back is on a shelf that exists", bad === 0,
      `${withBooks.reduce((n, s) => n + s.shelves.length, 0)} volumes checked`);
 
+  /* Both sides ask for the same take. This used to compare an explicit
+     take: 3 against the default and pass because the default WAS 3 -- so it
+     was asserting the default's value while claiming to assert
+     reproducibility, and it failed the day the default moved. Two claims,
+     two calls. */
   ok("the same route hands back the same volumes",
-     JSON.stringify(text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 7 })) === JSON.stringify(j));
+     JSON.stringify(text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 7, take: 3 })) === JSON.stringify(j));
   ok("a different route hands back different volumes",
-     JSON.stringify(text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 9 })) !== JSON.stringify(j));
+     JSON.stringify(text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 9, take: 3 })) !== JSON.stringify(j));
+  /* And the default is one volume a stop, which is the reader's bill: three
+     was 37 candidate addresses over 24 steps for a task that cites about 7. */
+  const one = text.journey({ q: 0, r: 0, floor: 0, steps: 20, route: 7 });
+  ok("a stop offers one volume by default",
+     one.stops.every(s => s.shelves.length <= 1),
+     `${one.stops.reduce((n, s) => n + s.shelves.length, 0)} volumes over ${one.stops.length} stops`);
 
   /* Route 1, not 7: the corridor reshuffled every wander. Which route comes
      up empty moves whenever the lattice does, so the pair below is picked

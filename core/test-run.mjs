@@ -351,6 +351,56 @@ section("SPECIMEN -- one honest excursion, scored");
   ok("the specimen is a complete, scored, citeable run", m.claims > 0 && m.integrity === 1);
 }
 
+/* ---- what the reader pays ------------------------------------------- *
+ * Every byte a command prints is a byte an agent reads, and for a language
+ * model that is the whole cost of the environment -- the Library itself is
+ * 1.2 ms of hashing behind a 75 ms Node start, so nothing here is about CPU.
+ *
+ * These are budgets rather than assertions of a value: a command may get
+ * cheaper freely, and gets dearer only on purpose. Without them "the output
+ * got fat" is something somebody notices a year later, which is exactly how
+ * the shader's link time went unmeasured (BUG-LOG 20).
+ *
+ * observe() is the one that matters most: a model pays it EVERY STEP, so a
+ * 60-step excursion pays it sixty times, while a wander is paid once. */
+section("WHAT THE READER PAYS -- output is the cost, not compute");
+{
+  const seen = [];
+  const budget = (what, bytes, max) => {
+    seen.push([what, bytes]);
+    ok(`${what} stays under ${max.toLocaleString()} bytes`, bytes <= max,
+       `${bytes.toLocaleString()} bytes, ~${Math.round(bytes / 4).toLocaleString()} tokens`);
+  };
+
+  /* -3,0, not the origin: 0,0 is a reading room and has nothing to pull,
+     which made the "holding a page" measurement quietly identical to the
+     empty-handed one. A measurement that cannot fail its own premise is not
+     a measurement. */
+  const s0 = run.initialState({ q: -3, r: 0, floor: 0, budget: 60 });
+  budget("one observe() in a gallery", model.observe(s0).length, 1400);
+
+  let held = null;
+  for (const a of run.actions(s0)) if (a.kind === "pull"){ held = run.apply(s0, a); break; }
+  ok("there is something to pull in the gallery we measure", held !== null);
+  budget("one observe() holding a page", model.observe(held).length, 6000);
+
+  const j = text.journey({ q: 0, r: 0, floor: 0, steps: 24, route: 1941 });
+  budget("a 24-step journey, as JSON", JSON.stringify(j).length, 7600);
+
+  /* And the number the budgets exist to protect: a whole excursion, which
+     is what a model is actually charged for. */
+  const t60 = run.runEpisode(run.honestReader(7), { q: 0, r: 0, floor: 0, budget: 60 });
+  let total = 0, st = run.initialState({ q: 0, r: 0, floor: 0, budget: 60 });
+  for (const d of t60.decisions){
+    total += model.observe(st).length;
+    st = run.apply(st, d.action);
+  }
+  results.push(`       a 60-step excursion reads ${total.toLocaleString()} bytes ` +
+               `(~${Math.round(total / 4).toLocaleString()} tokens) across ${t60.decisions.length} observations`);
+  ok("a whole excursion stays under 120,000 bytes", total <= 120000,
+     `${total.toLocaleString()} bytes`);
+}
+
 console.log(results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

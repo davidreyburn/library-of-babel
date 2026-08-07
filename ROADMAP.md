@@ -210,6 +210,52 @@ the bounding that closed the furniture half is the shape of it.
 **Done when:** a cold link is short enough that a public demo link is honest,
 and a change that lengthens it fails a test rather than a session.
 
+### 1e. What the reader pays, now measured — **first cut taken**
+
+The environment's cost to an agent is **output, not compute**. Measured: a
+24-step journey is **1.2 ms** of hashing, behind a 5 ms module import, behind
+a ~75 ms Node start. The Library is about 1.5% of the wall clock of a command,
+and batching or daemonising the CLI would save time nobody is waiting on.
+
+What is actually spent, and where:
+
+| | bytes | ~tokens |
+|---|---|---|
+| one `observe()` in a gallery | 621 | 155 |
+| one `observe()` **holding a page** | 3,924 | 981 |
+| a 24-step journey, as JSON | 7,193 | 1,798 |
+| **a 60-step excursion, all 44 observations** | **70,812** | **17,703** |
+
+**The page block is the cost.** A page-holding step is 6× a room, and a model
+pays an observation on *every* step while a journey is paid once. It is also
+irreducible: the agent has to read the page to cite a line of it, and cutting
+it would be cutting the task.
+
+**First cut, taken:** `take` defaults from 3 to 1. A journey offered three
+volumes at every stop — 37 candidate addresses over 24 steps, for a task that
+cites about 7 — and those addresses were a quarter of a wander's bill whether
+or not any was opened. A journey is now 7,193 bytes against 10,762, and the
+CLI's text output 3,387 against 5,231. One volume still makes a stop citeable,
+which is the job.
+
+**Deliberately not done:** shortening the addresses themselves. The repeated
+`babel://walk/00001594/` prefix is 15.6% of a wander's output and stripping it
+would make the reader reconstruct an address to cite it — and any slip there
+is scored by `verify` as a false citation. That would manufacture integrity
+failures with nothing to do with the reader's honesty, in the one environment
+whose whole claim is that a false citation means something. Cheaper output is
+not worth polluting the measurement.
+
+**Held by budgets, not by intent.** `WHAT THE READER PAYS` in `test-run.mjs`
+asserts each of the numbers above stays under a ceiling. They may get cheaper
+freely and get dearer only on purpose — without that, "the output got fat" is
+something somebody notices a year later, which is exactly how the shader's
+link time went unmeasured (§20).
+
+**Open:** the excursion figure is one honest policy on one route. A
+distribution across policies would say whether 17,700 tokens is typical or a
+best case, and item 5 already wants that harness run for integrity.
+
 ### 1d. Bad normals rise with range, cause unknown
 
 **0.72% at 0–3 m against 3.45% at 3–6 m**, measured with `?ablate=nydist` on a

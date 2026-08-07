@@ -466,7 +466,15 @@ function shelfAddresses(q, r, fl, seed = DEFAULT_SEED){
 /* A deterministic handful from this gallery -- which volumes you happened
    to pull down. Keyed on the journey seed and the step, so the choice is
    part of the record rather than an accident. */
-function volumesToHand(q, r, fl, { seed = DEFAULT_SEED, journey = 1, step = 0, take = 3 } = {}){
+/* take = 1, not 3.
+ *
+ * A journey used to offer three volumes at every stop -- 37 candidates over
+ * 24 steps, for a task that cites about 7. Those addresses are a quarter of
+ * what a reader pays for a wander and they are paid whether or not any of
+ * them is opened. One is enough to make a stop CITEABLE, which is the job;
+ * a reader that wants more asks for more, and now the asking is the
+ * exception rather than the default. */
+function volumesToHand(q, r, fl, { seed = DEFAULT_SEED, journey = 1, step = 0, take = 1 } = {}){
   const all = shelfAddresses(q, r, fl, seed);
   if (!all.length) return [];
   const out = [];
@@ -482,7 +490,7 @@ function volumesToHand(q, r, fl, { seed = DEFAULT_SEED, journey = 1, step = 0, t
    could sit in. Pages are not included -- a reader asks for the ones it
    wants with readBook(), which keeps a long walk cheap. */
 function journey({ q = 0, r = 0, floor = 0, steps = 24, seed = DEFAULT_SEED,
-                   route = 1, take = 3 } = {}){
+                   route = 1, take = 1 } = {}){
   const trail = wander({ q, r, floor, steps, seed: route });
   return {
     route, seed,
