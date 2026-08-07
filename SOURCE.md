@@ -27,8 +27,11 @@ the first place.
 Every requirement in `spec/technical-specification.md` carries a traceability
 note: `*[src: "…"]*` quotes the fragment that motivates it, or `*[derived]*`
 marks an engineering consequence with no direct source. Across both
-specifications that amounts to roughly 2 KB of quoted fragments, the longest
-around 120 characters — citation, not reproduction.
+specifications that amounts to **27 fragments, 1,155 characters in total, the
+longest 91** — citation, not reproduction. The numbers are counted from the
+tracked files rather than estimated, and no copy of the story has ever been
+committed: `source/` and `notes/*.jsonl` are ignored, and the history has been
+checked rather than assumed.
 
 Two examples of what that looks like in practice:
 

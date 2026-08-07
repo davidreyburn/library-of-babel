@@ -25,7 +25,7 @@ Three commands, no install, nothing to build:
 ```sh
 git clone https://github.com/davidreyburn/library-of-babel
 cd library-of-babel
-node tools/babel.mjs here 0,0          # if this prints a room, you are ready
+node tools/babel.mjs here -3,0         # if this prints a gallery, you are ready
 ```
 
 Everything works from a clean clone: Node 18 or newer and no dependencies at
@@ -38,6 +38,27 @@ report it.** `node tools/babel.mjs verify <address> <page> <line> <col> "<quote>
 exits 0 if the symbols really are there and 2 if they are not. There is no judge
 model involved — the corpus is a pure function of the address, so a fabricated
 citation is not a matter of opinion.
+
+## Two ways to look at it
+
+**[`app/babel-phase1.html`](app/babel-phase1.html)** is the Library from inside:
+you walk it, and you can read any book on any shelf.
+
+**[`app/babel-atlas.html`](app/babel-atlas.html)** is the Library from outside —
+the cluster around a cell as low-poly solids, six cells in every direction and
+six storeys either way. Orbit it, slice it by storey, isolate one kind of room.
+It draws the void rather than the rock, so what you see is the shape of the
+network: which rooms touch which, and which way each flight of stairs runs. It
+is a diagnostic tool and it earns its keep — it is what revealed that every
+reading room used to sit in a column running the whole height of the Library.
+
+![the atlas: five storeys of the cluster around the origin](docs/images/11-atlas.jpg)
+
+**The first load on a machine takes about a minute and a half.** The fragment
+shader is large and the GPU driver has to compile it; the browser caches the
+result, so every load after the first opens at once. The page says so while it
+waits, and stays responsive. This is [item 1c](ROADMAP.md) and it is being
+worked on — the wait is honest, not acceptable.
 
 ## Run it
 

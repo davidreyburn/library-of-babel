@@ -1,6 +1,7 @@
 # Screenshots
 
-Captured through Chrome while building, 1–2 August 2026. The numbered images are
+Captured through Chrome while building, 1–2 August 2026 unless dated otherwise.
+The numbered images are
 the milestones referenced from `docs/CASE-STUDY.md` and `docs/BUG-LOG.md`;
 `archive/` holds every shot taken, chronologically by the timestamp in the
 filename, unlabelled.
@@ -17,3 +18,4 @@ filename, unlabelled.
 | `08-reticule-and-panel.jpg` | 2 Aug 13:29. The reticule on slot 19, its spine named in the address panel, with the crimson volume two slots to the left and an empty slot further along. |
 | `09-highlight-zoom.png` | 2 Aug 13:30. Close on the same shelf: the targeted spine lifted toward lit paper, the crimson volume beside it, and the notch where the Purifiers left a gap. |
 | `10-on-target-grazing.jpg` | 2 Aug 13:38. The parallax fix, at a 60° grazing angle — the case the old single-plane ray got wrong by six books. The arrow is the OS pointer composited by the capture tool; the page hides its own cursor. |
+| `11-atlas.jpg` | 6 Aug. The atlas: the cluster around the origin, five storeys of it, as low-poly solids. Dark columns are shafts, pale hexagons reading rooms, and the beams between cells are the doorways. Taken after the vertical rebalance — flights 12% → 9%, shafts 2% → 3% — which is what the extra dark columns are. |

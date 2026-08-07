@@ -12,45 +12,77 @@ Where one of those records an unresolved gap, the item below carries the decisio
 
 ## Where it stands
 
-Green: **144 core assertions**, **52 gates**, 500 GPU integers, build current
-against `core/`. `CORE_VERSION` is **0.5.0**. Walking somewhere on purpose
+Green: **169 core assertions**, **52 gates**, 500 GPU integers, build current
+against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
 
-The corridor closed §9.3, the last part of the specification that had been
-written and not built: the hallway is a cell type, about 1 cell in 11, with a
-mirror, a latrine or a standing closet in alcoves off it, and a flight of
-stairs at the end of 1 in 5. LIB-P-020, 021, 023 and 024 are met. LIB-P-022 —
-the stairway *inside* the hallway — remains deviated for the same reason
-stairs got their own cells in the first place (§17.1, T-4).
+Nothing in the specification is specified-and-unbuilt. What follows is defects,
+unmeasured costs, and reach.
 
-Nothing in the specification is now specified-and-unbuilt. What follows is
-defects, unmeasured costs, and reach.
+**The Library gained a map.** [`app/babel-atlas.html`](app/babel-atlas.html)
+draws the cluster around a cell — 6 cells in every direction and 6 storeys
+either way — as low-poly solids you can orbit, slice by storey and filter by
+type. It draws the void rather than the rock, and a flight's top is sloped so
+its rise reads at a glance. It imports `core/` instead of inlining it, and it
+does not ray-march: an SDF answers "what is in front of me", which is the wrong
+question for a map. The kit's palette moved to `core/ui-kit.css`, which the
+prototype inlines and the atlas links, and four assertions hold the atlas to
+the rules the prototype has.
 
-**The wall mottling is fixed** and item 1 has closed after four sessions on the
-wrong knob. `marchRay`'s termination tolerance was ten times too loose — the
-step scale, which every previous attempt adjusted, controls how fast the march
-*approaches*; the tolerance controls where it *stops*, and the residual the
-normal probe stands on is set by that. One literal, `0.0018 * t + 0.0012` →
-`0.00018 * t + 0.00012`, with the step restored from the interim 0.60 to 0.80.
-Bad normals on the reported wall **46.04% → 0.34%**, cost neutral within ±2%.
-`?ablate=looseeps` brings the defect back. Bug log §13 is now in Closed, with
-the two harness faults that made its earlier numbers untrustworthy and the
-retraction of a "−30% frame time" that was one of them.
+It earned its place immediately: **every reading room was a column**, visible
+at a glance as stacks of pale hexagons, because `cellType` is a function of
+`(q,r)` and cannot see a floor. Find one and you had found one on every storey.
+That is now fixed — see below — and the atlas is what showed it.
 
-**And the wall patch is signed off too** — *"what I am seeing currently looks
-pretty good; the gaps appear dark."* It took two further mechanisms after the
-tolerance, neither of them brightness: downward-facing stone had no path to
-light at all, and the reveal differed from the wall beside it in **hue** rather
-than luminance (contrast 1.12, but green against warm-grey). What finally
-located it was the reporter saying which surface every screenshot had been of.
-`?ablate=where` and `?ablate=nydist` now render geometry instead of shading, so
-that question costs one page load.
+**Three defects closed since the last revision.**
+
+*The warp is found and fixed (bug log §19).* A flight's cut runs `STAIR_EXT`
+past the cell boundary at each end to meet the neighbour's doorway — including
+past **walled** ends, straight through the rock. That is the stair that climbs
+into a black hole, and it walked bodies across a WALL edge in 31 of 684
+approaches. A flight now extends only at an end that opens, resolved once per
+cell in `cellDesc` and read as a constant bit in `mapAt`. Three earlier entries
+blamed the topology; none of them had walked up the stairs.
+
+*The link-time budget was measuring Chrome's shader cache (§20).* Any novel
+shader text costs ~89 s cold on the development GPU and any text the driver has
+seen ~0.2 s, so every link-time comparison anyone had made was cold against
+warm. `?fresh=` now forces a cache miss so the number means something.
+
+*Reading rooms are rooms, not columns.* `studyAt(q, r, fl)` decides per storey
+at the same 2.1% of cells. The topology is unchanged — proved over 198,744
+edges with zero gaps, axes or rises differing — because `openGround`,
+`axisEnd` and `gapAt` all treat a reading room exactly as a gallery. It is the
+only cell type that could move.
+
+**And vertical traversal was rebalanced**: flights 12% → 9%, shafts 2% → 3%.
+Climbing should be something you go and find. The limit is not taste — a shaft
+is impassable, so raising its share fragments a storey, and at 4% shafts some
+rooms end up more than thirty rooms from any flight that works. 3% is the
+frontier where that number is still zero.
+
+---
 
 ---
 
 ## Open
 
-### 1b. A doorway into a stairwell that arrives nowhere
+### 1b. A doorway into a stairwell that arrives nowhere — **closed, and the diagnosis was wrong**
+
+**Closed by bug log §19, which found a different cause than this item spent
+three entries assuming.** The topology was never the defect. `STAIR_EXT` cuts a
+flight 0.75 m past the cell boundary at each end to meet the doorway box its
+neighbour draws — including past **walled** ends, straight through the rock.
+That is both the black hole at the top of the stairs and the displacement:
+walking one put a body in the cell behind the wall, 31 times in 684 approaches.
+A flight now extends only at an end that opens. 31 → 0 crossings.
+
+**The one-ended flights remain and are staying.** They are ~7% of stairwells,
+they are a stair that climbs into rock, and that is a thing the text allows.
+What was wrong was that you could walk through the end of one.
+
+<details><summary>What this item argued before, kept because the reasoning
+failed in an instructive way</summary>
 
 **The visual half is signed off; the topology half is untouched and is the
 serious one.**
@@ -125,21 +157,49 @@ the camera was pointed at. `?ablate=where` now answers that in one page load.
 
 </details>
 
-### 1c. The shader has almost no link-time headroom left
+</details>
 
-Adding three `uniform`-guarded branches to the shading path took the link from
-instant to **81.2 s**; a source-substitution variant that *removes* three
-`mapAt` calls still took 66.7 s. Link time is not monotonic in source size.
-§17.13 reads as solved; the margin it bought is much thinner than the record
-implies, and nothing measures it. Bug log §15.
+### 1c. The shader takes 89 seconds to link on a cold cache
 
-**Why it gates other work:** items 1b and 3 both touch the shading or gap
-path. A 60–80 s link presents as a hung page, and three reloads make Chrome
-disable WebGL for the session.
-**Lever:** assert on it — link the shipped shader headlessly in the test suite
-and fail when the budget is spent. The timer exists; nothing checks it.
-**Done when:** a change that narrows the margin breaks a test instead of a
-session.
+**This item used to say the shader had no link-time headroom. It had less than
+that: the numbers it was built on were measuring Chrome's program cache** (bug
+log §20). Any novel shader text costs ~89 s cold on the development GPU and any
+text the driver has already linked ~0.2 s, so the "instant" baseline every
+comparison used was a cache hit and every candidate was a miss.
+
+**`?fresh=<anything>`** now appends a unique comment to the fragment source, so
+a link can be made cold on purpose and two variants compared honestly — both
+fresh, or both warm, never one of each. `window.__linkMs` reports the link
+alone rather than `loadEventEnd`.
+
+**Where the 89 seconds goes**, each row a genuine cold link:
+
+| shader | cold link |
+|---|---|
+| as shipped | **89.2 s** |
+| `ablate=nobounce` | 92.6 s |
+| `ablate=noshelf` | 66.5 s |
+| `ablate=nofurn` | 64.6 s |
+| `ablate=noshelf,nofurn` | **40.1 s** |
+
+Shelving and furniture are **55% of the link** between them and compose almost
+additively. Both live inside `mapAt`, which ANGLE inlines at **eight** call
+sites, so the cost is geometry detail multiplied by how many places the field
+is sampled. The mirror's second bounce — §15's original 127-second link — now
+costs nothing, which confirms the `uBounce` fix held.
+
+**The frozen tab is fixed even though the wait is not.** The prototype's script
+is a module, so it runs deferred and the veil is painted before any shader work
+starts; `KHR_parallel_shader_compile` lets the driver link on its own thread
+while the page polls a frame at a time. A first load now stays responsive and
+says *"Building the Library — 43s. This happens once on a machine; after that
+it opens at once."*
+
+**Lever:** `mapAt`'s eight call sites — one march, four `normalCtx`, three
+`aoCtx`. Ambient occlusion is soft and low-frequency and probably does not need
+shelf casework in the field it samples.
+**Done when:** a cold link is short enough that a public demo link is honest,
+and a change that lengthens it fails a test rather than a session.
 
 ### 1d. Bad normals rise with range, cause unknown
 
@@ -319,6 +379,14 @@ Claude Opus 5 over route 1941, transcript in
 [`runs/opus5-route1941.json`](runs/opus5-route1941.json), full caveats in
 [`core/RUN.md`](core/RUN.md). One reader, one route, seven claims, and a reader
 that knew it was being scored: a ceiling, not a typical case.
+
+> **That transcript is stamped `0.5.0` and the core is now `0.6.0`, so it no
+> longer replays** — reading rooms moved off their columns and the shaft and
+> stairwell shares changed, which moves the rooms the route passes through.
+> It is kept as the historical artefact it is rather than quietly re-recorded,
+> because the rule that a run replays only against its own version is the
+> reason the version is stamped on it at all. The distribution below should be
+> taken under 0.6.0 and will supersede it.
 
 **Still open, and now cheap:**
 - **A distribution.** `node core/run-model.mjs --n 20 --baselines` puts a model

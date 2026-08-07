@@ -1226,7 +1226,7 @@ validity, and it fails loudly:
 - wander and route seeds give different journeys, so the figures in §17.11
   were re-measured above.
 
-`CORE_VERSION` is **0.5.0**. A transcript recorded under 0.4.0 replays only
+`CORE_VERSION` is **0.6.0**. A transcript recorded under 0.5.0 replays only
 against 0.4.0, which is what that stamp is for.
 
 ---
