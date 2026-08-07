@@ -643,8 +643,35 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
   float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centred
   float cx = APO_ROOM - CARC_D * 0.5;
 
-  for (int i = 0; i < 6; i++){
-    if (i != w1 && i != w2) continue;
+  /* Two iterations, not six over a six-way test. The selection loop above
+     has already named the only two walls that can matter, so walking all six
+     again to skip four of them is four iterations of nothing, on ~15 samples
+     a pixel (?ablate=shelfwork). The body is written ONCE and indexed -- not
+     unrolled into two copies, which is the shape that cost §15 a 127-second
+     link. w1 and w2 start at -1 and stay there when a cell has fewer than
+     two shelved walls, which the guard preserves exactly: the old form ran
+     no body in that case either.
+     ORDER IS PRESERVED DELIBERATELY, for two integer ops. The lateral cull
+     below tests against the RUNNING d, so which wall is visited first decides
+     which culls fire; the cull is conservative about distance, but the
+     material globals are written by whichever piece improved d, so a tie
+     between two walls could resolve differently. min/max keeps the ascending
+     index order the six-way loop had, exactly. -1 sorts to wLo and is
+     skipped, which is what the old form did with an unset wall.
+
+     Measured against ?ablate=sixwalls at the same canvas and view: the
+     buffer is BIT-IDENTICAL at a pinned clock, and the frame is 0.76 ms
+     against 0.81, twice each -- about 6%.
+
+     "At a pinned clock" is load-bearing. Two frames of the SAME build a
+     moment apart differ in 22 of 300 tiles, because uMotion drives the lamps
+     off uTime. A checksum taken across two page loads is measuring the
+     clock, and it convicted this change of moving 21 tiles before the
+     control -- same build, two timestamps -- showed it moved none. */
+  int wLo = min(w1, w2), wHi = max(w1, w2);
+  for (int k = 0; k < 2; k++){
+    int i = (k == 0) ? wLo : wHi;
+    if (i < 0) continue;
     vec2 dir = dirW(i);
     vec2 w = vec2(dot(lp, dir), dot(lp, vec2(-dir.y, dir.x)));
     /* A cull that cannot lie: if the lateral distance to this run already

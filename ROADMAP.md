@@ -274,7 +274,7 @@ crossover region has never actually been sampled.
 **Done when:** the curve has a named cause, or a longer sightline shows the rise
 is an artefact of what happens to be at 3–6 m in that one view.
 
-### P1. Bound the shelving and the furniture before evaluating them — **furniture done, shelving open**
+### P1. Bound the shelving and the furniture before evaluating them — **furniture done, casework loop done, wall selection open**
 
 **Shipped: exact group bounds on `furniture()` and `alcoveFixtures()`.** Every
 piece is anchored to one wall, so the whole set lies in a known box about that
@@ -313,19 +313,43 @@ path.** Better culling is not the lever. Two specific costs are now visible:
    instead of six, with the body written once — so it does not duplicate the
    body the way §15's 127-second link did.
 
-**Not attempted yet, and the reason is the harness, not the change.** Frame
-timing from a background tab came back **bimodal — six batches at 1.0 ms and
-three at 2.1 ms**, a 2× spread that swamps any plausible win. And a change
-like this cannot be A/B'd inside one page load the way the review requires:
-making it a uniform-guarded branch is precisely what took the link to 81
-seconds in §15.
+**Done: the casework loop walks two walls instead of six.** The selection loop
+has already named the only two that can matter, so walking all six again to
+skip four was four iterations of nothing on ~15 samples a pixel. The body is
+written once and indexed, not unrolled into two copies — the shape that cost
+§15 a 127-second link. `?ablate=sixwalls` restores the old loop.
 
-**The protocol it needs**, written down so the next attempt does not rediscover
-it: a foreground tab, `st.div` pinned, the old form kept as an ablation so
-both can be measured under identical canvas and view, nine batches of 14 with
-one `readPixels` sync per batch, and the FNV checksum of the buffer compared
-to prove the field did not move. **`gl.finish()` is not a substitute for that
-sync — it returned in 0.007 ms, having stalled on nothing.**
+| | frame, 621×458, div 1 |
+|---|---|
+| six-wall | 0.814 ms · 0.807 ms |
+| **two-wall** | **0.764 ms · 0.757 ms** |
+
+**About 6%, and the buffer is bit-identical** — `b0aa9848` both ways at a
+pinned clock, same canvas, same view, two independent runs each.
+
+**Three harness facts this cost, all of which would have produced a wrong
+answer.** They belong with the review's own note about the readPixels stall.
+
+1. **`gl.finish()` is not a sync.** It returned in 0.007 ms having stalled on
+   nothing, which would have reported the shader at 140,000 fps. One
+   `readPixels` per batch of 14 is the stall.
+2. **The canvas moved between two measurements** — 565×416 to 621×458 — and
+   turned a 6% win into a 17% regression, because 21% more pixels is 21% more
+   work. The review says never compare across canvas sizes; this is what that
+   looks like when you do.
+3. **A checksum across two page loads measures the clock.** `uMotion` drives
+   the lamps off `uTime`, so two frames of the SAME build a moment apart
+   differ in 22 of 300 tiles. That convicted this change of moving 21 tiles,
+   and a control — one build, two timestamps — showed it moved none. **Pin
+   the timestamp or the checksum is noise.**
+
+**Still open: the wall-selection loop**, which is the other cost `shelfwork`
+found — 6 iterations of `dot(lp, dirW(i))` on ~15 samples a pixel, about 91
+dot products, to name two walls. The six directions are 60° apart and fixed,
+so the nearest is an angle rather than a search; the complication is that
+only *shelved* walls count, so a cheap angular pick needs a fallback when the
+nearest wall has a doorway in it. Worth the same treatment: an exact rewrite,
+kept as an ablation, checked bit-identical at a pinned clock.
 
 **Still open: the shelving**, which is the larger half at 41.3% of a gallery
 frame. Its existing `dh < -(CARC_D + 0.24)` early-out is already the same idea,
