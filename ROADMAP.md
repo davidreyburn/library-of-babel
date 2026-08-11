@@ -18,10 +18,20 @@ GPU and the CPU agree about the lattice;
 [`core/pagecheck.html`](core/pagecheck.html) proves the pages *work* — that
 they boot, that the panel fills, that the keys do something, that neither
 threw. Nothing in the Node suite executes either page, and every browser-side
-defect this project has had was found by a person looking at one.
+defect this project has had was found by a person looking at one — until §21,
+which no person on this hardware could have seen, and which "neither threw"
+does not catch.
 
+**And one gate short: the pages are tested on one GPU backend.** §21 was whole
+on Windows and blank on a Mac from the same commit, because an over-read of a
+vertex buffer is an error on Metal and a shrug on D3D11. `pagecheck` does not
+read `getError()`, so a rejected draw call is invisible to it; and even reading
+it would have passed on the machine that wrote the bug. A page gate that fails
+on a non-empty `getError()`, run on more than one backend before a release, is
+the missing piece. Nothing else in this document is portability work, which is
+itself the reason it went unnoticed.
 
-Green: **177 core assertions**, **57 gates**, **23 in the browser**, 500 GPU
+Green: **179 core assertions**, **57 gates**, **23 in the browser**, 500 GPU
 integers, build current
 against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
@@ -44,7 +54,16 @@ at a glance as stacks of pale hexagons, because `cellType` is a function of
 `(q,r)` and cannot see a floor. Find one and you had found one on every storey.
 That is now fixed — see below — and the atlas is what showed it.
 
-**Three defects closed since the last revision.**
+**Four defects closed since the last revision.**
+
+*The atlas drew nothing at all on a Mac (§21), and was found by a different
+instance on a different machine from a clean clone.* The mark for an
+unreachable room made a vertex nine floats; `STRIDE` followed and the vertex
+count did not, so every draw asked for 12.5% more vertices than the buffer
+holds. D3D11 reads the overrun back as zeroes and draws; Metal rejects the
+call, so the page had been blank on every Metal machine since Aug 7 while
+looking perfect on the one it was written on. One character, and two assertions
+that hold the three numbers together.
 
 *The warp is found and fixed (bug log §19).* A flight's cut runs `STAIR_EXT`
 past the cell boundary at each end to meet the neighbour's doorway — including

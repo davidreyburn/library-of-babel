@@ -1165,6 +1165,35 @@ section("THE ATLAS -- held to the kit, like everything else");
   ok("and shows both in the legend",
      /CORE_VERSION \+ [^\n]*ATLAS_VERSION/.test(script), "core X · atlas Y");
 
+  /* The vertex buffer is described by three numbers that must agree and are
+     written three places: the arity of tri()'s push, STRIDE, and the divisor
+     that turns floats into a vertex count. The divisor said 8 while the other
+     two said 9, so every draw call overran the buffer by 12.5%. Nothing caught
+     it: it is not a syntax error, not a link error, and the backend decides
+     whether it is even an error at all -- D3D11 substitutes zeroes and draws,
+     Metal rejects the call and draws nothing. A page can therefore be correct
+     on the machine that wrote it and blank on the next one, which is the whole
+     reason this is arithmetic in Node rather than an eye on a canvas. */
+  const stride  = +(script.match(/const STRIDE = (\d+);/) ?? [])[1];
+  const divisor = +(script.match(/const nVerts = verts\.length \/ (\d+);/) ?? [])[1];
+  const pushArity = ((script.match(/V\.push\(([^)]*)\);/) ?? ["", ""])[1]
+                      .split(",").filter(s => s.trim()).length);
+  ok("the atlas's vertex count, stride and push arity agree",
+     stride > 0 && divisor > 0 && pushArity > 0 &&
+     divisor === pushArity && stride === pushArity * 4,
+     `${pushArity} floats pushed · divisor ${divisor} · stride ${stride}B`);
+
+  /* and every attribute has to land inside that stride, or the last one reads
+     off the end of the last vertex -- the same overrun by a different route */
+  const table = (script.match(/for \(const \[loc, size, off\] of \[([\s\S]*?)\]\)\{/) ?? ["", ""])[1];
+  const attrs = [...table.matchAll(/\[(\d+), (\d+), (\d+)\]/g)]
+    .map(m => ({ size: +m[2], off: +m[3] }));
+  const overrun = attrs.filter(a => a.off + a.size * 4 > stride);
+  ok("and every attribute lies inside it",
+     attrs.length > 0 && overrun.length === 0,
+     overrun.length ? `past the stride: ${overrun.map(a => a.off).join(", ")}`
+                    : `${attrs.length} attributes, all within ${stride}B`);
+
   /* it must read the lattice, not reimplement it */
   ok("the atlas imports core rather than carrying a copy",
      /import \{[\s\S]*?\} from "\.\.\/core\/babel-core\.mjs"/.test(atlas) &&

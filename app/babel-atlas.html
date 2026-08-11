@@ -114,7 +114,7 @@ import { CORE_VERSION, G, DIRS, DIRW, TYPE, GAP, GAP_NAME, CELL_TYPE_NAME,
 
 /* A day old, and it says so. The atlas moves on its own line from the
    renderer: they draw the same Library and share nothing else. */
-const ATLAS_VERSION = "0.3.0";
+const ATLAS_VERSION = "0.3.1";
 
 /* Anything thrown after this line is kept rather than lost to the console.
    A page can be badly broken and still look like it is running: a
@@ -328,7 +328,14 @@ for (let r = CR - RADIUS; r <= CR + RADIUS; r++){
   }
 }
 const verts = new Float32Array(V);
-const nVerts = verts.length / 8;
+/* Nine floats a vertex, which is STRIDE/4 below and the arity of tri()'s push.
+   The mark for an unreachable room made it nine and this line stayed at eight,
+   so every draw asked for 12.5% more vertices than the buffer holds. D3D11
+   reads the overrun back as zeroes and draws anyway; Metal rejects the call.
+   The page was whole on Windows and black on a Mac for four days, and no
+   assertion could see it. Three numbers, one fact: a test now holds them
+   together rather than trusting anyone to change all three at once. */
+const nVerts = verts.length / 9;
 
 /* ---- program -------------------------------------------------------- */
 const VS = `#version 300 es

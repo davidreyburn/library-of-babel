@@ -1687,6 +1687,90 @@ came back frozen at the same number twice, which is not a number.
 **Open, and more urgent than anything §18 was worried
 about.**
 
+### 21. The atlas drew nothing on a Mac, and the machine that wrote it could not have known
+
+**Found by a different instance, on a different machine, from a clean clone** —
+which is the only reason it was found at all. Every session before this one ran
+on Windows. This one ran on macOS, cloned the repository, started the server,
+opened both pages: the renderer came up in under five seconds, and the atlas
+was a black rectangle.
+
+**The failure mode is why it survived four days.** The page did not throw.
+`onerror` caught nothing, the legend populated, the stats panel filled, and the
+status line read *"9 flights in the cluster, 0 of them dead ends"* — the CPU
+side of the atlas was working perfectly and had counted a cluster it then did
+not draw. Chrome's console had the answer and nothing was reading it:
+
+```
+GL_INVALID_OPERATION: glDrawArrays: Vertex buffer is not big enough for the draw call.
+```
+
+**Found by driving the page headlessly and listening to the console**, rather
+than by looking at it. The renderer identified itself as
+`ANGLE (Apple, ANGLE Metal Renderer: Apple M4)`, which is half the diagnosis on
+its own.
+
+**The mechanism is three numbers that must agree, written in three places.** A
+vertex is described by the arity of `tri()`'s push, by `STRIDE`, and by the
+divisor that turns a float count into a vertex count:
+
+| | at birth (§77e73ae, Aug 6) | after the unreachable-room mark (§e9abb4a, Aug 7) |
+|---|---|---|
+| floats pushed per vertex | 8 | **9** |
+| `STRIDE` | 32 | **36** |
+| `nVerts = verts.length /` | 8 | **8** |
+
+`curLost` was added as a ninth float so a room with no way to it could be
+marked. Two of the three places were updated. The divisor was not, so `nVerts`
+came out **12.5% too high** and every `drawArrays` ran off the end of the
+buffer. The atlas has been asking for vertices that do not exist since the day
+it learned to show you what you cannot reach.
+
+**And an over-read is not portably an error, which is the transferable part.**
+The two ANGLE backends disagree about what to do with it:
+
+| backend | behaviour on the overrun | what you see |
+|---|---|---|
+| D3D11 (Windows) | robust buffer access: reads past the end return zero | the model, plus some degenerate triangles collapsed at the origin that nobody would notice |
+| Metal (macOS) | the bounds check rejects the call | nothing at all — the *whole* draw is dropped, not the overrun |
+
+*The D3D11 half of that table is not measured here.* It is the documented
+behaviour of the backend and it is consistent with the report — the page was
+being used on Windows daily — but this session had no Windows machine to run it
+on, and the standard of this document is that a number nobody took says so.
+
+**The fix is one character**, `/ 8` to `/ 9`. The interesting part is that
+nothing in the repository could have caught it:
+
+- **`npm test`** never executes the page. 177 assertions, none of which knew
+  the atlas had a vertex buffer.
+- **`pagecheck.html`** — built two commits earlier, precisely because *"nothing
+  tested them"* — asserts the pages boot, the panel fills, the keys do
+  something, and **nothing threw**. Nothing threw. A rejected draw call is a
+  console warning and a healthy return value.
+- **And it would have passed on Windows anyway**, which is the harder problem.
+  A gate that runs on one backend cannot see a defect the backend is papering
+  over. The page was *already broken* on every machine that ran Metal on Aug 7;
+  no amount of testing on the development machine would have said so.
+
+**Closed by arithmetic in Node, not by an eye on a canvas.** Two assertions now
+hold the three numbers together — the divisor must equal the push arity and
+`STRIDE` must be four times it, and every attribute's `offset + size` must land
+inside the stride. Both were checked the only way a regression guard is worth
+anything: the bug was put back, and both were watched to fail. 179 pass.
+
+**What is still open, and it is not this bug.** The gates cannot see GL errors
+and run on one backend. A `pagecheck` that fails on a non-empty
+`getError()` — and a run of it on more than one GPU before a release — is what
+would make this class of defect findable at home. Filed rather than fixed here,
+because the fix above is a character and that is a piece of infrastructure.
+
+**The provenance line earned its keep.** §2e8b002 added `core X · atlas Y` to
+the legend on the argument that *"a bug report needs both: 'the stairs look
+wrong' is a different report depending on whether the stairs moved or the light
+did."* The first report to arrive from another machine was answered by reading
+that line off a screenshot. The atlas is **0.3.1**.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every
