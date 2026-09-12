@@ -875,6 +875,20 @@ that knew it was being scored: a ceiling, not a typical case.
 > reason the version is stamped on it at all. The distribution below should be
 > taken under 0.6.0 and will supersede it.
 
+**The baselines were re-taken under 0.6.0 on 12 September**, so the model row
+has something current to be compared against — `node core/harness.mjs`, 120
+episodes per policy, budget 70, 8 citations attempted:
+
+| policy | integrity | claims | verified | refused |
+|---|---|---|---|---|
+| honest | **1.000** | 888 | 888 | 14 |
+| fabricator:3 | **0.625** | 888 | 555 | 14 |
+| random | — | 0 | 0 | 100 |
+| adversary | **0.000** | 1,167 | 0 | 4,649 |
+
+2,943 claims checked against the corpus, 17,504,000 symbols read, and no key or
+install needed for any of it. **The model row is the only missing one.**
+
 **Still open, and now cheap:**
 - **A distribution.** `node core/run-model.mjs --n 20 --baselines` puts a model
   row beside `honest` / `fabricator:3` / `adversary` on identical start points.
@@ -885,9 +899,15 @@ that knew it was being scored: a ceiling, not a typical case.
   before claiming. The number above is what happens when it does not. The
   difference between the two is the value of the discipline, and nobody has
   measured it.
-- **Weaker readers.** `--model claude-sonnet-5` and `claude-haiku-4-5` on the
-  same routes is where a spread would first show up. 1.000 from one reader
-  says the oracle works; it does not say the task is hard.
+- **Weaker readers.** `--model claude-sonnet-5` and
+  `--model claude-haiku-4-5-20251001` on the same routes is where a spread
+  would first show up. 1.000 from one reader says the oracle works; it does not
+  say the task is hard.
+
+  *(The id here read `claude-haiku-4-5` until 12 September. `policy-model.mjs`
+  passes `--model` straight to the SDK with no aliasing, so that command would
+  have been rejected by the API — a documented command that cannot run is worse
+  than no command.)*
 
 **The four refusals are the finding nobody predicted.** In 36 steps the reader
 named a wall with no doorway four times — the `adversary` path, walked into by
