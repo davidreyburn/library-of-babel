@@ -114,7 +114,7 @@ import { CORE_VERSION, G, DIRS, DIRW, TYPE, GAP, GAP_NAME, CELL_TYPE_NAME,
 
 /* A day old, and it says so. The atlas moves on its own line from the
    renderer: they draw the same Library and share nothing else. */
-const ATLAS_VERSION = "0.3.1";
+const ATLAS_VERSION = "0.3.2";
 
 /* Anything thrown after this line is kept rather than lost to the console.
    A page can be badly broken and still look like it is running: a
@@ -728,8 +728,26 @@ function renderCell(){
 /* A handle on the tool itself. Picking is arithmetic that can be wrong in
    ways a screenshot cannot show -- a ray a few degrees off still lands on
    SOMETHING -- so it is measurable from the console rather than inspected
-   by eye. Same reason the prototype publishes __linkMs. */
-window.__atlas = { pickAt, solidAt, slice, st, lostAt, REACH };
+   by eye. Same reason the prototype publishes __linkMs.
+
+   `gl` and `frame` are here for pagecheck, which reads getError() off the
+   one after driving the other. This page is where 21 happened: the draw was
+   rejected on Metal and accepted on D3D11, and the only difference visible
+   from outside was that the canvas was empty. Nothing outside this file
+   could reach the error queue at all, so the gate could not ask.
+
+   It is worth being exact about what asking buys, because bug log 21a
+   measured it: on a driver that accepts the over-read the queue is empty AND
+   the canvas looks correct, so this handle catches 21 on Metal and on
+   nothing else. It is the second backend that catches 21, not the export.
+   The export is what lets the second backend say so.
+
+   `frame` has to be exposed as well as `gl`, or the gate is vacuous: the
+   draw runs under rAF, the handle below is published before the first one,
+   and an error queue read before any drawArrays is empty on every backend
+   there is. Driving the frame is what makes the read mean something --
+   the same reason the prototype publishes its own. */
+window.__atlas = { pickAt, solidAt, slice, st, lostAt, REACH, gl, frame };
 
 /* ---- input ---------------------------------------------------------- */
 let drag = null;

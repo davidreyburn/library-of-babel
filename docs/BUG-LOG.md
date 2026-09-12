@@ -1771,6 +1771,50 @@ wrong' is a different report depending on whether the stairs moved or the light
 did."* The first report to arrive from another machine was answered by reading
 that line off a screenshot. The atlas is **0.3.1**.
 
+#### 21a. The gate for it, and the measurement that killed the easy version
+
+*12 September. The gate the roadmap had been asking for since this entry
+closed, plus a result that was not expected and is the reason the gate is
+shaped the way it is.*
+
+`pagecheck` now reads `gl.getError()` off both pages and fails on a non-empty
+queue, and it names the backend it ran on. `__atlas` publishes `gl` and `frame`
+so it can; `frame` had to be published as well, because the atlas draws under
+rAF and the handle is exported before the first one, so an error queue read on
+boot is empty on every backend there is. **The first version of this gate was
+vacuous for that reason and passed.**
+
+**The check that seemed obvious was measured and it does not work.** Blank was
+the symptom, so a read of the centre of the canvas ought to catch this class on
+any machine — including, unlike the error queue, the one that wrote the bug.
+The vertex count was put back to `verts.length / 8` and both pages run under
+two backends:
+
+| | `getError()` | pixels at the centre | verdict |
+|---|---|---|---|
+| ANGLE Metal (Apple M4) | `INVALID_OPERATION` | 1 colour, the sky | **2 of 29 fail** |
+| ANGLE SwiftShader (Vulkan) | `NO_ERROR` | 9 colours | **29 of 29 pass** |
+
+SwiftShader is the D3D11 case. It serves the over-read as zeroes, which adds
+degenerate triangles at the origin and leaves the rest of the lattice looking
+**entirely correct** — so the page is not blank, it is right, and every
+assertion agrees. There is no reading of one machine that catches this.
+
+**The conclusion is the one this entry started with, now with a number under
+it: the second backend is not redundancy, it is the mechanism.** Everything
+else is an assertion about what one driver happened to do.
+
+The pixel read was kept anyway, because it is not the same check: it catches a
+page that draws nothing *without* erroring — a cleared buffer, a camera inside
+rock, an empty vertex array — which is the other way this page has been blank
+and which no `getError()` will report.
+
+**A note on this machine, against §20.** The prototype links its fragment
+shader in ~19 ms here on a cold profile, against the ~89 s §20 measured on the
+development GPU, and SwiftShader is no slower. That is a big enough gap to be
+a different question rather than an answer to §20's, and it is not touched
+here. The number in §20 stands as a number about that GPU.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every

@@ -18,16 +18,31 @@
 <h1>Page check</h1>
 <p class="sub">Opens <b>app/babel-phase1.html</b> and <b>app/babel-atlas.html</b> for
 real, in frames, and asserts they work &mdash; that they boot, that the panels fill,
-that the keys do something, and that neither threw on the way. <b>Nothing in
+that the keys do something, that neither threw on the way, and that
+<b>neither had a draw call rejected</b>. <b>Nothing in
 <span class="dim">npm test</span> executes either page.</b> Every browser-side defect
 this project has had was found by a person looking at it: a
 <span class="dim">ReferenceError</span> that blanked the room sentence while 176
 assertions passed, a completion poll that stalled forever in a background tab, an
 atlas drawing every reading room as a gallery. This is the gate for that class.
 Like <b>core/conformance.html</b>, it is run by opening it.</p>
+<p class="sub">&sect;21 is the reason for the last of those, and for the backend
+line at the top. An over-read of a vertex buffer is an error on Metal and a shrug
+on D3D11, so the atlas was blank on every Mac for four days while looking perfect
+on the machine that wrote it &mdash; and it boots, fills its panel and answers its
+keys the whole time it is blank. <b>Reading
+<span class="dim">getError()</span> is only half of that gate.</b> On the machine
+that wrote the bug the queue is empty and this page passes. The other half is
+running it again under a second backend, which is why every result here says which
+one it was: <span class="dim">--use-angle=metal</span> and
+<span class="dim">--use-angle=swiftshader</span>, each with its own
+<span class="dim">--user-data-dir</span>. (<span class="dim">gl</span> is not a
+third option on Apple silicon &mdash; it yields no WebGL2 context at all, and this
+page fails loudly rather than skipping, which is right.)</p>
 <p class="sub dim">The first load on a machine links the prototype's shader, which
-takes about a minute and a half; after that it is seconds. Both frames stay on
-screen so a failure can be looked at as well as read.</p>
+takes about a minute and a half; a second backend links it cold again. Both frames
+stay on screen so a failure can be looked at as well as read &mdash; and because a
+frame that is off screen gets no rAF, which is most of what is being checked.</p>
 
 <div id="out">running&hellip;</div>
 <iframe id="proto"></iframe>
@@ -64,6 +79,103 @@ function ready(frame, url, handle, timeoutMs){
 }
 const keydown = (w, code, key = "x") =>
   w.dispatchEvent(new w.KeyboardEvent("keydown", { code, key, bubbles: true }));
+
+/* ---- the GL error queue --------------------------------------------- *
+ * 21 is why this file reads getError() at all. An over-read of a vertex
+ * buffer is an error on Metal and a shrug on D3D11, so the atlas was blank
+ * on every Mac for four days and perfect on the machine that wrote it. No
+ * assertion above can see that: the page boots, the panel fills, the keys
+ * work, nothing throws. A rejected draw call is none of those things -- it
+ * is a flag in a queue that nobody was reading.
+ *
+ * The queue keeps the earliest error until something reads it, so one drain
+ * after the first frame covers every call since the context was created.
+ * That is the whole reason this is cheap: no instrumentation, no wrapper,
+ * one read at the end.
+ *
+ * And it is still not sufficient. On D3D11 that queue is empty and this
+ * check passes on the bug. Reading it is half the gate; the other half is
+ * running this page on a second backend, which is what BACKEND below exists
+ * to make a fact rather than a memory. */
+const GL_ERRORS = new Map([
+  [0x0500, "INVALID_ENUM"], [0x0501, "INVALID_VALUE"],
+  [0x0502, "INVALID_OPERATION"], [0x0505, "OUT_OF_MEMORY"],
+  [0x0506, "INVALID_FRAMEBUFFER_OPERATION"], [0x9242, "CONTEXT_LOST_WEBGL"],
+]);
+function drainGL(gl){
+  const seen = [];
+  /* Bounded: a lost context returns CONTEXT_LOST_WEBGL forever rather than
+     clearing, so an unbounded drain would hang the gate on the one failure
+     it most needs to report. */
+  for (let i = 0; i < 32; i++){
+    const e = gl.getError();
+    if (e === gl.NO_ERROR) break;
+    seen.push(GL_ERRORS.get(e) || `0x${e.toString(16)}`);
+    if (e === 0x9242) break;
+  }
+  return seen;
+}
+
+/* ---- and whether anything was actually drawn ------------------------ *
+ * This check was added believing it was the backend-independent half of the
+ * gate -- that blank is 21's symptom, so reading the pixels would catch 21
+ * anywhere, including on the machine that wrote it. **That was measured and
+ * it is false.** With the vertex count put back to 21's value, SwiftShader
+ * reports NO_ERROR and still draws nine distinct colours at the centre: it
+ * serves the over-read as zeroes, which adds degenerate triangles at the
+ * origin and leaves the rest of the lattice looking entirely correct. 29 of
+ * 29 green on a page carrying the bug.
+ *
+ * So there is no assertion here, and there may be none available, that
+ * catches this class from one machine. On Metal both this check and the
+ * error queue fail; on a permissive driver neither does, and the page looks
+ * right besides. **The second backend is not redundancy, it is the whole
+ * mechanism** -- which is what `Where it stands` in the roadmap said before
+ * anyone had measured it.
+ *
+ * This check stays because it is not the same check as the queue above: it
+ * catches a page that draws nothing without erroring -- a cleared buffer, a
+ * camera facing rock, an empty vertex array -- which is the other way this
+ * page has been blank, and which no getError() will ever report.
+ *
+ * Neither context asks for preserveDrawingBuffer, so the drawing buffer is
+ * cleared once the compositor has taken it. The read has to happen in the
+ * same task as the draw, which is why each caller drives a frame and reads
+ * immediately rather than reusing an earlier one.
+ *
+ * The test is "more than one colour in a patch at the centre", not a
+ * checksum. A render this gate pins to an exact image is a gate that fails
+ * every time the lighting is touched, and this project changes the lighting
+ * constantly. One colour means nothing was drawn; sixteen means something
+ * was. */
+function drawnColours(gl, cv, w = 16, h = 4){
+  const x = Math.max(0, Math.floor(cv.width / 2) - w / 2);
+  const y = Math.max(0, Math.floor(cv.height / 2) - h / 2);
+  const px = new Uint8Array(4 * w * h);
+  gl.readPixels(x, y, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const uniq = new Set();
+  for (let i = 0; i < px.length; i += 4) uniq.add(`${px[i]},${px[i+1]},${px[i+2]}`);
+  return uniq;
+}
+
+/* The backend, by name. WEBGL_debug_renderer_info is what distinguishes
+   "ANGLE (Apple, ANGLE Metal Renderer...)" from "ANGLE (..., Direct3D11...)",
+   and a run that does not say which one it was is not evidence of anything.
+   Read from a throwaway context here rather than from a page, so it is known
+   before the first page has finished linking its shader. */
+function backendOf(gl){
+  if (!gl) return "no WebGL2 context";
+  const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+  return (dbg && gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL))
+      || gl.getParameter(gl.RENDERER) || "unnamed";
+}
+const BACKEND = backendOf(
+  document.createElement("canvas").getContext("webgl2", { antialias: false }));
+
+section("THE BACKEND -- half this gate is which machine it ran on");
+line(`  ${BACKEND}`, "dim");
+line("  A green run here is evidence for this backend and no other. \u00a721 was", "dim");
+line("  green on D3D11 for four days while blank on Metal.", "dim");
 
 /* ---- the prototype -------------------------------------------------- */
 section("THE PROTOTYPE -- it has to start, and say where it is");
@@ -118,6 +230,24 @@ section("THE PROTOTYPE -- it has to start, and say where it is");
 
     ok("the render scale is a real number", st.div >= 1 && st.div <= 4, `1:${st.div}`);
     ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
+
+    /* Drive a frame and read it in the same breath -- see drawnColours. An
+       empty canvas here is 21's symptom, and unlike the error queue below it
+       reads the same on every backend. */
+    w.__render.frame(performance.now());
+    const seen = drawnColours(w.__render.gl, w.__render.cv);
+    ok("the canvas has something on it", seen.size > 1,
+       `${seen.size} colours at the centre` +
+       (seen.size > 1 ? "" : ` -- all ${[...seen][0]}`));
+
+    /* and nothing was rejected, which is a different question. Drained after
+       the driven frame, so it covers the link, every buffer upload and the
+       draw itself. */
+    const errs = drainGL(w.__render.gl);
+    ok("and the GL error queue is empty", errs.length === 0,
+       errs.join(", ") || "NO_ERROR");
+    ok("and it is drawing on the backend named above",
+       backendOf(w.__render.gl) === BACKEND, backendOf(w.__render.gl));
   }
 }
 
@@ -151,8 +281,42 @@ section("THE ATLAS -- it has to draw the lattice, and answer about it");
     ok("reachability was computed and is not everything", A.REACH.size > 100,
        A.REACH.size + " rooms reachable from the centre");
     ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
+
+    /* This is the page 21 was on, and this is the assertion that would have
+       caught it -- on a Metal machine. Drive a frame first, exactly as the
+       prototype does: the atlas draws under rAF, __atlas is published before
+       the first one, and an error queue read before any drawArrays is empty
+       on every backend there is. Reading it after a draw we caused ourselves
+       is the difference between a gate and a decoration. */
+    A.frame(performance.now());
+    const seen = drawnColours(A.gl, A.gl.canvas);
+    ok("the lattice is on the canvas", seen.size > 1,
+       `${seen.size} colours at the centre` +
+       (seen.size > 1 ? "" : ` -- all ${[...seen][0]}, which is what 21 looked` +
+                             ` like on Metal and did not look like anywhere else`));
+
+    const errs = drainGL(A.gl);
+    ok("and the GL error queue is empty", errs.length === 0,
+       errs.join(", ") || "NO_ERROR");
+    ok("and it is drawing on the backend named above",
+       backendOf(A.gl) === BACKEND, backendOf(A.gl));
   }
 }
 
 line(`\n${pass} passed, ${fail} failed`, fail ? "bad" : "ok");
+line(`on ${BACKEND}`, fail ? "bad" : "ok");
+/* &lt; and &gt; spelled out: line() writes HTML, so the flag's angle brackets
+   read as a tag and the whole value disappears -- which it did, the first
+   time this ran. A gate that cannot print its own instructions is a small
+   joke at the expense of a page about draw calls that vanish silently. */
+line("One backend is one backend. Run this again under a second one before a\n" +
+     "release -- Chrome takes --use-angle=&lt;metal|gl|swiftshader&gt;, with its\n" +
+     "own --user-data-dir so the flag takes and the shader cache is cold.", "dim");
+
+/* Readable from the console and from a capture harness, the way
+   conformance.html publishes __conformance. A result that cannot be read
+   back mechanically has to be transcribed by hand, and a hand-transcribed
+   result is a claim. */
+window.__pagecheck = { pass, fail, backend: BACKEND, core: CORE_VERSION,
+                       when: new Date().toISOString() };
 </script>

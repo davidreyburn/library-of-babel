@@ -28,16 +28,18 @@ vertex buffer is an error on Metal and a shrug on D3D11. `pagecheck` does not
 read `getError()`, so a rejected draw call is invisible to it; and even reading
 it would have passed on the machine that wrote the bug. A page gate that fails
 on a non-empty `getError()`, run on more than one backend before a release, is
-the missing piece. Nothing else in this document is portability work, which is
-itself the reason it went unnoticed.
+the missing piece — it is [R1](#r1-the-page-gate-reads-geterror-on-two-backends)
+and it is the last thing between here and a release. Nothing else in this
+document is portability work, which is itself the reason it went unnoticed.
 
-Green: **179 core assertions**, **57 gates**, **23 in the browser**, 500 GPU
-integers, build current
+Green: **179 core assertions**, **57 gates**, **29 in the browser on two named
+backends**, 500 GPU integers, build current
 against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
 
-Nothing in the specification is specified-and-unbuilt. What follows is defects,
-unmeasured costs, and reach.
+Nothing in the specification is specified-and-unbuilt. What follows is, first,
+the short list that stands between this and a tagged release — and after it the
+defects, unmeasured costs and reach that do not.
 
 **The Library gained a map.** [`app/babel-atlas.html`](app/babel-atlas.html)
 draws the cluster around a cell — 6 cells in every direction and 6 storeys
@@ -92,6 +94,160 @@ frontier where that number is still zero.
 
 ---
 
+## Release
+
+**Everything under this heading is finishing, not building.** This is not an
+abandoned idea, it is a finished thing that never shipped, and the two have
+completely different costs. 63 commits between 2 and 6 August, one on the 11th,
+then nothing. 41,762 lines across 39 files; a technical specification, a design
+specification, a headless-twin spec, a bug log, a case study and this document;
+running from a clean clone on Node 18 with no dependencies — and no version tag,
+so it reads as in progress whatever the code says.
+
+**These five come before every item under Open, and nothing under Open is a
+release blocker.** The pattern this project keeps hitting is that a burst of new
+work replaces the small unglamorous finishing task. R1 is the only one of the
+five that is engineering. R5 is the only one that cannot be done here.
+
+### R1. The page gate reads `getError()`, on two backends — **done, and the obvious version of it did not work**
+
+This is the item [Where it stands](#where-it-stands) has been naming without a
+number since §21 closed. `pagecheck` asserts the pages boot, that the panels
+fill, that the keys do something and that nothing threw — and **a rejected draw
+call is none of those things.** §21 was whole on Windows and blank on a Mac from
+the same commit, because an over-read of a vertex buffer is an error on Metal
+and a shrug on D3D11. `gl.getError()` would have held `INVALID_OPERATION` on
+every Metal machine since 7 August and nothing was reading it.
+
+**Reading it is not sufficient on its own** — on the machine that wrote the bug
+the queue is empty, and the check would have passed. The gate is the pair: read
+the error queue, *and* run the page on more than one backend before a release.
+The second half is what §21 actually cost, and it is cheap now that ANGLE makes
+a second backend a command-line flag rather than a second machine.
+
+**Lever:** after driving the frame, drain `gl.getError()` until `NO_ERROR` and
+fail on anything in it — the queue holds the earliest error until read, so one
+drain after the first frame covers everything since the context was created.
+`__render` already publishes `gl`; `__atlas` publishes
+`{ pickAt, solidAt, slice, st, lostAt, REACH }` and does not, which is a
+one-line change. Record `UNMASKED_RENDERER_WEBGL` in the output so the report
+says which backend it ran on — R2 depends on that string existing.
+
+**The second backend, on this machine:** Chrome takes `--use-angle=`, so
+`metal` (the default on macOS) and `swiftshader` are the same binary run twice,
+each with its own `--user-data-dir` so the flag takes. SwiftShader was expected
+to be the strict one and the slow one and is neither: it is the *permissive*
+one, which is what made it the useful second backend rather than a formality.
+
+**Done, 12 September.** `pagecheck` drains the error queue on both pages and
+fails on anything in it, names its backend, and publishes `__pagecheck` so the
+result can be read back rather than transcribed. **29 assertions, green on
+ANGLE Metal (Apple M4) and ANGLE SwiftShader (Vulkan).** `__atlas` publishes
+`gl` and `frame`; `frame` is not optional — the atlas draws under rAF and
+exports its handle before the first one, so the first version of this gate read
+an empty queue on boot and passed on everything.
+
+**And the measurement that shaped it, in bug log 21a.** The obvious companion
+check — read the pixels, because blank was the symptom — was added on the
+argument that it would catch this class on *any* machine, including the one
+that wrote the bug. Put §21 back and run both backends:
+
+| | `getError()` | pixels | verdict |
+|---|---|---|---|
+| ANGLE Metal | `INVALID_OPERATION` | 1 colour | **2 of 29 fail** |
+| ANGLE SwiftShader | `NO_ERROR` | 9 colours | **29 of 29 pass** |
+
+SwiftShader is the D3D11 case: it serves the over-read as zeroes, which adds
+degenerate triangles at the origin and leaves the lattice **looking entirely
+correct**. Not blank — right. **So the second backend is not redundancy, it is
+the mechanism**, which is what this document claimed before anyone had a number
+for it. The pixel check stays because it catches a different thing: a page that
+draws nothing without erroring, which no `getError()` reports.
+
+**`--use-angle=gl` is not available here** — it yields no WebGL2 context at all
+on Apple silicon, and the gate fails loudly rather than skipping, which is
+correct. `metal` and `swiftshader` are the pair on this machine.
+
+### R2. The conformance harness is visible without running it
+
+`core/conformance.html` proves the GPU and the CPU agree about the lattice: 500
+integers, four lanes a cell, through an `RGBA32UI` framebuffer so they are the
+integers themselves and not pixels inspected by eye. **That is a machine
+checking another machine's work, and right now it exists only as a file someone
+would have to serve and open.** A reader who will not clone the repository
+cannot see the one artifact here that is hardest to fake.
+
+**Lever:** capture the rendered output as something that opens with no build and
+no server — a committed self-contained HTML page, and a screenshot for the
+README. The page already ends by writing `window.__conformance`; the missing
+half is the provenance, which is the backend string from R1, the date, and
+`CORE_VERSION`. A report that does not say what it ran on is a claim, not
+evidence.
+
+**Done when:** the output is committed, it names the backend, the date and the
+core version, it renders from a `file://` open, and the README links it above
+the fold.
+
+### R3. The README's first screen says what this is
+
+It currently opens on `29^1,312,000`, which is the corpus size, before it has
+established what the thing is or why anybody should care. **A reader who does
+not already know the Borges story bounces on line three.** The three-command
+quickstart is the best thing on the page and it is below two paragraphs of
+arithmetic.
+
+**Lever:** lead with what it is and what is unusual about it, keep the
+quickstart where a skimmer meets it early, move the arithmetic below. Link R2's
+report from the first screen.
+
+**Note, and it is not a style quibble:** the README carries 21 em dashes and is
+agent-written throughout, so it is **inadmissible as voice evidence**. It is a
+repo document and it can stay agent-written. If any of it is ever lifted onto a
+site it gets rewritten first, and the site copy comes from the content plan
+rather than from here.
+
+**Done when:** the first screen answers *what is this* before it answers *how
+big is it*, and the quickstart still works verbatim from a clean clone.
+
+### R4. Tag a release
+
+There is no tag. A repository with a dated release and notes reads as shipped;
+one without reads as in progress.
+
+**The number is `v0.6.0`, decided 12 September.** `package.json` and
+`CORE_VERSION` both already say 0.6.0, and `CORE_VERSION` is stamped on
+transcripts because [item 5](#5-rung-6-with-a-real-policy--first-number-taken-distribution-still-open)
+depends on a run replaying only against its own lattice. A `v0.1` tag over a
+0.6.0 core would put two numbers on one repository that mean different things
+and look like they mean the same thing. One number, and the notes carry the
+"first tagged release" that `v0.1` was being asked to signal.
+
+**Done when:** an annotated tag exists with dated notes that say what is in it,
+what the known open defects are (1b's seam, 1d, 2, 4) and what the gates were
+green on — and R1's two backends are named in it.
+
+### R5. What it is called — **decided: an agent benchmark**
+
+The repository described three things at once: a game, a literary tribute, and
+**an agent benchmark**. All three are true, and a thing that is three things is
+none of them to a reader giving it forty seconds.
+
+**It leads as a citation environment: a world an agent can be tested against.**
+Every room, shelf and symbol is a pure function of its address, so a claim about
+it is true or false as arithmetic and there is no judge model in the loop. The
+game is how you look at it and the Borges story is where the requirements came
+from; neither is the headline.
+
+**That framing is why R1 and R2 are the two engineering items on this list**, and
+not, say, the frame-time work. `conformance.html` is a machine checking another
+machine's work and `pagecheck` is the gate that says the page a reader is shown
+is the page that was checked. Under this framing they are the product, not the
+scaffolding.
+
+**Done when:** R3's opening is written to it. The wording for anywhere outside
+this repository comes from the content plan, not from the README.
+
+---
 ## Open
 
 ### 1b. A doorway into a stairwell that arrives nowhere — **closed, and the diagnosis was wrong**
@@ -727,3 +883,8 @@ Library itself does not.*
 *Every defect here has an entry in [`docs/BUG-LOG.md`](docs/BUG-LOG.md) carrying
 what has already been ruled out and with what measurement. Start there, or the
 first two theories will be ones that have already died.*
+
+*And none of them is a release blocker. R1 through R4 are an afternoon; R5 is a
+decision. If work on this repository resumes and the first thing it touches is
+an item on the Open list, that is the failure mode this section was written to
+name.*
