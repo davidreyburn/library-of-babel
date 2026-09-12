@@ -109,6 +109,9 @@ release blocker.** The pattern this project keeps hitting is that a burst of new
 work replaces the small unglamorous finishing task. R1 is the only one of the
 five that is engineering. R5 is the only one that cannot be done here.
 
+**All five are closed as of 12 September, and none of them started a new
+feature.** What is left is one `git push origin v0.6.0`, which is David's.
+
 ### R1. The page gate reads `getError()`, on two backends — **done, and the obvious version of it did not work**
 
 This is the item [Where it stands](#where-it-stands) has been naming without a
@@ -228,7 +231,7 @@ the bug log was described as sixteen defects when it holds twenty-one. Wrong
 counts in a README are the same failure as an absent tag: they read as a project
 that stopped being maintained.
 
-### R4. Tag a release
+### R4. Tag a release — **done, local; not pushed**
 
 There is no tag. A repository with a dated release and notes reads as shipped;
 one without reads as in progress.
@@ -241,9 +244,18 @@ depends on a run replaying only against its own lattice. A `v0.1` tag over a
 and look like they mean the same thing. One number, and the notes carry the
 "first tagged release" that `v0.1` was being asked to signal.
 
-**Done when:** an annotated tag exists with dated notes that say what is in it,
-what the known open defects are (1b's seam, 1d, 2, 4) and what the gates were
-green on — and R1's two backends are named in it.
+**Done, 12 September.** An annotated `v0.6.0` exists with dated notes: what is
+in it, the four known-live defects by number, and the four gate counts with the
+two backends they were green on. **It has not been pushed** — that is outward
+facing and it is David's to make public.
+
+```sh
+git push origin v0.6.0
+```
+
+The release notes carry the 21a finding rather than just the green ticks,
+because "run on two backends" reads as thoroughness until you know it is the
+only thing that works.
 
 ### R5. What it is called — **decided: an agent benchmark**
 
