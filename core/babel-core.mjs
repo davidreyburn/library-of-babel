@@ -453,15 +453,35 @@ const SHELF_PITCH = G.SHELF_P, SHELF_BASE = G.SHELF_BASE;
    hand-written mirror -- the very thing the rest of core/ exists to abolish.
    Extract it the next time mapAt is opened. Until then the statistical test
    in test-core.mjs is the only guard, and it would only catch gross drift. */
-function volumeHash(q, r, wall, shelf, slot){
-  return (uhash(u32(cellKey(q, r) ^
-          u32(wall * 7919 + slot * 31 + shelf * 104729))) & 0xFFFF) / 65536;
+/* ---- what stands on a shelf ---------------------------------------- *
+ * These four were the last hand-written mirror in the system. The same
+ * arithmetic lived here and, separately typed, inside the shader's
+ * shelving loop; the only thing holding them together was a statistical
+ * test (3.52% empty over 1.8 million slots), which would catch a broken
+ * twin and not a subtly different one -- and a subtly different one is
+ * what the GLSL/JS split produced twice before (§17.10). The GLSL is now
+ * generated from core/babel-glsl.mjs and checked slot by slot on the GPU
+ * by core/conformance.html. Roadmap item 7.
+ *
+ * One 32-bit hash carries every fact about a slot: the low half decides
+ * presence and depth, the high half is the spine's tint. The tint had no
+ * twin here at all before this -- the shader read bits 16-31 for a colour
+ * the core did not know existed, so nothing could have checked it. */
+function volumeBits(q, r, wall, shelf, slot){
+  return u32(uhash(u32(cellKey(q, r) ^
+             u32(wall * 7919 + slot * 31 + shelf * 104729))));
 }
+const volumeHash = (q, r, wall, shelf, slot) =>
+  (volumeBits(q, r, wall, shelf, slot) & 0xFFFF) / 65536;
+/* D-42: the Purifiers emptied 3.5% of the slots */
 const volumePresent = (q, r, wall, shelf, slot) => volumeHash(q, r, wall, shelf, slot) >= 0.035;
 /* How far the spine stands out of the case. Needed to aim at it: the front
    face is what you see and what the reticule must hit. */
 const volumeDepth = (q, r, wall, shelf, slot) =>
   G.BOOK_D * (0.80 + 0.20 * volumeHash(q, r, wall, shelf, slot));
+/* The spine's colour, which until now only the shader knew about. */
+const volumeTint = (q, r, wall, shelf, slot) =>
+  ((volumeBits(q, r, wall, shelf, slot) >>> 16) & 0xFFFF) / 65536;
 function galleryCapacity(q, r, fl){
   return shelvedWalls(q, r, fl).length * SHELVES_PER_WALL * BOOKS_PER_SHELF;
 }
@@ -937,7 +957,8 @@ export {
   stepHash, throughStairwell, stairCrossable, walkStep, wander, findSeat, findMirror,
   studyPieces, seatsIn,
   SHELVES_PER_WALL, BOOKS_PER_SHELF, CELL_TYPE_NAME, GAP_NAME,
-  SHELF_PITCH, SHELF_BASE, volumeHash, volumePresent, volumeDepth,
+  SHELF_PITCH, SHELF_BASE, volumeBits, volumeHash, volumePresent, volumeDepth,
+  volumeTint,
   /* hash + topology: the surface that MUST agree with the GLSL */
   u32, uhash, cellKey, cellType, roomAt, studyAt, edgeKey, gapAt, axisOf, riseOf, openGround,
   corridorAxis, axisEnd, corrKey, alcoveAt,

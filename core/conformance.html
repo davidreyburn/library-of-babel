@@ -23,8 +23,9 @@ inspected by eye.</p>
 
 <script type="module">
 import { G, u32, cellKey, cellType, gapAt, axisOf, riseOf, edgeKey,
-         studyKey, studyKit, studyAnchor, cellDesc, TYPE, CORE_VERSION } from "./babel-core.mjs";
-import { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL } from "./babel-glsl.mjs";
+         studyKey, studyKit, studyAnchor, cellDesc, TYPE, CORE_VERSION,
+         volumeBits, volumeHash, volumePresent, volumeTint } from "./babel-core.mjs";
+import { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL, VOLUME_GLSL } from "./babel-glsl.mjs";
 
 const out = document.getElementById("out");
 const log = (s, cls = "") => out.insertAdjacentHTML("beforeend",
@@ -84,6 +85,49 @@ void main(){
   for (int i = 0; i < 6; i++) edges ^= edgeKey(c, i, fl);
 
   result = uvec4(cellKey(c), g, edges, uint(cellDesc(c, fl)));
+}`;
+
+/* ---- pass two: what stands on a shelf ------------------------------- *
+ * Roadmap item 7. `volumePresent` was the last hand-written twin in the
+ * system -- the same arithmetic typed out separately here and in the
+ * shader, guarded only by a statistical test (3.52% empty over 1.8 million
+ * slots) that would catch a broken mirror and not a subtly different one.
+ * It is generated from core/babel-glsl.mjs now, and this is the check that
+ * it is the same function on both sides.
+ *
+ * Lane 0 is the RAW 32-bit hash, not a derived float, because a hash that
+ * is off by one bit is the whole failure mode. Lanes 1 and 3 are the two
+ * halves of it as floats, compared through floatBitsToUint -- both are
+ * integer/65536 and therefore exact in float32, so they can be demanded
+ * bit-identical rather than approximately equal. Depth is deliberately NOT
+ * here: it is BOOK_D * (0.80 + 0.20*hh) in float32 on one side and in
+ * doubles on the other, so it can only ever agree to a tolerance, and a
+ * tolerance in a conformance harness is a place for drift to hide. It is a
+ * pure function of the hash, and the hash is checked exactly. */
+const FRAG_V = `#version 300 es
+precision highp float;
+precision highp int;
+out uvec4 result;
+
+const float R_CELL = ${G.R_CELL.toFixed(3)};
+const float SQ3    = 1.7320508;
+const float BOOK_D = ${G.BOOK_D.toFixed(2)};
+
+${TOPOLOGY_GLSL}
+${VOLUME_GLSL}
+
+/* q, r, wall, and shelf*64+slot -- a shelf is 0-4 and a slot 0-34, so they
+   share the fourth lane rather than spending a whole uniform array on 35. */
+uniform ivec4 uVols[VCOUNT];
+
+void main(){
+  ivec4 v = uVols[int(gl_FragCoord.x)];
+  int wall = v.z, shelf = v.w / 64, slot = v.w - (v.w / 64) * 64;
+  uint bits = volumeBits(cellKey(ivec2(v.x, v.y)), wall, shelf, slot);
+  float hh = volumeHash(bits);
+  result = uvec4(bits, floatBitsToUint(hh),
+                 volumePresent(hh) ? 1u : 0u,
+                 floatBitsToUint(volumeTint(bits)));
 }`;
 
 const VERT = `#version 300 es
@@ -173,20 +217,80 @@ void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
                    gpu: got[i*4+k], cpu: want[k] });
   });
 
+  /* ---- pass two ----------------------------------------------------- */
+  const vols = v.volumes ?? [];
+  let volBad = [];
+  if (vols.length){
+    const M = vols.length;
+    const progV = gl.createProgram();
+    gl.attachShader(progV, compile(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(progV, compile(gl.FRAGMENT_SHADER, FRAG_V.replace(/VCOUNT/g, String(M))));
+    gl.linkProgram(progV);
+    if (!gl.getProgramParameter(progV, gl.LINK_STATUS)){
+      log("volume pass link failed: " + gl.getProgramInfoLog(progV), "bad"); return;
+    }
+    gl.useProgram(progV);
+    const locV = gl.getAttribLocation(progV, "p");
+    gl.enableVertexAttribArray(locV);
+    gl.vertexAttribPointer(locV, 2, gl.FLOAT, false, 0, 0);
+    const flatV = new Int32Array(M * 4);
+    vols.forEach((o, i) => { flatV[i*4] = o.q; flatV[i*4+1] = o.r;
+                             flatV[i*4+2] = o.wall; flatV[i*4+3] = o.shelf * 64 + o.slot; });
+    gl.uniform4iv(gl.getUniformLocation(progV, "uVols"), flatV);
+
+    const texV = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texV);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32UI, M, 1, 0, gl.RGBA_INTEGER, gl.UNSIGNED_INT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texV, 0);
+    gl.viewport(0, 0, M, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const gotV = new Uint32Array(M * 4);
+    gl.readPixels(0, 0, M, 1, gl.RGBA_INTEGER, gl.UNSIGNED_INT, gotV);
+
+    /* the same bit pattern the shader returns, read off a float on this side */
+    const f32 = new Float32Array(1), u32v = new Uint32Array(f32.buffer);
+    const bitsOf = x => { f32[0] = x; return u32v[0]; };
+    const VLANES = ["volumeBits", "volumeHash", "volumePresent", "volumeTint"];
+    vols.forEach((o, i) => {
+      const want = [u32(volumeBits(o.q, o.r, o.wall, o.shelf, o.slot)),
+                    bitsOf(volumeHash(o.q, o.r, o.wall, o.shelf, o.slot)),
+                    volumePresent(o.q, o.r, o.wall, o.shelf, o.slot) ? 1 : 0,
+                    bitsOf(volumeTint(o.q, o.r, o.wall, o.shelf, o.slot))];
+      for (let k = 0; k < 4; k++)
+        if (gotV[i*4+k] !== want[k])
+          volBad.push({ cell: `${o.q},${o.r} wall ${o.wall} shelf ${o.shelf} slot ${o.slot}`,
+                        lane: VLANES[k], gpu: gotV[i*4+k], cpu: want[k] });
+    });
+  }
+
   log(`cells checked        <b>${N}</b>`);
   log(`lanes per cell       <b>4</b>  (${LANES.join(", ")})`);
   log(`integers compared    <b>${N * 4}</b>`);
+  log(`shelf slots checked  <b>${vols.length}</b>  (volumeBits, volumeHash, volumePresent, volumeTint)`);
+  log(`  of them empty      <b>${vols.filter(o => !o.present).length}</b>  -- the lane that would pass vacuously without one`);
+  log(`integers compared    <b>${vols.length * 4}</b>`);
   log("");
-  if (!bad.length){
-    log("GPU and CPU agree on every lane of every cell.", "ok");
-    log("The shader's lattice is the same lattice the agent walks.", "ok");
+  if (!bad.length && !volBad.length){
+    log("GPU and CPU agree on every lane of every cell, and on every slot.", "ok");
+    log("The shader's lattice is the same lattice the agent walks,", "ok");
+    log("and the shelf it draws holds the books the agent can cite.", "ok");
+  } else if (volBad.length){
+    log(`${volBad.length} volume mismatch(es) -- the shelf twins have drifted:`, "bad");
+    for (const b of volBad.slice(0, 40))
+      log(`  ${b.cell}  ${b.lane}  gpu ${b.gpu} != cpu ${b.cpu}`, "bad");
+    for (const b of bad.slice(0, 40))
+      log(`  ${b.cell}  ${b.lane}  gpu ${b.gpu} != cpu ${b.cpu}`, "bad");
   } else {
     log(`${bad.length} mismatch(es) -- the ports have drifted:`, "bad");
     for (const b of bad.slice(0, 40))
       log(`  ${b.cell}  ${b.lane}  gpu ${b.gpu} != cpu ${b.cpu}`, "bad");
   }
-  window.__conformance = { cells: N, compared: N * 4, mismatches: bad.length,
-                           bad: bad.slice(0, 40), backend: BACKEND,
+  window.__conformance = { cells: N, compared: N * 4 + vols.length * 4,
+                           slots: vols.length,
+                           mismatches: bad.length + volBad.length,
+                           bad: [...bad, ...volBad].slice(0, 40), backend: BACKEND,
                            core: CORE_VERSION, when: new Date().toISOString() };
 })().catch(e => { log("harness error: " + e.message, "bad");
                   window.__conformance = { error: e.message }; });

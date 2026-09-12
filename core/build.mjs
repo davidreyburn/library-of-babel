@@ -16,7 +16,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { stripModuleSyntax } from "./inline.mjs";
-import { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL } from "./babel-glsl.mjs";
+import { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL, VOLUME_GLSL } from "./babel-glsl.mjs";
 
 const HTML = new URL("../app/babel-phase1.html", import.meta.url);
 const check = process.argv.includes("--check");
@@ -42,7 +42,8 @@ const FRAG = new URL("../app/babel-frag.glsl", import.meta.url);
 const GLSL_REGIONS = [
   ["@glsl-topology", () => TOPOLOGY_GLSL.trim() + "\n"],
   ["@glsl-study",    () => STUDY_GLSL.trim() + "\n"],
-  ["@glsl-desc",     () => DESC_GLSL.trim() + "\n"]
+  ["@glsl-desc",     () => DESC_GLSL.trim() + "\n"],
+  ["@glsl-volume",   () => VOLUME_GLSL.trim() + "\n"]
 ];
 const HTML_REGIONS = [
   /* The prototype ships as one file, so the kit's palette is inlined rather

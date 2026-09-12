@@ -308,6 +308,24 @@ int studyAnchor(int desc, uint key){
   return best;
 }
 /* @glsl-study:end */
+
+/* Generated from core/babel-glsl.mjs -- what stands on a shelf. It must sit
+   above mapAt, which inlines the shelving loop, and below uhash, which the
+   topology block above defines. */
+/* @glsl-volume:begin */
+/* the whole per-slot hash, and the only place the mixing constants appear */
+uint volumeBits(uint ck, int wall, int shelf, int slot){
+  return uhash(ck ^ uint(wall * 7919 + slot * 31 + shelf * 104729));
+}
+/* 0..1, and the number every other volume fact is derived from */
+float volumeHash(uint bits){ return float(bits & 0xFFFFu) / 65536.0; }
+/* D-42: the Purifiers emptied 3.5% of the slots */
+bool  volumePresent(float hh){ return hh >= 0.035; }
+/* how far the spine stands out of the case -- the face is what you see */
+float volumeDepth(float hh){ return BOOK_D * (0.80 + 0.20 * hh); }
+/* and the high half, which only the renderer uses and both sides now hold */
+float volumeTint(uint bits){ return float((bits >> 16) & 0xFFFFu) / 65536.0; }
+/* @glsl-volume:end */
 float furniture(vec2 lp, float fy, uint key, int desc, float dBest){
   vec2 ax = dirW((desc >> 15) & 7);
   vec2 pv = vec2(-ax.y, ax.x);
@@ -737,11 +755,14 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     for (int bo = -1; bo <= 1; bo++){
     float bi = clamp(bi0 + float(bo), 0.0, 34.0);
     if (bo != 0 && bi == bi0) continue;         // clamped onto the centre slot
-    uint  bk = uhash(ck ^ uint(i*7919 + int(bi)*31 + int(shelfIdx)*104729));
-    float hh = float(bk & 0xFFFFu) / 65536.0;
-    float ch = float((bk >> 16) & 0xFFFFu) / 65536.0;
-    if (hh < 0.035) continue;                    // a gap the Purifiers left  D-42
-    float depth = BOOK_D * (0.80 + 0.20 * hh);
+    /* All four are generated from core/babel-glsl.mjs and checked against
+       the CPU slot by slot by core/conformance.html. They used to be typed
+       out here, which made them the last un-mirrored twin in the system. */
+    uint  bk = volumeBits(ck, i, int(shelfIdx), int(bi));
+    float hh = volumeHash(bk);
+    float ch = volumeTint(bk);
+    if (!volumePresent(hh)) continue;            // a gap the Purifiers left  D-42
+    float depth = volumeDepth(hh);
     float bc = -RUN_HALF + (bi + 0.5) * BOOK_W;
     float db = sdBox3(vec3(w.x - (APO_ROOM - depth*0.5), ys, w.y - bc),
                       vec3(depth*0.5, 0.145, BOOK_W*0.45));

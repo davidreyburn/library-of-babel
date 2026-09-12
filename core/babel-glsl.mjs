@@ -340,4 +340,33 @@ int cellDesc(ivec2 c, int fl){
 }
 `;
 
-export { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL };
+/* ---- the corpus on the shelf, ported once ---------------------------- *
+ * Which slots hold a volume, how far each spine stands proud, and what
+ * colour it is. This block exists because it was the LAST hand-written
+ * twin in the system: `volumePresent` lived in babel-core.mjs and the same
+ * arithmetic lived, separately typed, inside the shader's shelving loop.
+ * A statistical test guarded it -- 3.52% empty over 1.8 million slots --
+ * which would catch a broken mirror and not a subtly different one, and a
+ * subtly different one is exactly what the GLSL/JS split produced twice
+ * before (spec 17.10, bug log 4 and 12). Roadmap item 7.
+ *
+ * One 32-bit hash carries both facts: the low half decides presence and
+ * depth, the high half is the spine's tint. Splitting it is what made the
+ * two spellings drift-prone -- the shader took bits 16-31 for a colour the
+ * core did not know about at all, so the core could not have checked it.  */
+const VOLUME_GLSL = `
+/* the whole per-slot hash, and the only place the mixing constants appear */
+uint volumeBits(uint ck, int wall, int shelf, int slot){
+  return uhash(ck ^ uint(wall * 7919 + slot * 31 + shelf * 104729));
+}
+/* 0..1, and the number every other volume fact is derived from */
+float volumeHash(uint bits){ return float(bits & 0xFFFFu) / 65536.0; }
+/* D-42: the Purifiers emptied 3.5% of the slots */
+bool  volumePresent(float hh){ return hh >= 0.035; }
+/* how far the spine stands out of the case -- the face is what you see */
+float volumeDepth(float hh){ return BOOK_D * (0.80 + 0.20 * hh); }
+/* and the high half, which only the renderer uses and both sides now hold */
+float volumeTint(uint bits){ return float((bits >> 16) & 0xFFFFu) / 65536.0; }
+`;
+
+export { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL, VOLUME_GLSL };

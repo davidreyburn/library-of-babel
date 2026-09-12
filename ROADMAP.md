@@ -904,7 +904,7 @@ impossible inside an artifact frame, which is sandboxed without
 imitation rather than build on it.
 **Blocked on:** where this lives.
 
-### 7. The last hand-written mirror
+### 7. The last hand-written mirror — **closed**
 
 The hash deciding which slots the Purifiers emptied lives inside the shader's
 `mapAt`, too entangled with the SDF to extract as it stands, so
@@ -913,9 +913,31 @@ by a statistical test (3.52% empty over 1.8 million slots). That test would
 catch a broken mirror, not a subtly different one — and a subtly different one
 is exactly what the GLSL/JS split produced twice before (§17.10).
 
-**Lever:** extract it the next time `mapAt` is opened for any other reason.
-**Done when:** `volumePresent` is single-sourced and appears in
-`core/vectors.json`, so the GPU conformance harness covers it.
+**Closed 12 September, on exactly the trigger this item named** — `mapAt` was
+opened for item 4, and the shelving loop is where the twin lived.
+
+`core/babel-glsl.mjs` gains a `VOLUME_GLSL` block (`volumeBits`, `volumeHash`,
+`volumePresent`, `volumeDepth`, `volumeTint`), spliced into the shader at
+`@glsl-volume` like the other three generated regions. `core/vectors.json`
+carries **51 shelf slots**, and `core/conformance.html` compares four lanes each
+on the GPU: **500 integers → 704**.
+
+**The tint was worse than un-mirrored — it was unknown.** The shader read bits
+16–31 of the same hash for a spine's colour and the core did not know the field
+existed, so nothing could have checked it even in principle. It has a twin now.
+
+**And the first version of this check was vacuous**, which is recorded in
+[bug log §24](docs/BUG-LOG.md) because it rebuilt the very weakness this item
+was written about. It passed 700 of 700 on a shader whose threshold had been
+moved from `0.035` to `0.0351`: no sampled slot sat near the boundary, so
+nothing flipped. Fixed by pinning the two slots closest to the threshold from
+either side — 0.034988403 and 0.035003662. A deliberate drift now costs 1
+mismatch, named by slot; a one-digit change to a mixing constant costs 118.
+
+**What it does not claim:** "single-sourced" here means what it means elsewhere
+in this repository — the GLSL has one home and is checked against the JS. It is
+still two spellings. What changed is that neither is hand-typed into the shader,
+and every lane is compared on the GPU.
 
 ### 8. Tune how often a mirror turns up
 

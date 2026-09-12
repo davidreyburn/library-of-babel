@@ -1970,6 +1970,70 @@ things that produce one — a different driver, a display mode change, another
 application taking the GPU — are all outside what this harness can see. The next
 useful measurement is on the reporter's machine, not this one.
 
+### 24. The last twin, and a check for it that was almost worthless
+
+*Roadmap item 7, closed. Kept here rather than only in the roadmap because the
+first version of the fix rebuilt the exact weakness the item was written about,
+and that is the part worth reading.*
+
+**What was wrong.** `volumePresent` decided which slots the Purifiers emptied,
+and the same arithmetic was typed out twice: once in `babel-core.mjs`, which the
+agent and the CLI use, and once by hand inside the shader's shelving loop. The
+other twins in this system are generated from `babel-glsl.mjs` and checked lane
+by lane on the GPU; this one was generated from nothing and guarded by a
+**statistical** test — 3.52% empty over 1.8 million slots. That catches a broken
+twin. It cannot catch a subtly different one, and a subtly different one is
+exactly what the GLSL/JS split produced twice before (§4, §12).
+
+**The tint had no twin at all.** The shader read bits 16–31 of the same hash for
+a spine's colour. `babel-core.mjs` did not know that field existed, so nothing
+could have checked it even in principle.
+
+**What shipped.** One `VOLUME_GLSL` block in `core/babel-glsl.mjs` holding
+`volumeBits`, `volumeHash`, `volumePresent`, `volumeDepth` and `volumeTint`,
+spliced into `app/babel-frag.glsl` at `@glsl-volume` like the other three
+generated regions; `volumeBits` and `volumeTint` added to the core; 51 shelf
+slots in `core/vectors.json`; and a second GPU pass in `core/conformance.html`
+comparing four lanes per slot. **500 integers → 704.**
+
+Lane 0 is the **raw 32-bit hash**, not a derived float, because a hash off by
+one bit is the whole failure mode. `volumeDepth` is deliberately absent: it is
+`BOOK_D * (0.80 + 0.20*hh)` in float32 on one side and in doubles on the other,
+so it could only ever agree to a tolerance — and a tolerance in a conformance
+harness is a place for drift to hide. It is a pure function of the hash, and the
+hash is checked exactly.
+
+**And now the part that matters.** The first version of this check passed 700 of
+700 integers on a shader whose threshold had been deliberately moved from
+`0.035` to `0.0351`.
+
+The sample was 48 scattered slots, the crimson volume, and "the first empty slot
+found". None of them sat near the boundary. A presence test is only tested by a
+slot whose presence the drift would **change**, and a 1e-4 move opens a
+1-in-10,000 window. **The new check was as vacuous as the statistical one it
+replaced, for the same reason, and it took a deliberate break to find out.**
+
+The fix is two more vectors: scan 420,000 slots and pin the ones closest to the
+threshold from either side — **0.034988403 and 0.035003662**, a gap of 1.5e-5.
+Now any edit to the threshold flips one of them.
+
+| deliberate drift | before | after |
+|---|---|---|
+| `0.035` → `0.0351` | **0 mismatches** | **1** — the witness slot, by name |
+| `104729` → `104728` | — | **118** |
+
+**A gate nobody has seen fail is not a gate**, and this is the second time this
+week that rule has paid: the page gate for §21 was vacuous on first write too,
+because the atlas draws under rAF and the error queue was read before the first
+draw. Both were found the same way, by putting the bug back.
+
+**One thing this does not claim.** "Single-sourced" here means what it means
+everywhere else in this repository: the GLSL has one home and is checked against
+the JS. It is still two spellings — `babel-glsl.mjs` writes it in GLSL,
+`babel-core.mjs` in JavaScript. What changed is that the GLSL is no longer typed
+into the shader by hand, and that every lane of it is now compared on the GPU
+against the CPU, including one field nothing could check before.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every

@@ -36,10 +36,11 @@ function exists twice: once in JavaScript, which the agent and the tests walk,
 and once in GLSL, which the renderer draws. The GLSL is a <em>port</em>, not a
 copy &mdash; it has no <code>Math.imul</code> and no 53-bit doubles, so the same
 arithmetic is written differently and can only be trusted by being run. This
-harness runs the shader's own copy over 125 cells, reads the results back
+harness runs the shader's own copy over 125 cells and
+51 shelf slots, reads the results back
 through an <code>RGBA32UI</code> framebuffer so they are the integers themselves
-rather than pixels inspected by eye, and compares all 500 of them against
-what the CPU computes.</p>
+rather than pixels inspected by eye, and compares all
+704 of them against what the CPU computes.</p>
 
 <p><b>Why two backends.</b> Because one is not evidence. A draw call that one
 driver serves and another rejects is the defect class this project has already
@@ -51,29 +52,37 @@ vectors on the same machine, under two different ANGLE backends.</p>
   <h3>ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)</h3>
   <pre>backend              ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)
 core                 0.6.0
-run at               2026-09-12T21:53:01.766Z
+run at               2026-09-12T23:20:54.518Z
 
 cells checked        125
 lanes per cell       4  (cellKey, type+gaps+axis+rise, edgeKeys xor, packed desc (gaps+stair+anchor+culled kit+corridor alcoves))
 integers compared    500
+shelf slots checked  51  (volumeBits, volumeHash, volumePresent, volumeTint)
+  of them empty      1  -- the lane that would pass vacuously without one
+integers compared    204
 
-GPU and CPU agree on every lane of every cell.
-The shader&#x27;s lattice is the same lattice the agent walks.</pre>
-  <p class="verdict">0 mismatches in 500 integers.</p>
+GPU and CPU agree on every lane of every cell, and on every slot.
+The shader&#x27;s lattice is the same lattice the agent walks,
+and the shelf it draws holds the books the agent can cite.</pre>
+  <p class="verdict">0 mismatches in 704 integers.</p>
 </section>
 <section>
   <h3>ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)</h3>
   <pre>backend              ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)
 core                 0.6.0
-run at               2026-09-12T21:53:05.139Z
+run at               2026-09-12T23:20:56.974Z
 
 cells checked        125
 lanes per cell       4  (cellKey, type+gaps+axis+rise, edgeKeys xor, packed desc (gaps+stair+anchor+culled kit+corridor alcoves))
 integers compared    500
+shelf slots checked  51  (volumeBits, volumeHash, volumePresent, volumeTint)
+  of them empty      1  -- the lane that would pass vacuously without one
+integers compared    204
 
-GPU and CPU agree on every lane of every cell.
-The shader&#x27;s lattice is the same lattice the agent walks.</pre>
-  <p class="verdict">0 mismatches in 500 integers.</p>
+GPU and CPU agree on every lane of every cell, and on every slot.
+The shader&#x27;s lattice is the same lattice the agent walks,
+and the shelf it draws holds the books the agent can cite.</pre>
+  <p class="verdict">0 mismatches in 704 integers.</p>
 </section>
 
 <h2>Reproducing it</h2>
@@ -86,7 +95,7 @@ core version and timestamp, which is what makes a capture like this one worth
 keeping.</p>
 
 <p class="stamp">Core <b>0.6.0</b> &middot; harness at commit
-<b>776c48f</b> &middot; captured <b>2026-09-12</b>. That commit is
+<b>e18ca55</b> &middot; captured <b>2026-09-12</b>. That commit is
 the code that was run, not the release it appears in. Regenerate by rerunning the page
 and replacing the blocks above; nothing here is computed at view time, and it is not meant
 to be &mdash; a recorded result that recomputes itself is not a record.</p>
