@@ -426,7 +426,7 @@ the bounding that closed the furniture half is the shape of it.
 **Done when:** a cold link is short enough that a public demo link is honest,
 and a change that lengthens it fails a test rather than a session.
 
-### 1d. Bad normals rise with range, cause unknown
+### 1d. Bad normals rise with range, cause unknown — **closed: they do not**
 
 **0.72% at 0–3 m against 3.45% at 3–6 m**, measured with `?ablate=nydist` on a
 single view. Real, reproducible, and unexplained.
@@ -438,11 +438,20 @@ proportional to range (`0.00018 * t + 0.00012`) while `normalCtx` probes a fixed
 track the tolerance (`?ablate=normeps`, rewritten against the shipped tolerance)
 moves 3.45% to **3.35%**. Not the cause.
 
-**Lever:** `?ablate=nydist` bins bad normals by range in one page load. Find a
-view with a long sightline — everything measured so far is under 6 m, so the
-crossover region has never actually been sampled.
-**Done when:** the curve has a named cause, or a longer sightline shows the rise
-is an artefact of what happens to be at 3–6 m in that one view.
+**Closed on the second of its own two outcomes: the rise is an artefact of the
+view.** Ten views were chosen by walking the lattice for galleries with four to
+eight open cells in an unbroken run along one axis, so a ray genuinely travels,
+and binned with `?ablate=nydist` at a matched 1280×773. **The share falls from
+0–3 m to 3–6 m in nine of the ten.** Per view the 3–6 m band ran 0.06% to 4.11%
+against a 0–3 m band of 2.31% to 7.57% — the sign of the trend is a property of
+the view, not of the range.
+
+**Two caveats kept with it.** The bad-normal test used here is `|n.y|` between
+0.12 and 0.88, which is this measurement's definition and not provably the one
+that produced 0.72 and 3.45, so only the *trend* is comparable, not the
+absolute figures. And it is **not** [§22](docs/BUG-LOG.md): putting the
+single-slot shelving field back moves these bands by 0.00–0.42 points. Two real
+defects, unrelated. Working in [bug log §23](docs/BUG-LOG.md).
 
 ### 1e. What the reader pays, now measured — **first cut taken**
 
@@ -771,17 +780,30 @@ wanted twice. What the review adds is the size of the prize: **~20% fewer
 **Done when:** the step scale is back at 1.0 with no overshoot, measured by the
 bad-normal share from §13's metric, not by eye.
 
-### 2. A 160 ms worst frame, uncharacterised
+### 2. A 160 ms worst frame, uncharacterised — **did not reproduce in 6,895 frames**
 
 Seen on the reporter's own panel while the mean sat at 8.1 ms. This
 repository's own method says a mean is the wrong instrument for a stutter, and
 here we have only the mean explained.
 
-**Lever:** measure the distribution before theorising — the panel already
-carries worst-beside-mean. Find what the spike correlates with (entering a
-reading room, first sight of a mirror, a shader recompile).
-**Done when:** the spike has a named cause, or a frame-time histogram shows it
-was a one-off.
+**Measured, and it does not reproduce here. 6,895 frames over three sessions,
+worst 22.3 ms.** All three named suspects were visited on purpose — a reading
+room, the mirror alcove, a stairwell climb — plus a journey, the reading pane,
+and three forced `resize()` reallocations between 1:1 and 1:4. A
+`PerformanceObserver` on `longtask` recorded **nothing over 30 ms in any
+session**, which strikes off the route BFS, the reading pane and the panel: they
+are main-thread work and main-thread work was not happening.
+
+One session's median was **7.9 ms against the report's 8.1 ms mean**, so this is
+the same regime and not a faster machine hiding it.
+
+**This stays open, downgraded, and it is not fixed.** A 160 ms gap with no long
+task is a GPU or compositor stall, and what produces one — another driver, a
+display mode change, another application taking the GPU — is outside what this
+harness can see from here.
+**Done when:** it is measured on the reporter's machine, or it is agreed in
+writing that a spike nobody can reproduce in 6,895 frames is not worth carrying.
+Distribution in [bug log §23](docs/BUG-LOG.md).
 
 ### 3. The corridor changes cost 13% of a frame
 
@@ -796,15 +818,39 @@ the price of one-ended corridors going 2.7% → 7.2%.
 **Done when:** a gallery is back under 7 ms, or the cost is accepted in
 writing and this item closes as won't-fix.
 
-### 4. Rippled chunks missing from a book's cover, seen from the side
+### 4. Rippled chunks missing from a book's cover, seen from the side — **fixed**
 
-At a grazing angle the edge of a volume tears into ripples. This may already
-be gone — same overshoot signature as the spine mottling, which the
-conservative shelving field fixed — but nobody has checked.
+**It was still there, and it was not the overshoot family this item guessed at.**
+`shelfDist` sampled exactly one slot per wall — the nearest by lateral index —
+and a book does not fill its slot: it is `BOOK_W*0.90` in a `BOOK_W` pitch, it
+stands proud by a depth that varies by up to 0.04 m, and 3.5% of slots are empty
+and contribute nothing. So the distance **over-reports**, and `t += d * 1.00` on
+an over-reporting field steps a ray past the surface. Head-on that is invisible;
+at a grazing angle the ray runs almost parallel to the spines and the same
+0.04 m sweeps a long way along the wall, taking a chunk of cover with it.
 
-**Lever:** one look at a shelf edge-on, then the normal-visualisation mode if
-it is still there.
-**Done when:** checked either way. It is cheap and it has been open longest.
+**Fixed by evaluating the nearest slot and its two neighbours**, min'd. Three is
+enough and four is unnecessary: two pitches is 0.104 m, already more than the
+largest depth step. Full working in [bug log §22](docs/BUG-LOG.md).
+
+**Measured, matched at 1280×773, medians over 80 driven frames:**
+
+| | long sightline | short | short |
+|---|---|---|---|
+| one slot, as shipped | 13.10 ms | 6.50 | 6.50 |
+| **three slots, shipped now** | **13.70** (+4.6%) | 7.40 (+13.8%) | 7.20 (+10.8%) |
+| step scale 0.80 instead | 15.00 (+14.5%) | 6.50 (0%) | 6.50 (0%) |
+
+Both cure it. The step-scale cure was rejected because its cost lands on the
+**long** view, which is the one that sets the auto-scaler. `?ablate=book1` puts
+the single slot back and the tearing returns.
+
+**The defect was much larger than this item said.** It described the edge of a
+volume at a grazing angle; the before-and-after lifts mottling off *every spine
+in the room*, including walls being faced squarely. The grazing angle was where
+it was visible enough to report, not where it was happening.
+
+**Renderer 1.0.0 → 1.1.0.**
 
 ### 5. Rung 6 with a real policy — **first number taken; distribution still open**
 
@@ -903,13 +949,19 @@ would prove it agrees. The work is the SDF, not the Library.
 
 ---
 
-*Items 1b, 1d, 2 and 4 are live defects. 1b's visual half is signed off and what
-remains of it is the seam disagreeing with the renderer, which is the one on
-this list that can corrupt a citation rather than merely look wrong. 1c gates 1b
-and 3: both touch the shading or gap path, and the link budget is nearly spent.
-3 and 7 are debts with a known price. 9 is understood and deliberately parked. 5
-has started returning numbers, and is the only one that tells us something the
-Library itself does not.*
+*This paragraph used to say that 1b, 1d, 2 and 4 were live defects. **None of
+them is, and 1b had already been closed by §19 when that sentence was last
+rewritten.** 4 is fixed (§22). 1d was measured and the effect it describes does
+not exist (§23). 2 did not reproduce in 6,895 frames and stays open only as a
+report from another machine (§23). 1b's invariant was re-checked over 73,685
+flights across five storeys — zero cuts past a wall, zero disagreements between
+the gap and the bit the shader reads — at twenty-five times the sample the test
+suite carries.*
+
+*What is actually live: **3 and 7 are debts with a known price. 9 is understood
+and deliberately parked. 5 has started returning numbers, and is the only one
+that tells us something the Library itself does not.** 1c gates 3, which touches
+the gap path, and the link budget is nearly spent.*
 
 *Every defect here has an entry in [`docs/BUG-LOG.md`](docs/BUG-LOG.md) carrying
 what has already been ruled out and with what measurement. Start there, or the

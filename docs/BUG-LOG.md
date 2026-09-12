@@ -1815,6 +1815,161 @@ development GPU, and SwiftShader is no slower. That is a big enough gap to be
 a different question rather than an answer to §20's, and it is not touched
 here. The number in §20 stands as a number about that GPU.
 
+### 22. The shelving field sampled one slot, and a book is not as wide as its slot
+
+*Roadmap item 4, open since the first week: "rippled chunks missing from a
+book's cover, seen from the side". Three earlier readings filed it under the
+normal-probe family with §11 and §13. It is not in that family.*
+
+**The report was about a grazing angle, and that is why it survived.** Head-on,
+the shelves are clean. Stand at the end of a run and look down it and the spines
+tear into feathery streaks, as if pieces of the covers were missing.
+
+`shelfDist` walks the six walls, and for each one it takes **the nearest slot by
+lateral index** and returns the distance to that book's box:
+
+```glsl
+float bi = clamp(floor((w.y + RUN_HALF) / BOOK_W), 0.0, 34.0);
+```
+
+Sampling one cell of a repeating structure is conservative only if the contents
+fill the cell. **These do not, in three separate ways:**
+
+1. a book is `BOOK_W*0.90` wide in a `BOOK_W` pitch, so there is a gap between
+   every pair;
+2. depth varies, `BOOK_D * (0.80 + 0.20 * hh)`, so a neighbour can stand up to
+   **0.04 m prouder** than the indexed slot and be nearer in 3D;
+3. **3.5% of slots are empty** and `continue` outright, so `d` falls back to the
+   casework while the neighbouring spines are much closer.
+
+So the distance **over-reports**, and `t += d * 1.00` on an over-reporting field
+is a ray that steps past a surface. The shader's own comment two hundred lines
+up says this in as many words — *"That is true of a conservative field and this
+one is not"* — as a warning against `t + d`. The same sentence condemns the
+single-slot sample and nobody had read it that way.
+
+**Why only at a grazing angle.** The overstep is ~0.04 m along the ray. Near
+head-on that is 0.04 m into the surface and the next iteration recovers it. At a
+grazing angle the ray runs almost parallel to the spines, so the same 0.04 m
+sweeps a long way **along the wall**, and what it sweeps past is a chunk of
+cover.
+
+**The fix is to evaluate the neighbours too**: slot `bi`, `bi-1` and `bi+1`,
+min'd. Three is enough and four is unnecessary — two pitches of lateral
+separation is 0.104 m, which already exceeds the largest depth step, so no
+slot further out can ever be the nearest.
+
+**Measured, matched at 1280x773, medians over 80 driven frames:**
+
+| | graze0 (long sightline) | graze1 | graze2 |
+|---|---|---|---|
+| single slot (as shipped) | 13.10 ms | 6.50 | 6.50 |
+| **three slots (shipped now)** | **13.70** (+4.6%) | 7.40 (+13.8%) | 7.20 (+10.8%) |
+| step scale 0.80 instead | 15.00 (+14.5%) | 6.50 (0%) | 6.50 (0%) |
+
+Both cure the tearing. The step-scale cure was rejected because its cost lands
+on the **long** view, which is the one that sets the auto-scaler; the three-slot
+cure is dearest where the frame is cheapest. `?ablate=book1` puts the single
+slot back and the tearing returns, which is the regression handle.
+
+**Two things worth recording beyond the fix.**
+
+*The defect was much larger than the report.* Item 4 described the edge of a
+volume at a grazing angle. The before-and-after shows mottling lifting off
+**every spine in the room**, including the wall being faced squarely. The
+grazing angle was where it was visible enough to report, not where it was
+happening.
+
+*Two ablations each cure it alone, and neither is a fix.* `?ablate=flatdepth`
+(one depth for every book) and `?ablate=nogaps` (no empty slots) both remove the
+tearing, which looks like two contradictory diagnoses. They are not: each
+removes one of the three ways the cell fails to be filled, and each also changes
+the shelves. They are kept as the two halves of the diagnosis. The test that
+settled it was the fix itself, because it is the only one that changes the field
+without changing the geometry.
+
+**And a harness fault, caught the same way §20's was.** The first three cost
+comparisons for this entry were run at **different buffer sizes** — 1280x773
+against 640x387 — because `st.div` sets the divisor but does not resize the
+drawing buffer; only the window's `resize` event reaches `resize()`. The
+harness reported the fix as a 3x speedup. It now asserts the buffer size and
+refuses to report a mismatch. **Every A/B in this repository is one unchecked
+denominator away from being a press release.**
+
+### 23. Two defects that were not there, and what the measurements cost to take
+
+*Roadmap items 1d and 2, taken together because both close as negative results
+and a negative result is worth exactly as much as the measurement behind it.*
+
+#### 1d. Bad normals do not rise with range
+
+The item read: **0.72% at 0-3 m against 3.45% at 3-6 m**, "real, reproducible,
+and unexplained", with the march-tolerance theory already tested and rejected.
+Its own stated escape was that nobody had ever sampled past 6 m: *"everything
+measured so far is under 6 m, so the crossover region has never actually been
+sampled."*
+
+Ten views were chosen by walking the lattice for galleries with an unbroken run
+of four to eight open cells along one axis, so the ray genuinely travels, and
+binned with `?ablate=nydist` at a matched 1280x773:
+
+| | 0-3 m | 3-6 m | 6-9 m | 9-12 m |
+|---|---|---|---|---|
+| rises with range | | **1 view** | | |
+| falls with range | | **9 views** | | |
+
+Per view the 3-6 m share ran from **0.06%** to **4.11%** against a 0-3 m share of
+2.31% to 7.57%. **The sign of the trend is a property of the view, not of the
+range.** The filed rise was what happened to be at 3-6 m in the one view it was
+measured on, which is the second of the two outcomes the item itself allowed.
+
+**Caveat, and it matters:** the "bad normal" test here is `|n.y|` between 0.12
+and 0.88 — neither floor nor wall, on a lattice built from boxes — and that is
+**this** measurement's definition, not necessarily the one that produced 0.72
+and 3.45. The absolute percentages are therefore not comparable to the filed
+ones. What is comparable is the sign of the trend, taken ten times with one
+definition held fixed.
+
+**And it is not §22.** The shelving over-report was an obvious suspect for a
+corrupted normal — a ray that stops short of a surface reads the gradient of the
+wrong thing. It is not the cause: with `?ablate=book1` putting the single-slot
+field back, the bands move by **0.00 to 0.42 percentage points**, against a
+0-3 m share of 2.3% to 7.6%. Two real defects, unrelated.
+
+That A/B was run over **four** of the ten views, not all ten, and this sentence
+said ten until it was checked against the numbers behind it.
+
+#### 2. The 160 ms worst frame did not reproduce
+
+Filed from the reporter's own panel: a 160 ms worst frame while the mean sat at
+8.1 ms. The item named three suspects — entering a reading room, first sight of
+a mirror, a shader recompile — and asked for the distribution before any theory.
+
+**6,895 frames over three sessions, and the worst was 22.3 ms.**
+
+| session | frames | median | p90 | p99 | max | >33 ms | longtasks >30 ms |
+|---|---|---|---|---|---|---|---|
+| walk, turn, journey, read | 2,126 | 13.4 | 14.6 | 21.0 | 22.3 | **0** | **0** |
+| reading room, mirror, stair, 3 resizes | 2,512 | 7.9 | 14.5 | 20.9 | 22.3 | **0** | **0** |
+| autoscaler churn, journey, reading pane | 2,257 | 12.9 | 14.4 | 20.9 | 22.2 | **0** | **0** |
+
+All three named suspects were visited deliberately: a reading room at
+`-11,-1` floor −1, the mirror alcove at `2,-3` floor −1, a stairwell climb at
+`-12,-8`, and three forced `resize()` reallocations between 1:1 and 1:4. A
+`PerformanceObserver` on `longtask` recorded **nothing over 30 ms in any
+session** — so whatever the reporter saw, it was not main-thread work, which
+rules out the route BFS, the reading pane and the panel.
+
+**The middle session's median is 7.9 ms against the report's 8.1 ms mean**, so
+this is the same regime and not a faster machine hiding the problem.
+
+**This does not close as fixed and it must not be written up as one.** It closes
+as *not reproducible here*, with the distribution recorded and three suspects
+struck off. A 160 ms gap with no long task is a GPU or compositor stall, and the
+things that produce one — a different driver, a display mode change, another
+application taking the GPU — are all outside what this harness can see. The next
+useful measurement is on the reporter's machine, not this one.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every

@@ -713,8 +713,30 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
     if (abs(w.y) - RUN_HALF > d) continue;
     /* and the nearest of the thirty-five real slots, clamped rather than
-       dropped, for the same reason */
-    float bi = clamp(floor((w.y + RUN_HALF) / BOOK_W), 0.0, 34.0);
+       dropped, for the same reason -- AND its two neighbours.
+
+       Sampling one cell of a repeating structure is conservative only if the
+       contents fill the cell, and they do not. A book is BOOK_W*0.90 wide in
+       a BOOK_W pitch; it stands proud by BOOK_D*(0.80 + 0.20*hh), so a
+       neighbour can be up to 0.04 m nearer in depth than this slot; and 3.5%
+       of slots are empty and contribute nothing at all. The single-slot
+       distance therefore OVER-reports, and `t += d * 1.00` steps a ray past
+       the surface.
+
+       Head-on that is invisible. At a grazing angle the ray runs almost
+       parallel to the spines, so a 0.04 m overstep sweeps a long way ALONG
+       the wall and takes a chunk of the cover with it. That is roadmap item
+       4 and bug log 22, open since the first week and diagnosed three times
+       as a normal-probe fault, which it is not.
+
+       Three is enough and four is not needed: two pitches of lateral
+       separation is 0.104 m, which already exceeds the largest depth step, so
+       no slot further than one away can ever be the nearest.
+       ?ablate=book1 puts the single-slot version back. */
+    float bi0 = clamp(floor((w.y + RUN_HALF) / BOOK_W), 0.0, 34.0);
+    for (int bo = -1; bo <= 1; bo++){
+    float bi = clamp(bi0 + float(bo), 0.0, 34.0);
+    if (bo != 0 && bi == bi0) continue;         // clamped onto the centre slot
     uint  bk = uhash(ck ^ uint(i*7919 + int(bi)*31 + int(shelfIdx)*104729));
     float hh = float(bk & 0xFFFFu) / 65536.0;
     float ch = float((bk >> 16) & 0xFFFFu) / 65536.0;
@@ -735,6 +757,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
       gTgt = (uTgtSlot.x >= 0 && c.x == uTgtCell.x && c.y == uTgtCell.y &&
               fl == uTgtCell.z && i == uTgtSlot.x &&
               int(shelfIdx) == uTgtSlot.y && int(bi) == uTgtSlot.z) ? 1.0 : 0.0;
+    }
     }
   }
   return d;
