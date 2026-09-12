@@ -23,7 +23,7 @@ inspected by eye.</p>
 
 <script type="module">
 import { G, u32, cellKey, cellType, gapAt, axisOf, riseOf, edgeKey,
-         studyKey, studyKit, studyAnchor, cellDesc, TYPE } from "./babel-core.mjs";
+         studyKey, studyKit, studyAnchor, cellDesc, TYPE, CORE_VERSION } from "./babel-core.mjs";
 import { TOPOLOGY_GLSL, STUDY_GLSL, DESC_GLSL } from "./babel-glsl.mjs";
 
 const out = document.getElementById("out");
@@ -101,6 +101,19 @@ void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
   const gl = cv.getContext("webgl2", { antialias: false });
   if (!gl){ log("no WebGL2 context -- cannot run", "bad"); return; }
 
+  /* Which GPU said so. A conformance result that does not name the machine
+     it ran on is a claim about GPUs in general made from a sample of one,
+     and bug log 21a is what that costs: two backends disagreeing about the
+     same draw call, with only one of them willing to say so. Chrome takes
+     --use-angle=<metal|swiftshader> and will run this twice on one box. */
+  const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+  const BACKEND = (dbg && gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL))
+               || gl.getParameter(gl.RENDERER) || "unnamed";
+  log(`backend              <b>${BACKEND}</b>`);
+  log(`core                 <b>${CORE_VERSION}</b>`);
+  log(`run at               <b>${new Date().toISOString()}</b>`);
+  log("");
+
   function compile(type, src){
     const s = gl.createShader(type);
     gl.shaderSource(s, src); gl.compileShader(s);
@@ -172,7 +185,9 @@ void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
     for (const b of bad.slice(0, 40))
       log(`  ${b.cell}  ${b.lane}  gpu ${b.gpu} != cpu ${b.cpu}`, "bad");
   }
-  window.__conformance = { cells: N, compared: N * 4, mismatches: bad.length, bad: bad.slice(0, 40) };
+  window.__conformance = { cells: N, compared: N * 4, mismatches: bad.length,
+                           bad: bad.slice(0, 40), backend: BACKEND,
+                           core: CORE_VERSION, when: new Date().toISOString() };
 })().catch(e => { log("harness error: " + e.message, "bad");
                   window.__conformance = { error: e.message }; });
 </script>

@@ -1,6 +1,8 @@
 # Screenshots
 
 Captured through Chrome while building, 1–2 August 2026 unless dated otherwise.
+Everything from `12` on is a recorded harness result rather than a view of the
+Library, and carries the backend it ran on inside the image.
 The numbered images are
 the milestones referenced from `docs/CASE-STUDY.md` and `docs/BUG-LOG.md`;
 `archive/` holds every shot taken, chronologically by the timestamp in the
@@ -19,3 +21,4 @@ filename, unlabelled.
 | `09-highlight-zoom.png` | 2 Aug 13:30. Close on the same shelf: the targeted spine lifted toward lit paper, the crimson volume beside it, and the notch where the Purifiers left a gap. |
 | `10-on-target-grazing.jpg` | 2 Aug 13:38. The parallax fix, at a 60° grazing angle — the case the old single-plane ray got wrong by six books. The arrow is the OS pointer composited by the capture tool; the page hides its own cursor. |
 | `11-atlas.jpg` | 6 Aug. The atlas: the cluster around the origin, five storeys of it, as low-poly solids. Dark columns are shafts, pale hexagons reading rooms, and the beams between cells are the doorways. Taken after the vertical rebalance — flights 12% → 9%, shafts 2% → 3% — which is what the extra dark columns are. |
+| `12-conformance.png` | 12 September. The GPU conformance harness's own output, run twice on one machine under two ANGLE backends — Metal on an Apple M4 and SwiftShader — against the same commit and the same vectors. 500 integers, zero mismatches on both. Cropped from [`docs/conformance-report.html`](../conformance-report.html), which is the same run with the argument around it. Not captured by hand: the page prints its own backend, core version and timestamp, which is what makes a screenshot of it worth anything. |

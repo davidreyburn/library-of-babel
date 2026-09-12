@@ -168,7 +168,7 @@ draws nothing without erroring, which no `getError()` reports.
 on Apple silicon, and the gate fails loudly rather than skipping, which is
 correct. `metal` and `swiftshader` are the pair on this machine.
 
-### R2. The conformance harness is visible without running it
+### R2. The conformance harness is visible without running it — **done**
 
 `core/conformance.html` proves the GPU and the CPU agree about the lattice: 500
 integers, four lanes a cell, through an `RGBA32UI` framebuffer so they are the
@@ -184,11 +184,20 @@ half is the provenance, which is the backend string from R1, the date, and
 `CORE_VERSION`. A report that does not say what it ran on is a claim, not
 evidence.
 
-**Done when:** the output is committed, it names the backend, the date and the
-core version, it renders from a `file://` open, and the README links it above
-the fold.
+**Done, 12 September.** `conformance.html` now prints its backend, its core
+version and a timestamp before the result, and carries all three on
+`__conformance`. [`docs/conformance-report.html`](docs/conformance-report.html)
+is a recorded run — self-contained, no fetch, no modules, opens from `file://` —
+**under both ANGLE Metal and ANGLE SwiftShader, 500 integers, zero mismatches on
+each.** [`docs/images/12-conformance.png`](docs/images/12-conformance.png) is
+that report cropped to the two results, and sits on the README's first screen.
 
-### R3. The README's first screen says what this is
+**The image is the thing that carries, not the HTML.** GitHub renders a
+committed `.html` file as source, so a link alone would have shown a reader
+markup rather than a result. The page is the artifact; the screenshot of it is
+what is actually visible above the fold.
+
+### R3. The README's first screen says what this is — **done**
 
 It currently opens on `29^1,312,000`, which is the corpus size, before it has
 established what the thing is or why anybody should care. **A reader who does
@@ -206,8 +215,18 @@ repo document and it can stay agent-written. If any of it is ever lifted onto a
 site it gets rewritten first, and the site copy comes from the content plan
 rather than from here.
 
-**Done when:** the first screen answers *what is this* before it answers *how
-big is it*, and the quickstart still works verbatim from a clean clone.
+**Done, 12 September.** The README opens on *a world an agent can be tested
+against, where a claim about it is true or false as arithmetic*, followed by the
+`verify` one-liner, the three-command quickstart, and the conformance image. The
+arithmetic moved to **How big it is**, below all of that. Both directions of the
+headline claim were run rather than asserted: a true quote exits 0, a fabricated
+one exits 2 and prints what the page actually says.
+
+**Three stale numbers went with it** — `npm test` was advertised as 177
+assertions in one place and 144 + 52 in another, against an actual 179 + 57, and
+the bug log was described as sixteen defects when it holds twenty-one. Wrong
+counts in a README are the same failure as an absent tag: they read as a project
+that stopped being maintained.
 
 ### R4. Tag a release
 

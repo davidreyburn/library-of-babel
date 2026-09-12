@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Library of Babel &mdash; GPU conformance, a recorded run</title>
+<style>
+  :root{--ink:#12140F;--pale:#8C9179;--title:#A8AD91;--faint:#6E7360;
+        --mute:#5A5F4E;--ok:#A6B27E;--line:#2A2D24;}
+  body{background:var(--ink);color:var(--pale);
+       font:13px/1.65 "Cascadia Mono",Consolas,ui-monospace,monospace;
+       margin:0;padding:2rem 1.6rem 3rem;}
+  main{max-width:62rem;margin:0 auto;}
+  h1{font:400 1.35rem/1.4 Georgia,serif;color:var(--title);margin:0 0 .3rem;}
+  h2{font:400 1rem/1.4 Georgia,serif;color:var(--title);
+      margin:2.2rem 0 .6rem;border-top:1px solid var(--line);padding-top:1.2rem;}
+  h3{font:400 .95rem/1.4 Georgia,serif;color:var(--title);margin:1.4rem 0 .4rem;}
+  p{max-width:58rem;}
+  p.lede{color:var(--faint);margin:0 0 1.4rem;}
+  /* pre-wrap, not pre: the lane list is one long parenthetical and a
+     screenshot of an overflow-x box is a screenshot of a truncated result.
+     Every other line is short enough to be unaffected. */
+  pre{background:#0D0F0B;border:1px solid var(--line);padding:.9rem 1.1rem;
+      white-space:pre-wrap;overflow-wrap:anywhere;margin:.4rem 0;}
+  .verdict{color:var(--ok);margin:.3rem 0 0;}
+  .stamp{color:var(--mute);border-top:1px solid var(--line);
+         margin-top:2.4rem;padding-top:1rem;}
+  b{color:var(--title);font-weight:400;}
+  code{color:var(--title);}
+  em{color:var(--title);font-style:normal;}
+</style>
+<main>
+<h1>GPU conformance &mdash; a recorded run</h1>
+<p class="lede">The output of <b>core/conformance.html</b>, captured so it can be
+read without cloning anything. It is a page you open; this is what it said.</p>
+
+<p><b>What it proves.</b> The Library is a pure function of an address, and that
+function exists twice: once in JavaScript, which the agent and the tests walk,
+and once in GLSL, which the renderer draws. The GLSL is a <em>port</em>, not a
+copy &mdash; it has no <code>Math.imul</code> and no 53-bit doubles, so the same
+arithmetic is written differently and can only be trusted by being run. This
+harness runs the shader's own copy over 125 cells, reads the results back
+through an <code>RGBA32UI</code> framebuffer so they are the integers themselves
+rather than pixels inspected by eye, and compares all 500 of them against
+what the CPU computes.</p>
+
+<p><b>Why two backends.</b> Because one is not evidence. A draw call that one
+driver serves and another rejects is the defect class this project has already
+been bitten by &mdash; see bug log &sect;21 and &sect;21a &mdash; and a result
+from a single GPU cannot see it. Both runs below are the same commit and the same
+vectors on the same machine, under two different ANGLE backends.</p>
+
+<section>
+  <h3>ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)</h3>
+  <pre>backend              ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)
+core                 0.6.0
+run at               2026-09-12T21:47:34.070Z
+
+cells checked        125
+lanes per cell       4  (cellKey, type+gaps+axis+rise, edgeKeys xor, packed desc (gaps+stair+anchor+culled kit+corridor alcoves))
+integers compared    500
+
+GPU and CPU agree on every lane of every cell.
+The shader&#x27;s lattice is the same lattice the agent walks.</pre>
+  <p class="verdict">0 mismatches in 500 integers.</p>
+</section><section>
+  <h3>ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)</h3>
+  <pre>backend              ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)
+core                 0.6.0
+run at               2026-09-12T21:47:37.360Z
+
+cells checked        125
+lanes per cell       4  (cellKey, type+gaps+axis+rise, edgeKeys xor, packed desc (gaps+stair+anchor+culled kit+corridor alcoves))
+integers compared    500
+
+GPU and CPU agree on every lane of every cell.
+The shader&#x27;s lattice is the same lattice the agent walks.</pre>
+  <p class="verdict">0 mismatches in 500 integers.</p>
+</section>
+
+<h2>Reproducing it</h2>
+<pre>npm start
+open http://127.0.0.1:8731/core/conformance.html</pre>
+<p>For a second backend, Chrome takes <code>--use-angle=metal</code> and
+<code>--use-angle=swiftshader</code>, each with its own
+<code>--user-data-dir</code> so the flag takes. The page prints its own backend,
+core version and timestamp, which is what makes a capture like this one worth
+keeping.</p>
+
+<p class="stamp">Core <b>0.6.0</b> &middot; commit <b>8180b4e</b> &middot;
+captured <b>2026-09-12</b>. Regenerate by rerunning the
+page and replacing the blocks above; nothing here is computed at view time, and
+it is not meant to be &mdash; a recorded result that recomputes itself is not a
+record.</p>
+</main>

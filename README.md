@@ -1,29 +1,29 @@
 # The Library of Babel
 
-A deterministic, walkable Library of Babel. The corpus is **29^1,312,000** volumes
-and none of them is stored: every room and every symbol is a pure function of its
-address, so the renderer, an agent and the tests all see the same Library — and a
-coordinate in it can be cited and checked.
+**A world an agent can be tested against, where a claim about it is true or
+false as arithmetic.**
 
-Walking reaches about **1.8 × 10¹⁹** distinct volumes of that corpus, on some
-8 × 10²¹ shelf **slots** — of which about 3.5% stand empty, the gaps the
-Purifiers left. A room therefore holds fewer books than it has room for, and
-`describeCell` reports both the volumes and the slots rather than the capacity
-alone. Reaching an *arbitrary* one instead takes a text address, and
-that is not a shortcoming but arithmetic: a coordinate able to name any book is
-778 KiB long, at which size the address **is** the book. §17.12 of the
-specification has the numbers, and how a 32-bit key once capped the walkable part
-at 4.3 billion.
+Borges's Library, built and walkable: hexagonal galleries, shelves, stairwells,
+and every book on every shelf readable. Nothing is stored. Every room and every
+symbol is a pure function of its address, which is what makes it a test
+environment rather than a world — the renderer, the command line, the test suite
+and an agent all compute the same Library from the same coordinates, so a
+citation into it can be checked exactly, and by nobody's opinion.
 
-Derived from Borges's story treated as a requirements document. Where the build
-departs from it, §17 of the specification says so, with the measurement that
-justified the departure.
+```sh
+node tools/babel.mjs verify <address> <page> <line> <col> "<quote>"
+# exits 0 if those symbols really are at that coordinate, 2 if they are not
+```
+
+**There is no judge model in that loop, and nothing in it to trust.** A reader
+that invents a quotation is caught by arithmetic. That is the whole premise, and
+the rest of this repository is the work of making it true — including a GPU
+shader and a JavaScript module that have to agree about the lattice down to the
+bit, and a bug log mostly about the times they did not.
 
 ![the reticule on a spine, its name in the panel](docs/images/08-reticule-and-panel.jpg)
 
-## If you were handed this link and asked to explore the Library
-
-Three commands, no install, nothing to build:
+## Three commands, no install, nothing to build
 
 ```sh
 git clone https://github.com/davidreyburn/library-of-babel
@@ -31,16 +31,29 @@ cd library-of-babel
 node tools/babel.mjs here -3,0         # if this prints a gallery, you are ready
 ```
 
-Everything works from a clean clone: Node 18 or newer and no dependencies at
-all. Then read [`.claude/skills/library-of-babel/SKILL.md`](.claude/skills/library-of-babel/SKILL.md) —
+Node 18 or newer, no dependencies at all. Then read
+[`.claude/skills/library-of-babel/SKILL.md`](.claude/skills/library-of-babel/SKILL.md) —
 it is the whole interface, and in Claude Code it loads itself once this
-directory is your working directory.
+directory is your working directory. The one rule the environment cares about is
+the one above: **verify every citation before you report it.**
 
-The one rule the environment cares about: **verify every citation before you
-report it.** `node tools/babel.mjs verify <address> <page> <line> <col> "<quote>"`
-exits 0 if the symbols really are there and 2 if they are not. There is no judge
-model involved — the corpus is a pure function of the address, so a fabricated
-citation is not a matter of opinion.
+## A machine checking another machine's work
+
+The lattice is written twice — once in JavaScript, which the agent and the tests
+walk, and once in GLSL, which the renderer draws. The GLSL is a *port*, not a
+copy: no `Math.imul`, no 53-bit doubles, the same arithmetic written differently.
+So it is run against the CPU's answers, 500 integers at a time, read back through
+an `RGBA32UI` framebuffer so they are the integers themselves and not pixels
+inspected by eye.
+
+![the conformance harness, run under two GPU backends, zero mismatches](docs/images/12-conformance.png)
+
+That is a recorded run of [`core/conformance.html`](core/conformance.html) under
+two different GPU backends on one machine, captured in
+[`docs/conformance-report.html`](docs/conformance-report.html). **Two backends,
+because one is not evidence** — this project has already shipped a page that was
+whole on Windows and blank on every Mac for four days, and no single machine
+could have seen it ([bug log §21 and §21a](docs/BUG-LOG.md)).
 
 ## Two ways to look at it
 
@@ -63,10 +76,27 @@ result, so every load after the first opens at once. The page says so while it
 waits, and stays responsive. This is [item 1c](ROADMAP.md) and it is being
 worked on — the wait is honest, not acceptable.
 
+## How big it is
+
+The corpus is **29^1,312,000** volumes. Walking reaches about **1.8 × 10¹⁹**
+distinct volumes of it, on some 8 × 10²¹ shelf **slots** — of which about 3.5%
+stand empty, the gaps the Purifiers left. A room therefore holds fewer books than
+it has room for, and `describeCell` reports both the volumes and the slots rather
+than the capacity alone.
+
+Reaching an *arbitrary* volume instead takes a text address, and that is not a
+shortcoming but arithmetic: a coordinate able to name any book is 778 KiB long,
+at which size the address **is** the book. §17.12 of the specification has the
+numbers, and how a 32-bit key once capped the walkable part at 4.3 billion.
+
+Derived from Borges's story treated as a requirements document. Where the build
+departs from it, §17 of the specification says so, with the measurement that
+justified the departure.
+
 ## Checking it
 
 ```sh
-npm test                  # 177 assertions and 57 gates, no browser needed
+npm test                  # 179 assertions and 57 gates, no browser needed
 ```
 
 Two more gates need a browser and `npm test` says so when it finishes, because
@@ -74,7 +104,15 @@ a gate nobody is reminded of is a gate nobody runs. With `npm start` running,
 open **core/conformance.html** — the GPU agrees with the CPU about the lattice,
 500 integers — and **core/pagecheck.html**, which opens both pages for real and
 asserts they work: that they boot, that the panel fills, that the keys do
-something, that neither threw.
+something, that something is on the canvas, that neither threw, and that neither
+had a draw call rejected. 29 assertions.
+
+**And before a release, both of them again under a second GPU backend.** Chrome
+takes `--use-angle=metal` and `--use-angle=swiftshader`, each with its own
+`--user-data-dir`. That is not belt-and-braces: §21a put the bug back and
+measured it, and on the permissive driver the error queue is empty, the canvas
+is not blank, and all 29 assertions pass on a page that is broken everywhere
+else. One machine cannot see that class.
 
 ## Run it
 
@@ -148,7 +186,7 @@ reporting it, and say what you went looking for.
 ## Test it
 
 ```sh
-npm test          # 144 core assertions + 52 gates
+npm test          # 179 core assertions + 57 gates
 npm run check     # non-zero if app/ is stale relative to core/
 npm run harness   # run policies over a corpus of episodes, print the readout
 ```
@@ -201,8 +239,9 @@ MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the stor
 - [`spec/technical-specification.md`](spec/technical-specification.md) — the
   requirements, and §17 for every departure
 - [`ROADMAP.md`](ROADMAP.md) — what is open, in rough order of value
-- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — sixteen defects and how each was
-  actually found; twelve closed, four open with what has been ruled out
+- [`docs/BUG-LOG.md`](docs/BUG-LOG.md) — twenty-one defects and how each was
+  actually found, four still live, each carrying what has already been ruled
+  out and with what measurement
 - [`docs/CASE-STUDY.md`](docs/CASE-STUDY.md) — how it was built, weighted toward
   what went wrong
 - [`core/RUN.md`](core/RUN.md) — the agent environment, its six gates, and the
