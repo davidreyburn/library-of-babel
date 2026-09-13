@@ -231,26 +231,38 @@ the bug log was described as sixteen defects when it holds twenty-one. Wrong
 counts in a README are the same failure as an absent tag: they read as a project
 that stopped being maintained.
 
-### R4. Tag a release — **done, local; not pushed**
+### R4. Tag a release — **done: `v0.6.0`, then `v0.6.1`**
 
 There is no tag. A repository with a dated release and notes reads as shipped;
 one without reads as in progress.
 
-**The number is `v0.6.0`, decided 12 September.** `package.json` and
-`CORE_VERSION` both already say 0.6.0, and `CORE_VERSION` is stamped on
-transcripts because [item 5](#5-rung-6-with-a-real-policy--first-number-taken-distribution-still-open)
-depends on a run replaying only against its own lattice. A `v0.1` tag over a
-0.6.0 core would put two numbers on one repository that mean different things
-and look like they mean the same thing. One number, and the notes carry the
-"first tagged release" that `v0.1` was being asked to signal.
+**`v0.6.0` was cut on 12 September, and `v0.6.1` the same day** once the defect
+work landed after it.
 
-**Done, 12 September.** An annotated `v0.6.0` exists with dated notes: what is
-in it, the four known-live defects by number, and the four gate counts with the
-two backends they were green on. **It has not been pushed** — that is outward
-facing and it is David's to make public.
+The first tag's notes said the repository carried one number deliberately.
+**`v0.6.1` is the first release where that stops being true, and it should.**
+`package.json` is **0.6.1**; `CORE_VERSION` stays **0.6.0**, because the two
+answer different questions:
+
+- `package.json` says *what shipped*. It moves whenever a release is cut.
+- `CORE_VERSION` says *which Library this is*. It is stamped on every transcript
+  and a run replays only against its own value, so it must move **only** when
+  the lattice moves — and moving it gratuitously would invalidate every recorded
+  run for nothing.
+
+Nothing in the lattice changed between the two tags: `topology`, `content`,
+`probabilities`, the alphabet and the page geometry in `core/vectors.json` are
+byte-identical, and the only addition is the new `volumes` section. A transcript
+stamped 0.6.0 still replays. **So the numbers diverging is the rule working, not
+the rule breaking.**
+
+**Done, 12 September.** `v0.6.0` was tagged and pushed, and then five commits
+of defect work landed after it, so the tagged release did not contain the fixes.
+Rather than force-push over a published tag, **`v0.6.1` was cut**: additive, and
+an honest record of two releases instead of one rewritten one.
 
 ```sh
-git push origin v0.6.0
+git tag -n1            # v0.6.0  the release work;  v0.6.1  the defect work
 ```
 
 The release notes carry the 21a finding rather than just the green ticks,
