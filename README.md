@@ -246,3 +246,6 @@ MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the stor
   what went wrong
 - [`core/RUN.md`](core/RUN.md) — the agent environment, its six gates, and the
   first scored reading by a real model
+- [`docs/SESSION-2026-09-12.md`](docs/SESSION-2026-09-12.md) — one session's
+  work reported against what it set out to do, including the two gates that
+  were written vacuous and passed
