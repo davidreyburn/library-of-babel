@@ -1,0 +1,1015 @@
+{
+ "version": "0.6.0",
+ "model": "qwen",
+ "reader": "local:http://127.0.0.1:8081/v1",
+ "task": "Walk a while, read what you find, and cite anything that seems worth pointing at. Then find somewhere to sit, and report what you went looking for and what you make of it.",
+ "episodes": [
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": 82,
+     "r": -142,
+     "floor": 2,
+     "seed": 5524,
+     "budget": 24,
+     "policy": "local(qwen)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 5,
+       "shelf": 1,
+       "slot": 14
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 1
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": 83,
+       "r": -143,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 0,
+       "shelf": 2,
+       "slot": 30
+      },
+      "refused": null
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": 83,
+       "r": -143,
+       "floor": 2
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 2
+      },
+      "refused": null
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": 83,
+       "r": -144,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 2,
+       "shelf": 2,
+       "slot": 32
+      },
+      "refused": null
+     },
+     {
+      "step": 5,
+      "at": {
+       "q": 83,
+       "r": -144,
+       "floor": 2
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 5, 8620 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "82,-142,2",
+      "83,-143,2",
+      "83,-144,2"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/2/cell/82,-142/wall/5/shelf/1/slot/14",
+      "babel://walk/00001594/floor/2/cell/83,-143/wall/0/shelf/2/slot/30",
+      "babel://walk/00001594/floor/2/cell/83,-144/wall/2/shelf/2/slot/32"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/2/cell/83,-144"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 6,
+    "refusals": 0,
+    "roomsVisited": 3,
+    "volumesOpened": 3,
+    "symbolsRead": 9600,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 3,
+     "walk": 2,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 279,
+      "prompt_tokens": 1550,
+      "total_tokens": 1829,
+      "prompt_tokens_details": {
+       "cached_tokens": 1033
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 143,
+      "prompt_tokens": 3745,
+      "total_tokens": 3888,
+      "prompt_tokens_details": {
+       "cached_tokens": 1546
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 106,
+      "prompt_tokens": 4003,
+      "total_tokens": 4109,
+      "prompt_tokens_details": {
+       "cached_tokens": 3741
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 28,
+      "prompt_tokens": 6207,
+      "total_tokens": 6235,
+      "prompt_tokens_details": {
+       "cached_tokens": 3999
+      }
+     }
+    },
+    {
+     "step": 4,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 121,
+      "prompt_tokens": 6450,
+      "total_tokens": 6571,
+      "prompt_tokens_details": {
+       "cached_tokens": 6203
+      }
+     }
+    },
+    {
+     "step": 5,
+     "finish_reason": "out_of_context",
+     "tokens": "8620"
+    }
+   ]
+  },
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": -98,
+     "r": -151,
+     "floor": 1,
+     "seed": 5524,
+     "budget": 24,
+     "policy": "local(qwen)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": -98,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 3,
+       "shelf": 1,
+       "slot": 11
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": -98,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 4
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": -99,
+       "r": -150,
+       "floor": 1
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 0,
+       "shelf": 4,
+       "slot": 8
+      },
+      "refused": null
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": -99,
+       "r": -150,
+       "floor": 1
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 5
+      },
+      "refused": null
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": -99,
+       "r": -149,
+       "floor": 1
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 4,
+       "shelf": 0,
+       "slot": 22
+      },
+      "refused": null
+     },
+     {
+      "step": 5,
+      "at": {
+       "q": -99,
+       "r": -149,
+       "floor": 1
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 5, 8682 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "-98,-151,1",
+      "-99,-150,1",
+      "-99,-149,1"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/1/cell/-98,-151/wall/3/shelf/1/slot/11",
+      "babel://walk/00001594/floor/1/cell/-99,-150/wall/0/shelf/4/slot/8",
+      "babel://walk/00001594/floor/1/cell/-99,-149/wall/4/shelf/0/slot/22"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/1/cell/-99,-149"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 6,
+    "refusals": 0,
+    "roomsVisited": 3,
+    "volumesOpened": 3,
+    "symbolsRead": 9600,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 3,
+     "walk": 2,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 384,
+      "prompt_tokens": 1565,
+      "total_tokens": 1949,
+      "prompt_tokens_details": {
+       "cached_tokens": 1033
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 115,
+      "prompt_tokens": 3759,
+      "total_tokens": 3874,
+      "prompt_tokens_details": {
+       "cached_tokens": 1561
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 76,
+      "prompt_tokens": 4016,
+      "total_tokens": 4092,
+      "prompt_tokens_details": {
+       "cached_tokens": 3755
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 28,
+      "prompt_tokens": 6213,
+      "total_tokens": 6241,
+      "prompt_tokens_details": {
+       "cached_tokens": 4012
+      }
+     }
+    },
+    {
+     "step": 4,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 120,
+      "prompt_tokens": 6488,
+      "total_tokens": 6608,
+      "prompt_tokens_details": {
+       "cached_tokens": 6209
+      }
+     }
+    },
+    {
+     "step": 5,
+     "finish_reason": "out_of_context",
+     "tokens": "8682"
+    }
+   ]
+  },
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": 189,
+     "r": -242,
+     "floor": 2,
+     "seed": 5524,
+     "budget": 24,
+     "policy": "local(qwen)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 5,
+       "shelf": 1,
+       "slot": 11
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 5,
+       "shelf": 0,
+       "slot": 27
+      },
+      "refused": "already holding a volume"
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 2,
+       "shelf": 2,
+       "slot": 6
+      },
+      "refused": "already holding a volume"
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 2,
+       "shelf": 2,
+       "slot": 6
+      },
+      "refused": "already holding a volume"
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 4, 10273 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "189,-242,2"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/2/cell/189,-242/wall/5/shelf/1/slot/11"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/2/cell/189,-242"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 5,
+    "refusals": 3,
+    "roomsVisited": 1,
+    "volumesOpened": 1,
+    "symbolsRead": 3200,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 4,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 281,
+      "prompt_tokens": 1535,
+      "total_tokens": 1816,
+      "prompt_tokens_details": {
+       "cached_tokens": 1033
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 134,
+      "prompt_tokens": 3720,
+      "total_tokens": 3854,
+      "prompt_tokens_details": {
+       "cached_tokens": 1531
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 100,
+      "prompt_tokens": 5905,
+      "total_tokens": 6005,
+      "prompt_tokens_details": {
+       "cached_tokens": 3716
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 99,
+      "prompt_tokens": 8089,
+      "total_tokens": 8188,
+      "prompt_tokens_details": {
+       "cached_tokens": 5901
+      }
+     }
+    },
+    {
+     "step": 4,
+     "finish_reason": "out_of_context",
+     "tokens": "10273"
+    }
+   ]
+  },
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": 87,
+     "r": -48,
+     "floor": 0,
+     "seed": 5524,
+     "budget": 24,
+     "policy": "local(qwen)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": 87,
+       "r": -48,
+       "floor": 0
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 2,
+       "shelf": 0,
+       "slot": 25
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": 87,
+       "r": -48,
+       "floor": 0
+      },
+      "action": {
+       "kind": "shelve"
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": 87,
+       "r": -48,
+       "floor": 0
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 2,
+       "shelf": 3,
+       "slot": 23
+      },
+      "refused": null
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": 87,
+       "r": -48,
+       "floor": 0
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 5,
+       "shelf": 1,
+       "slot": 33
+      },
+      "refused": "already holding a volume"
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": 87,
+       "r": -48,
+       "floor": 0
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 4, 8306 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "87,-48,0"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/0/cell/87,-48/wall/2/shelf/0/slot/25",
+      "babel://walk/00001594/floor/0/cell/87,-48/wall/2/shelf/3/slot/23"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/0/cell/87,-48"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 5,
+    "refusals": 1,
+    "roomsVisited": 1,
+    "volumesOpened": 2,
+    "symbolsRead": 6400,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 3,
+     "shelve": 1,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 224,
+      "prompt_tokens": 1533,
+      "total_tokens": 1757,
+      "prompt_tokens_details": {
+       "cached_tokens": 1033
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 112,
+      "prompt_tokens": 3712,
+      "total_tokens": 3824,
+      "prompt_tokens_details": {
+       "cached_tokens": 1529
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 90,
+      "prompt_tokens": 3926,
+      "total_tokens": 4016,
+      "prompt_tokens_details": {
+       "cached_tokens": 3708
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 125,
+      "prompt_tokens": 6116,
+      "total_tokens": 6241,
+      "prompt_tokens_details": {
+       "cached_tokens": 3922
+      }
+     }
+    },
+    {
+     "step": 4,
+     "finish_reason": "out_of_context",
+     "tokens": "8306"
+    }
+   ]
+  },
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": 249,
+     "r": 219,
+     "floor": 2,
+     "seed": 5524,
+     "budget": 24,
+     "policy": "local(qwen)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": 249,
+       "r": 219,
+       "floor": 2
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 2
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": 249,
+       "r": 218,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 3,
+       "shelf": 4,
+       "slot": 32
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": 249,
+       "r": 218,
+       "floor": 2
+      },
+      "action": {
+       "kind": "shelve"
+      },
+      "refused": null
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": 249,
+       "r": 218,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 0,
+       "shelf": 0,
+       "slot": 26
+      },
+      "refused": null
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": 249,
+       "r": 218,
+       "floor": 2
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 5
+      },
+      "refused": null
+     },
+     {
+      "step": 5,
+      "at": {
+       "q": 249,
+       "r": 220,
+       "floor": 3
+      },
+      "action": {
+       "kind": "pull",
+       "wall": 4,
+       "shelf": 1,
+       "slot": 0
+      },
+      "refused": null
+     },
+     {
+      "step": 6,
+      "at": {
+       "q": 249,
+       "r": 220,
+       "floor": 3
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 6, 8877 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "249,219,2",
+      "249,218,2",
+      "249,220,3"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/2/cell/249,218/wall/3/shelf/4/slot/32",
+      "babel://walk/00001594/floor/2/cell/249,218/wall/0/shelf/0/slot/26",
+      "babel://walk/00001594/floor/3/cell/249,220/wall/4/shelf/1/slot/0"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/3/cell/249,220"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 7,
+    "refusals": 0,
+    "roomsVisited": 3,
+    "volumesOpened": 3,
+    "symbolsRead": 9600,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "walk": 2,
+     "pull": 3,
+     "shelve": 1,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 184,
+      "prompt_tokens": 1452,
+      "total_tokens": 1636,
+      "prompt_tokens_details": {
+       "cached_tokens": 1033
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 119,
+      "prompt_tokens": 1725,
+      "total_tokens": 1844,
+      "prompt_tokens_details": {
+       "cached_tokens": 1448
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 64,
+      "prompt_tokens": 3943,
+      "total_tokens": 4007,
+      "prompt_tokens_details": {
+       "cached_tokens": 1721
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 102,
+      "prompt_tokens": 4204,
+      "total_tokens": 4306,
+      "prompt_tokens_details": {
+       "cached_tokens": 3939
+      }
+     }
+    },
+    {
+     "step": 4,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 137,
+      "prompt_tokens": 6408,
+      "total_tokens": 6545,
+      "prompt_tokens_details": {
+       "cached_tokens": 4200
+      }
+     }
+    },
+    {
+     "step": 5,
+     "model": "/Volumes/EXT/models/models/llm/qwen3.5-4b/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 90,
+      "prompt_tokens": 6680,
+      "total_tokens": 6770,
+      "prompt_tokens_details": {
+       "cached_tokens": 6404
+      }
+     }
+    },
+    {
+     "step": 6,
+     "finish_reason": "out_of_context",
+     "tokens": "8877"
+    }
+   ]
+  }
+ ]
+}

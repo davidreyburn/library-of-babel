@@ -852,7 +852,7 @@ it was visible enough to report, not where it was happening.
 
 **Renderer 1.0.0 → 1.1.0.**
 
-### 5. Rung 6 with a real policy — **first number taken; distribution still open**
+### 5. Rung 6 with a real policy — **now runs with no key; the first local reading found the task's floor**
 
 Done: `modelPolicy` puts a language model at the same `actions()`/`apply()`
 pair the fuzzer uses, `runEpisodeAsync` runs it, and `agent-play.mjs` gets the
@@ -889,12 +889,44 @@ episodes per policy, budget 70, 8 citations attempted:
 2,943 claims checked against the corpus, 17,504,000 symbols read, and no key or
 install needed for any of it. **The model row is the only missing one.**
 
-**Still open, and now cheap:**
-- **A distribution.** `node core/run-model.mjs --n 20 --baselines` puts a model
-  row beside `honest` / `fabricator:3` / `adversary` on identical start points.
-  Needs `ANTHROPIC_API_KEY` (or `ant auth login`) and
-  `npm install @anthropic-ai/sdk` — the only thing in this repository that
-  needs either.
+**Rung 6 no longer needs an account.** `core/policy-local.mjs` puts the same
+reader loop against an **OpenAI-compatible endpoint on this machine** — the same
+seam, the same brief, the same grammar, the same oracle, the same start points.
+It talks plain `fetch`, so it needs **no dependency at all**, which makes it the
+only rung 6 path that keeps this repository's dependency-free promise:
+
+```sh
+node core/run-model.mjs --local --model qwen --n 5 --baselines
+```
+
+**First local reading, and it is a finding about the task rather than the
+reader.** Qwen3.5-4B, 5 excursions, budget 24:
+
+| | |
+|---|---|
+| claims made | **0** |
+| excursions ending out of context | **5 of 5** |
+| step at which the window ran out | 4–7 |
+| tokens at exhaustion | 8,306 – 10,273 against an 8,192 window |
+| volumes opened first | 1–3 |
+
+**Integrity is undefined, not good.** It made no checkable claim at all, and the
+reason is not modesty — every episode died on its context window after three or
+four pages. A page is 3,200 symbols, and the transcript carries every page the
+reader has opened. **So this task has a floor: a reader that cannot hold three
+pages cannot play it**, and that floor is somewhere above an 8K window. A reader
+that quits at step 5 must be read with its step count beside its integrity or it
+looks careful.
+
+That is why `--local` treats context exhaustion as an ending with a named cause
+rather than an exception — the failure is the measurement.
+
+**Still open:**
+- **A distribution from a reader that can finish.** Running against
+  `--model gemma` (256K context) is the next number, and needs no key either.
+  With a key, `node core/run-model.mjs --n 20 --baselines` puts a frontier row
+  beside the synthetic ones; that path still needs `ANTHROPIC_API_KEY` (or
+  `ant auth login`) and `npm install @anthropic-ai/sdk`.
 - **The assisted/unassisted gap.** The skill tells a reader to run `verify`
   before claiming. The number above is what happens when it does not. The
   difference between the two is the value of the discipline, and nobody has

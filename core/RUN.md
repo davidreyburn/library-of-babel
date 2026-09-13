@@ -68,6 +68,7 @@ that cite must construct the claim themselves, which is exactly the behaviour un
 | `adversary(route)` | names its own coordinates, mostly wrong. The only policy that reaches the refusal paths, because the menu never offers an illegal move. |
 | `transcript(t)` | a recorded run, replayed. The regression suite and the debugger. |
 | `model(id)` | **rung 6.** A real language model, one tool call per step, over the network. Not reproducible from a seed — see below. |
+| `local(id)` | the same, against an **OpenAI-compatible endpoint on this machine**. No key, no install, no network — plain `fetch`, so it is the one rung 6 path that keeps the repository's dependency-free promise. `core/policy-local.mjs`. |
 
 ## Rung 6 — a real reader
 
@@ -163,6 +164,30 @@ node core/harness.mjs --n 500 --budget 90               more, deeper
 node core/harness.mjs --policy honest,fabricator:3      an A/B on identical seeds
 node core/harness.mjs --policy honest --save runs.json  record the transcripts
 ```
+
+A real reader, with a key:
+
+```
+node core/run-model.mjs --n 5 --baselines               costs money; start at --n 1
+```
+
+A real reader with **no key and no install**, against a local endpoint:
+
+```
+node core/run-model.mjs --local --model qwen --n 5 --baselines
+node core/run-model.mjs --local --model gemma --n 3 --budget 20
+node core/run-model.mjs --local --base-url http://host:8081/v1 --model x
+```
+
+`--local` changes the reader and nothing else: same seam, same brief, same
+grammar, same oracle, same start points. It defaults to `OPENAI_BASE_URL` or
+`http://127.0.0.1:8081/v1`.
+
+**A small context window is a way to fail this task, and it is recorded rather
+than thrown.** A page of this corpus is 3,200 symbols; a reader whose window
+cannot hold three of them ends its excursion with `(the reader ran out of
+context at step N)` and whatever claims it had already made. Read the step count
+beside the integrity or a reader that quit early reads as a careful one.
 
 Every policy sees the same start points and the same seeds, so two rows differ only by
 the thing being tested.

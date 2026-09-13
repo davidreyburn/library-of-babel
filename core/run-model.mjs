@@ -23,6 +23,7 @@ import { uhash, u32, CORE_VERSION } from "./babel-core.mjs";
 import { runEpisode, runEpisodeAsync, score,
          honestReader, fabricator, adversary } from "./babel-run.mjs";
 import { modelPolicy, DEFAULT_TASK } from "./policy-model.mjs";
+import { localPolicy, DEFAULT_BASE } from "./policy-local.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
@@ -37,6 +38,13 @@ const EFFORT   = arg("effort", null);
 const TASK     = arg("task", DEFAULT_TASK);
 const SAVE     = arg("save", null);
 const QUIET    = has("quiet");
+/* --local swaps the reader for an OpenAI-compatible endpoint and nothing
+   else: same seam, same brief, same grammar, same oracle. No key, no
+   install, no network. See core/policy-local.mjs for what that does and
+   does not license you to conclude. */
+const LOCAL    = has("local");
+const BASE_URL = arg("base-url", DEFAULT_BASE);
+const MODEL_ID = LOCAL && !argv.includes("--model") ? "qwen" : MODEL;
 
 /* The same start points harness.mjs uses, so a model row and a baseline
    row differ by the reader and nothing else. */
@@ -63,6 +71,7 @@ const kept = [];
 const rows = [];
 
 console.log(`\ncore ${CORE_VERSION}   ${N} excursion${N === 1 ? "" : "s"}, budget ${BUDGET} steps` +
+            (LOCAL ? `\nreader: ${MODEL_ID} at ${BASE_URL}  (local, no key)` : `\nreader: ${MODEL_ID}`) +
             `\ntask: ${TASK}\n`);
 
 /* --- the model ------------------------------------------------------- */
@@ -70,8 +79,8 @@ const a = agg();
 let tokensIn = 0, tokensOut = 0, cacheRead = 0;
 for (let e = 0; e < N; e++){
   const at = startPoint(e + 1);
-  const policy = modelPolicy({
-    model: MODEL, task: TASK, effort: EFFORT,
+  const policy = (LOCAL ? localPolicy : modelPolicy)({
+    model: MODEL_ID, task: TASK, effort: EFFORT, baseUrl: BASE_URL,
     onStep: QUIET ? null : ({ step, action }) => {
       if (action) process.stderr.write(`  ${String(e + 1).padStart(3)}.${String(step).padStart(2)} ${action.kind}\n`);
     }
@@ -83,7 +92,10 @@ for (let e = 0; e < N; e++){
        deserves the one line that fixes it, not a stack trace through the
        episode loop. Anything else is a real failure and keeps its trace. */
     const msg = String(err?.message ?? err);
-    if (/@anthropic-ai\/sdk/.test(msg)) die(msg);
+    if (/@anthropic-ai\/sdk/.test(msg)) die(msg +
+      "\n\nOr read locally instead, with no key and no install:\n" +
+      "  node core/run-model.mjs --local --model qwen --n 5");
+    if (/local endpoint/.test(msg)) die(msg);
     if (/api.?key|authenticat|credential/i.test(msg))
       die(`no credential: set ANTHROPIC_API_KEY, or run \`ant auth login\`.\n  (${msg})`);
     throw err;
@@ -91,8 +103,11 @@ for (let e = 0; e < N; e++){
   const m = score(t);
   fold(a, m);
   for (const l of policy.log){
-    tokensIn += l.usage?.input_tokens ?? 0;
-    tokensOut += l.usage?.output_tokens ?? 0;
+    /* Anthropic names these input_tokens/output_tokens; an OpenAI-compatible
+       endpoint names them prompt_tokens/completion_tokens. Read both, or a
+       local run reports a confident zero. */
+    tokensIn += l.usage?.input_tokens ?? l.usage?.prompt_tokens ?? 0;
+    tokensOut += l.usage?.output_tokens ?? l.usage?.completion_tokens ?? 0;
     cacheRead += l.usage?.cache_read_input_tokens ?? 0;
   }
   kept.push({ transcript: t, score: m, log: policy.log });
@@ -100,7 +115,7 @@ for (let e = 0; e < N; e++){
     console.log(`  ${e + 1}/${N}  integrity ${m.integrity === null ? " -- " : m.integrity.toFixed(3)}` +
                 `  ${m.accurate}/${m.claims} verified  ${m.roomsVisited} rooms  ${m.ending}`);
 }
-rows.push({ spec: `model:${MODEL}`, ...a, integrity: a.claims ? a.accurate / a.claims : null });
+rows.push({ spec: `${LOCAL ? "local" : "model"}:${MODEL_ID}`, ...a, integrity: a.claims ? a.accurate / a.claims : null });
 
 /* --- the baselines, on the same start points -------------------------- */
 if (has("baselines")){
@@ -138,7 +153,8 @@ console.log(`\n  tokens: ${tokensIn.toLocaleString()} in, ${cacheRead.toLocaleSt
 
 if (SAVE){
   mkdirSync(dirname(SAVE), { recursive: true });
-  writeFileSync(SAVE, JSON.stringify({ version: CORE_VERSION, model: MODEL, task: TASK,
+  writeFileSync(SAVE, JSON.stringify({ version: CORE_VERSION, model: MODEL_ID,
+                                      reader: LOCAL ? `local:${BASE_URL}` : "anthropic", task: TASK,
                                        episodes: kept }, null, 1) + "\n");
   console.log(`  ${kept.length} transcripts written to ${SAVE}`);
 }
