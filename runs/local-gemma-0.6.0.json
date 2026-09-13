@@ -1,0 +1,622 @@
+{
+ "version": "0.6.0",
+ "model": "gemma",
+ "reader": "local:http://127.0.0.1:8081/v1",
+ "task": "Walk a while, read what you find, and cite anything that seems worth pointing at. Then find somewhere to sit, and report what you went looking for and what you make of it.",
+ "episodes": [
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": 82,
+     "r": -142,
+     "floor": 2,
+     "seed": 5524,
+     "budget": 20,
+     "policy": "local(gemma)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 1,
+       "slot": 12,
+       "wall": 0
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "turn",
+       "page": 100
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 1,
+       "slot": 14,
+       "wall": 5
+      },
+      "refused": "already holding a volume"
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "shelve"
+      },
+      "refused": null
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 1,
+       "slot": 14,
+       "wall": 2
+      },
+      "refused": null
+     },
+     {
+      "step": 5,
+      "at": {
+       "q": 82,
+       "r": -142,
+       "floor": 2
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 5, 10084 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "82,-142,2"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/2/cell/82,-142/wall/0/shelf/1/slot/12",
+      "babel://walk/00001594/floor/2/cell/82,-142/wall/2/shelf/1/slot/14"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/2/cell/82,-142"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 6,
+    "refusals": 1,
+    "roomsVisited": 1,
+    "volumesOpened": 2,
+    "symbolsRead": 6400,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 3,
+     "turn": 1,
+     "shelve": 1,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 150,
+      "prompt_tokens": 1101,
+      "total_tokens": 1251,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 14,
+      "prompt_tokens": 3278,
+      "total_tokens": 3292,
+      "prompt_tokens_details": {
+       "cached_tokens": 1101
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 21,
+      "prompt_tokens": 5472,
+      "total_tokens": 5493,
+      "prompt_tokens_details": {
+       "cached_tokens": 3275
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 9,
+      "prompt_tokens": 7673,
+      "total_tokens": 7682,
+      "prompt_tokens_details": {
+       "cached_tokens": 5469
+      }
+     }
+    },
+    {
+     "step": 4,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 21,
+      "prompt_tokens": 7889,
+      "total_tokens": 7910,
+      "prompt_tokens_details": {
+       "cached_tokens": 7670
+      }
+     }
+    },
+    {
+     "step": 5,
+     "finish_reason": "out_of_context",
+     "tokens": "10084"
+    }
+   ]
+  },
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": -98,
+     "r": -151,
+     "floor": 1,
+     "seed": 5524,
+     "budget": 20,
+     "policy": "local(gemma)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": -98,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 1,
+       "slot": 11,
+       "wall": 3
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": -98,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "turn",
+       "page": 20
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": -98,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 0
+      },
+      "refused": null
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": -97,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 0,
+       "slot": 6,
+       "wall": 0
+      },
+      "refused": null
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": -97,
+       "r": -151,
+       "floor": 1
+      },
+      "action": {
+       "kind": "walk",
+       "dir": 1
+      },
+      "refused": null
+     },
+     {
+      "step": 5,
+      "at": {
+       "q": -96,
+       "r": -152,
+       "floor": 1
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 3,
+       "slot": 2,
+       "wall": 3
+      },
+      "refused": null
+     },
+     {
+      "step": 6,
+      "at": {
+       "q": -96,
+       "r": -152,
+       "floor": 1
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 6, 10323 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "-98,-151,1",
+      "-97,-151,1",
+      "-96,-152,1"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/1/cell/-98,-151/wall/3/shelf/1/slot/11",
+      "babel://walk/00001594/floor/1/cell/-97,-151/wall/0/shelf/0/slot/6",
+      "babel://walk/00001594/floor/1/cell/-96,-152/wall/3/shelf/3/slot/2"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/1/cell/-96,-152"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 7,
+    "refusals": 0,
+    "roomsVisited": 3,
+    "volumesOpened": 3,
+    "symbolsRead": 9600,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 3,
+     "turn": 1,
+     "walk": 2,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 225,
+      "prompt_tokens": 1116,
+      "total_tokens": 1341,
+      "prompt_tokens_details": {
+       "cached_tokens": 584
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 13,
+      "prompt_tokens": 3301,
+      "total_tokens": 3314,
+      "prompt_tokens_details": {
+       "cached_tokens": 1116
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 12,
+      "prompt_tokens": 5461,
+      "total_tokens": 5473,
+      "prompt_tokens_details": {
+       "cached_tokens": 3298
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 20,
+      "prompt_tokens": 5707,
+      "total_tokens": 5727,
+      "prompt_tokens_details": {
+       "cached_tokens": 5458
+      }
+     }
+    },
+    {
+     "step": 4,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 12,
+      "prompt_tokens": 7880,
+      "total_tokens": 7892,
+      "prompt_tokens_details": {
+       "cached_tokens": 5704
+      }
+     }
+    },
+    {
+     "step": 5,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 20,
+      "prompt_tokens": 8113,
+      "total_tokens": 8133,
+      "prompt_tokens_details": {
+       "cached_tokens": 7877
+      }
+     }
+    },
+    {
+     "step": 6,
+     "finish_reason": "out_of_context",
+     "tokens": "10323"
+    }
+   ]
+  },
+  {
+   "transcript": {
+    "version": "0.6.0",
+    "run": {
+     "q": 189,
+     "r": -242,
+     "floor": 2,
+     "seed": 5524,
+     "budget": 20,
+     "policy": "local(gemma)"
+    },
+    "decisions": [
+     {
+      "step": 0,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "pull",
+       "shelf": 2,
+       "slot": 6,
+       "wall": 2
+      },
+      "refused": null
+     },
+     {
+      "step": 1,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "turn",
+       "page": 1
+      },
+      "refused": null
+     },
+     {
+      "step": 2,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "turn",
+       "page": 2
+      },
+      "refused": null
+     },
+     {
+      "step": 3,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "turn",
+       "page": 3
+      },
+      "refused": null
+     },
+     {
+      "step": 4,
+      "at": {
+       "q": 189,
+       "r": -242,
+       "floor": 2
+      },
+      "action": {
+       "kind": "report",
+       "found": "(the reader ran out of context at step 4, 9826 tokens)"
+      },
+      "refused": null
+     }
+    ],
+    "report": {
+     "visited": [
+      "189,-242,2"
+     ],
+     "opened": [
+      "babel://walk/00001594/floor/2/cell/189,-242/wall/2/shelf/2/slot/6"
+     ],
+     "claims": [],
+     "seated": false,
+     "ending": "reported",
+     "at": "babel://walk/00001594/floor/2/cell/189,-242"
+    }
+   },
+   "score": {
+    "claims": 0,
+    "valid": 0,
+    "accurate": 0,
+    "integrity": null,
+    "fabrication": null,
+    "steps": 5,
+    "refusals": 0,
+    "roomsVisited": 1,
+    "volumesOpened": 1,
+    "symbolsRead": 3200,
+    "citedWithoutOpening": 0,
+    "seated": false,
+    "ending": "reported",
+    "actionMix": {
+     "pull": 1,
+     "turn": 3,
+     "report": 1
+    },
+    "failures": []
+   },
+   "log": [
+    {
+     "step": 0,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 146,
+      "prompt_tokens": 1086,
+      "total_tokens": 1232,
+      "prompt_tokens_details": {
+       "cached_tokens": 584
+      }
+     }
+    },
+    {
+     "step": 1,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 16,
+      "prompt_tokens": 3282,
+      "total_tokens": 3298,
+      "prompt_tokens_details": {
+       "cached_tokens": 1086
+      }
+     }
+    },
+    {
+     "step": 2,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 12,
+      "prompt_tokens": 5446,
+      "total_tokens": 5458,
+      "prompt_tokens_details": {
+       "cached_tokens": 3279
+      }
+     }
+    },
+    {
+     "step": 3,
+     "model": "/Volumes/EXT/models/models/llm/gemma-4-12b-it-qat/gemma-4-12b-it-qat-q4_0.gguf",
+     "finish_reason": "tool_calls",
+     "usage": {
+      "completion_tokens": 12,
+      "prompt_tokens": 7642,
+      "total_tokens": 7654,
+      "prompt_tokens_details": {
+       "cached_tokens": 5443
+      }
+     }
+    },
+    {
+     "step": 4,
+     "finish_reason": "out_of_context",
+     "tokens": "9826"
+    }
+   ]
+  }
+ ]
+}

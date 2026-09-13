@@ -852,7 +852,7 @@ it was visible enough to report, not where it was happening.
 
 **Renderer 1.0.0 → 1.1.0.**
 
-### 5. Rung 6 with a real policy — **now runs with no key; the first local reading found the task's floor**
+### 5. Rung 6 with a real policy — **now runs with no key; both local readings hit a context floor**
 
 Done: `modelPolicy` puts a language model at the same `actions()`/`apply()`
 pair the fuzzer uses, `runEpisodeAsync` runs it, and `agent-play.mjs` gets the
@@ -899,34 +899,42 @@ only rung 6 path that keeps this repository's dependency-free promise:
 node core/run-model.mjs --local --model qwen --n 5 --baselines
 ```
 
-**First local reading, and it is a finding about the task rather than the
-reader.** Qwen3.5-4B, 5 excursions, budget 24:
+**Both local readings found the same wall, and it is not the reader.**
 
-| | |
-|---|---|
-| claims made | **0** |
-| excursions ending out of context | **5 of 5** |
-| step at which the window ran out | 4–7 |
-| tokens at exhaustion | 8,306 – 10,273 against an 8,192 window |
-| volumes opened first | 1–3 |
+| reader | excursions | claims | ended out of context | pages held | tokens at exhaustion |
+|---|---|---|---|---|---|
+| Qwen3.5-4B | 5 | **0** | **5 of 5**, step 4–7 | 3–4 | 8,306 – 10,273 |
+| Gemma 4 12B | 3 | **0** | **3 of 3**, step 4–6 | 4 | 9,826 – 10,323 |
 
-**Integrity is undefined, not good.** It made no checkable claim at all, and the
-reason is not modesty — every episode died on its context window after three or
-four pages. A page is 3,200 symbols, and the transcript carries every page the
-reader has opened. **So this task has a floor: a reader that cannot hold three
-pages cannot play it**, and that floor is somewhere above an 8K window. A reader
-that quits at step 5 must be read with its step count beside its integrity or it
-looks careful.
+**Integrity is undefined, not good.** Neither made a checkable claim, and not out
+of modesty: every episode died on its context window after three or four pages.
 
-That is why `--local` treats context exhaustion as an ending with a named cause
-rather than an exception — the failure is the measurement.
+**Gemma has a 256K context and it made no difference, because the server does
+not serve it.** `~/.llama-swap/config.yaml` runs both models with `-c 8192`, so
+the model's ceiling and the endpoint's are different numbers and only the second
+one matters. Diagnosing that took one `grep`; assuming the guide's capability
+table was the effective limit cost a two-hour run.
+
+**A page costs about 2,500–2,800 tokens** of transcript, measured over eight
+episodes. So the task's floor is arithmetic: an excursion that opens *n* pages
+needs roughly `2,000 + 2,650n` tokens, and an 8K window buys **three pages**
+before the reader is finished, whatever it is.
+
+**What this does and does not say.** It says the environment has a context floor
+and names it. It says nothing about whether either model cites honestly, because
+neither got far enough to cite. A reader that quits at step 5 must be read with
+its step count beside its integrity or it looks careful — which is why `--local`
+records context exhaustion as an ending with a named cause rather than throwing.
 
 **Still open:**
-- **A distribution from a reader that can finish.** Running against
-  `--model gemma` (256K context) is the next number, and needs no key either.
-  With a key, `node core/run-model.mjs --n 20 --baselines` puts a frontier row
-  beside the synthetic ones; that path still needs `ANTHROPIC_API_KEY` (or
-  `ant auth login`) and `npm install @anthropic-ai/sdk`.
+- **A reader that can finish.** `-c 32768` on the local endpoint would hold
+  about eleven pages, which is a 24-step excursion. That is a change to the
+  machine's own config (`[serve]` in `local-ai/machines/mac-mini.toml`, then
+  `local-ai-setup serve`), not to this repository, and it is David's to make.
+- **A frontier row.** `node core/run-model.mjs --n 20 --baselines` still needs
+  `ANTHROPIC_API_KEY` (or `ant auth login`) and `npm install @anthropic-ai/sdk`.
+- **The assisted/unassisted gap**, which needs a reader that reaches the point
+  of citing at all.
 - **The assisted/unassisted gap.** The skill tells a reader to run `verify`
   before claiming. The number above is what happens when it does not. The
   difference between the two is the value of the discipline, and nobody has
