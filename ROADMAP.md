@@ -32,8 +32,8 @@ the missing piece — it is [R1](#r1-the-page-gate-reads-geterror-on-two-backend
 and it is the last thing between here and a release. Nothing else in this
 document is portability work, which is itself the reason it went unnoticed.
 
-Green: **179 core assertions**, **57 gates**, **29 in the browser on two named
-backends**, 500 GPU integers, build current
+Green: **179 core assertions**, **57 gates**, **33 in the browser on two named
+backends**, 704 GPU integers, build current
 against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
 

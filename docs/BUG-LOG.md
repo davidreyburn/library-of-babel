@@ -2034,6 +2034,55 @@ the JS. It is still two spellings — `babel-glsl.mjs` writes it in GLSL,
 into the shader by hand, and that every lane of it is now compared on the GPU
 against the CPU, including one field nothing could check before.
 
+### 25. Every reading room announced itself as a gallery
+
+*Found by taking a screenshot. Not by a test, not by a gate, and not by
+anybody reading the code — by looking at a picture of a recliner captioned
+"A gallery with 3 shelved walls, 0 volumes".*
+
+**The sentence contradicted itself**, which is what made it obvious once seen: a
+gallery with shelved walls has books, and this one reported none.
+
+`hud()` asked **`cellType(q, r)`**. That is a function of the column and cannot
+see the floor. 0.6.0 moved reading rooms off their columns — `studyAt(q, r, fl)`
+decides per storey, which is the fix the atlas earned its place by revealing —
+and from that moment **`cellType` never returned `TYPE.STUDY` again**. Checked
+over 693 reading rooms across five storeys: it answers "gallery" for **100% of
+them**.
+
+So the study branch of the room sentence was dead code, every reading room fell
+through to the gallery branch, and two different sources of truth ended up in one
+sentence: `shelved` counted walls with no doorway (a geometric fact, meaningless
+in a room with no cases), while `volumesIn(q, r, fl)` asked the core properly and
+correctly returned 0.
+
+**The renderer was never wrong.** `mapAt` gates on the packed study bit — bit 23,
+the one `cellDesc` sets precisely so the shader never has to ask twice — returns
+early, and draws furniture with no shelving. The room in the picture is correct.
+Only the caption was.
+
+**One word:** `cellType(q, r)` → `roomAt(q, r, fl)`. The other three branches are
+untouched, because shafts, stairwells and corridors are still decided per column
+and `roomAt` returns for them exactly what `cellType` did.
+
+**Why nothing caught it.** `pagecheck` asserted the room sentence was non-empty
+and contained a digit. *"A gallery with 3 shelved walls, 0 volumes"* satisfies
+both, enthusiastically. The gate was testing that a sentence existed, not that it
+was true.
+
+Three assertions now stand where that one did: the gate walks into the first
+reading room it can find — searched for rather than hard-coded, so it survives
+the lattice moving again — and requires the panel to call it a reading room, to
+claim no shelved walls, and to name every piece `studyVisible` says survived the
+doorway culling. With the one line put back, all three fail and nothing else
+does. **29 browser assertions → 33.**
+
+**The lesson is the one §9 already taught and this repository keeps having to
+relearn.** Every gate here checked that the page was *self-consistent*. None
+checked that what it said was *so*. The defect survived a release, a tag, and two
+sessions of work on the very file it lived in, and was found because somebody
+asked for a picture of a chair.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every

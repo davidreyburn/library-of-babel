@@ -5019,7 +5019,17 @@ function hud(){
   if (key === lastKey) return;
   lastKey = key;
 
-  const t = cellType(q, r);
+  /* roomAt, not cellType. cellType is a function of (q, r) and cannot see
+     the floor; since 0.6.0 moved reading rooms off their columns it never
+     returns TYPE.STUDY at all, so the study branch below was dead code and
+     every reading room fell through to the gallery sentence -- reported as
+     "A gallery with 3 shelved walls, 0 volumes" while you stood in front of
+     a recliner. The shader was never wrong: it gates on the packed study
+     bit and draws no shelving. Only this sentence was.
+     The other three branches are unaffected: shafts, stairwells and
+     corridors are still decided per column, so roomAt returns for them what
+     cellType did. */
+  const t = roomAt(q, r, fl);
   let shelved = 0;
   const chips = [];
   for (let i = 0; i < 6; i++){

@@ -10,8 +10,9 @@ console.log(`
     core/conformance.html   the GPU agrees with the CPU about the lattice
     core/pagecheck.html     the pages actually work -- they boot, the panel
                             fills, the keys do something, something is on
-                            the canvas, nothing threw, and no draw call was
-                            rejected
+                            the canvas, the room sentence names the room you
+                            are standing in, nothing threw, and no draw call
+                            was rejected
 
   npm start, then open them. pagecheck's first run links the shader, which
   takes about a minute and a half on a machine that has not seen it.
@@ -20,6 +21,6 @@ console.log(`
   backend -- Chrome takes --use-angle=<metal|gl|swiftshader>, each with its
   own --user-data-dir. This is not belt-and-braces. Bug log 21a put the bug
   back and measured it: on a permissive driver the error queue is empty, the
-  canvas is not blank, and all 29 assertions pass on a page that is broken
+  canvas is not blank, and all 33 assertions pass on a page that is broken
   everywhere else. One machine cannot see this class.
 `);

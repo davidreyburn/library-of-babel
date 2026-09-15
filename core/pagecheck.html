@@ -49,7 +49,7 @@ frame that is off screen gets no rAF, which is most of what is being checked.</p
 <iframe id="atlas"></iframe>
 
 <script type="module">
-import { CORE_VERSION } from "./babel-core.mjs";
+import { CORE_VERSION, G, worldOf, studyAt, studyVisible } from "./babel-core.mjs";
 
 const out = document.getElementById("out");
 let pass = 0, fail = 0;
@@ -227,6 +227,49 @@ section("THE PROTOTYPE -- it has to start, and say where it is");
     ok("? opens the keys", help.hidden !== h0);
     const p0 = perf.hidden; keydown(w, "F1", "F1");
     ok("F1 opens the instruments", perf.hidden !== p0);
+
+    /* ---- the room sentence names the room you are standing in --------
+       The panel asked cellType(q, r), which cannot see the floor. Since
+       0.6.0 put reading rooms on storeys rather than columns, that call
+       never returns STUDY, so every reading room was announced as "A
+       gallery with N shelved walls, 0 volumes" -- a sentence that also
+       contradicts itself, since a gallery with shelved walls has books.
+
+       The assertion that existed could not catch it: it required the
+       sentence to be non-empty and to contain a digit, and the wrong
+       sentence satisfied both. So this one walks into a reading room and
+       demands it be called one.
+
+       The room is searched for rather than hard-coded, so the gate keeps
+       working when the lattice moves -- which is exactly what moved it. */
+    const study = (() => {
+      for (let ring = 0; ring <= 40; ring++)
+        for (let q = -ring; q <= ring; q++)
+          for (let r = -ring; r <= ring; r++){
+            if (Math.max(Math.abs(q), Math.abs(r)) !== ring) continue;
+            for (const f of [0, -1, 1, -2, 2]) if (studyAt(q, r, f)) return { q, r, f };
+          }
+      return null;
+    })();
+    ok("a reading room exists to stand in", study !== null,
+       study ? `${study.q},${study.r} floor ${study.f}` : "none within 40 rings");
+    if (study){
+      const [wx, wz] = worldOf(study.q, study.r);
+      Object.assign(st, { x: wx, z: wz, y: study.f * G.H_FLOOR + G.EYE });
+      w.__render.frame(performance.now());
+      const note = txt("a-note");
+      ok("and standing in it, the panel calls it a reading room",
+         /^A reading room/.test(note), note);
+      /* the sentence used to disagree with itself as well as with the room */
+      ok("and does not claim shelved walls in a room with no books",
+         !/shelved wall/.test(note), note);
+      /* and it names the furniture that is actually there */
+      const kit = studyVisible(study.q, study.r, study.f);
+      const want = ["a recliner", "an end table", "a lamp", "a desk and chair"]
+                     .filter((_, i) => kit & (1 << i));
+      ok("and names every piece the core says survived the doorways",
+         want.every(pc => note.includes(pc)), want.join(", ") || "an empty room");
+    }
 
     ok("the render scale is a real number", st.div >= 1 && st.div <= 4, `1:${st.div}`);
     ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
