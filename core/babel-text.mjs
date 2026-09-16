@@ -127,7 +127,7 @@ const WALK_D0 = WALK_DOMAIN, WALK_D1 = u32(WALK_DOMAIN ^ 0xA5A5A5A5);
 const TEXT_D0 = TEXT_DOMAIN, TEXT_D1 = u32(TEXT_DOMAIN ^ 0xA5A5A5A5);
 
 /* The position is hashed, not used positionally, and that single choice
-   is what stops neighbouring slots from being near-identical twins --
+   is what stops neighboring slots from being near-identical twins --
    the failure mode of every Library that shelves books in index order.
    Consecutive integers have near-identical base-29 expansions; hashing
    first means slot 17 and slot 18 share nothing.
@@ -447,7 +447,7 @@ function findPhrase(phrase, { offset = 0, seed = DEFAULT_SEED } = {}){
  * The third way in, beside walking to a shelf and searching for a phrase:
  * be turned loose. "Look through books until you find text that relates
  * to this, then find a chair and sit" is a job for a reader, not for this
- * module -- whether a page *relates* to anything is a judgement no core
+ * module -- whether a page *relates* to anything is a judgment no core
  * can make. What the core owes such a reader is that every room it passed
  * through and every volume it opened has coordinates someone else can
  * follow, and that the same journey seed always gives the same journey.  */

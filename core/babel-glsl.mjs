@@ -212,10 +212,10 @@ int studyKit(uint key){
   return 7;
 }
 /* Every doorway axis runs through the middle of the room, so keeping a
-   0.55 m corridor clear along each one guarantees the centre is open and
+   0.55 m corridor clear along each one guarantees the center is open and
    any door reaches any other. A piece that would stand in one is dropped
    -- anchoring to a blank wall alone still let a recliner reach across a
-   neighbouring doorway.                                                 */
+   neighboring doorway.                                                 */
 bool clearOfDoors(vec2 pos, float rad, int desc){
   for (int i = 0; i < 6; i++){
     if (((desc >> (i * 2)) & 3) == 0) continue;
@@ -290,7 +290,7 @@ int cellDesc(ivec2 c, int fl){
     packed |= a << 12;
     packed |= (up ? 1 : 0) << 14;
     /* bits 15-16: does each end of the flight open? The overhang that meets
-       a neighbour doorway must not be cut where there is no doorway, or it
+       a neighbor doorway must not be cut where there is no doorway, or it
        runs through the rock (BUG-LOG 19). Resolved here rather than in
        mapAt, which is inlined at eight call sites -- doing it there cost 94
        seconds of link time. Spelled out per axis so every shift is a
@@ -342,7 +342,7 @@ int cellDesc(ivec2 c, int fl){
 
 /* ---- the corpus on the shelf, ported once ---------------------------- *
  * Which slots hold a volume, how far each spine stands proud, and what
- * colour it is. This block exists because it was the LAST hand-written
+ * color it is. This block exists because it was the LAST hand-written
  * twin in the system: `volumePresent` lived in babel-core.mjs and the same
  * arithmetic lived, separately typed, inside the shader's shelving loop.
  * A statistical test guarded it -- 3.52% empty over 1.8 million slots --
@@ -352,7 +352,7 @@ int cellDesc(ivec2 c, int fl){
  *
  * One 32-bit hash carries both facts: the low half decides presence and
  * depth, the high half is the spine's tint. Splitting it is what made the
- * two spellings drift-prone -- the shader took bits 16-31 for a colour the
+ * two spellings drift-prone -- the shader took bits 16-31 for a color the
  * core did not know about at all, so the core could not have checked it.  */
 const VOLUME_GLSL = `
 /* the whole per-slot hash, and the only place the mixing constants appear */

@@ -401,7 +401,7 @@ section("SPINES -- §7");
   ok("letters only (LIB-L-001)", [...lab].every(ch => text.LETTERS.includes(ch)), `"${lab}"`);
   ok("at most 80 characters (LIB-L-002)", lab.length <= 80, `${lab.length} chars`);
   eq("deterministic (LIB-L-004)", text.spineLabel(a), lab);
-  ok("a neighbouring slot gets a different label",
+  ok("a neighboring slot gets a different label",
      text.spineLabel({ ...a, slot: 18 }) !== lab);
   ok("the label does not appear at the head of the pages (LIB-L-004)",
      !text.lineOf(a, 0, 0).startsWith(lab));
@@ -844,7 +844,7 @@ section("ROUTING -- a route is a promise the lattice has to keep");
 
   /* Every move leads somewhere you can stand; and from a room every move
      can be walked back. The exception is the rule made visible: starting
-     inside a stairwell, the neighbours cannot come back *to* it, because
+     inside a stairwell, the neighbors cannot come back *to* it, because
      approaching a stairwell means passing through it to the far side. A
      stairwell is an edge, not a node, and this is what that costs. */
   let checked = 0, stairs = 0, unstandable = 0, fromRoom = 0, roomBad = 0, stairBad = 0;
@@ -1054,7 +1054,7 @@ section("SEAM AND RENDERER -- no cut may run past a wall");
      to. §17 was one such report and nobody could reproduce it.
 
      The cause was geometry, not topology: a flight is cut STAIR_EXT past the
-     cell boundary at each end so it meets the doorway box its neighbour
+     cell boundary at each end so it meets the doorway box its neighbor
      draws, and it was cut past *walled* ends too, straight through the rock.
      31 of 684 approaches walked a body across an edge gapAt calls WALL.
 
@@ -1078,7 +1078,7 @@ section("SEAM AND RENDERER -- no cut may run past a wall");
     const d = core.cellDesc(q, r, 0);          // what the shader actually reads
     if (core.descExtP(d) !== openP || core.descExtM(d) !== openM) wrongBit++;
 
-    /* and the geometry itself: a walled end must not reach the neighbour */
+    /* and the geometry itself: a walled end must not reach the neighbor */
     for (const [open, ext] of [[openP, ep], [openM, em]]){
       const half = core.G.STAIR_RUN + (ext ? core.G.STAIR_EXT : 0);
       if (!open && half > core.G.HALF_D) past++;
@@ -1180,20 +1180,20 @@ section("THE ATLAS -- held to the kit, like everything else");
      redeclared.length ? "redeclared: " + redeclared.join(", ")
                        : tokens.length + " tokens, all from the kit");
 
-  /* the model's own colours are named in its :root and spelled nowhere else --
+  /* the model's own colors are named in its :root and spelled nowhere else --
      the same rule as the chrome, applied to the thing being rendered */
   const css  = (atlas.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1];
   const root = (css.match(/:root\{[\s\S]*?\n\s*\}/) ?? [""])[0];
   const strays = [...css.replace(root, "").matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map(m => m[0]);
   const named  = [...root.matchAll(/--cell-[a-z]+|--model-[a-z]+/g)].length;
-  ok("the model names its colours and spells them once",
+  ok("the model names its colors and spells them once",
      strays.length === 0 && named > 0,
-     strays.length ? "spelled: " + strays.join(", ") : named + " model colours named");
+     strays.length ? "spelled: " + strays.join(", ") : named + " model colors named");
 
-  /* and no colour reaches the shader except through a named custom property */
+  /* and no color reaches the shader except through a named custom property */
   const script = (atlas.match(/<script type="module">([\s\S]*)<\/script>/) ?? ["", ""])[1];
   const jsHex = [...script.matchAll(/["'`]#[0-9a-fA-F]{3,8}["'`]/g)].map(m => m[0]);
-  ok("no colour is spelled in the atlas's script either",
+  ok("no color is spelled in the atlas's script either",
      jsHex.length === 0, jsHex.length ? jsHex.join(", ") : "read from the stylesheet");
 
   /* every key it handles is documented, exactly as the prototype's is */
@@ -1340,7 +1340,7 @@ section("BUDGETS -- the shader's shape, which is what link time tracks");
  *              nowhere -- [ ] Home End -- because help was hand-written
  *              prose. Help is now rendered from BINDINGS, and this fails
  *              if a key is handled but not listed.
- *   TOKENS     the chrome may not use a literal colour. Every one is named
+ *   TOKENS     the chrome may not use a literal color. Every one is named
  *              in :root, so changing the palette is one edit and not a
  *              search. This is what stopped crimson meaning three things.
  */
@@ -1384,20 +1384,20 @@ section("UI KIT -- the standards, as rules");
      html.includes('id="a-core"') && html.includes('id="a-rend"'),
      "core and renderer, from the constants");
 
-  /* the chrome's CSS may name colours but not spell them */
+  /* the chrome's CSS may name colors but not spell them */
   const css = (html.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1];
   const root = (css.match(/:root\{[\s\S]*?\}/) ?? [""])[0];
   const rest = css.replace(root, "");
   const literals = [...rest.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map(m => m[0]);
-  ok("chrome CSS spells no colour it has not named",
+  ok("chrome CSS spells no color it has not named",
      literals.length === 0,
      literals.length ? literals.slice(0, 6).join(" ") + (literals.length > 6 ? " ..." : "")
                      : root.split("--").length - 1 + " tokens, 0 literals");
 
-  /* crimson is the artefact; attention is its own token */
+  /* crimson is the artifact; attention is its own token */
   ok("crimson and alert are separate tokens",
      /--crimson:/.test(root) && /--alert:/.test(root),
-     "an artefact and an alert must not share a colour");
+     "an artifact and an alert must not share a color");
 
   /* the panels the reader asked to open with, and only those */
   const open = [...html.matchAll(/<div id="(addr|perf|help)"[^>]*>/g)]

@@ -25,7 +25,7 @@ Library as described. It grew, over two sessions, into six things:
 | `core/` | one implementation of the lattice and the corpus, shared by the renderer, an agent, and the tests |
 | `core/babel-run.mjs`, `core/RUN.md` | the Library as a decision environment for agents, with an exact citation oracle |
 
-The organising idea, which everything follows from, is in the story: the corpus
+The organizing idea, which everything follows from, is in the story: the corpus
 is every possible book, so nothing can be stored — **a book's address is its
 content**. That single constraint decides the architecture. It also proves the
 catalogue impossible, because an address is exactly as large as the book it
@@ -113,7 +113,7 @@ What belongs here is the shape they had in common.
 
 **In every case the thing that found it was a measurement, not an argument.** A
 GPU harness comparing 500 integers found a lamp lighting from the wrong wall.
-Stubbing a function found that furniture was 60% of a frame. A centre-pixel
+Stubbing a function found that furniture was 60% of a frame. A center-pixel
 read found a targeting ray aiming at the back of the casework. Driving 400
 complete journeys found that a walker which worked by hand arrived one time in
 ten. None of those was visible to inspection, and each probe took minutes.
@@ -202,7 +202,7 @@ that settles the argument.
 **4.3 billion is a small number, and that was the whole problem.** It is about
 thirty times every book ever published. Abandon compute-don't-store and write
 them all out at 778 KiB each and the entire walkable Library came to **3.4
-petabytes** — a large but unremarkable data centre. Worse: 2³² is *enumerable*.
+petabytes** — a large but unremarkable data center. Worse: 2³² is *enumerable*.
 You could iterate every distinct book the Library contained, on a laptop, over a
 weekend. Borges's Library is precisely the thing that cannot be catalogued, and
 that one was a catalogue with a hexagonal front end.
@@ -356,7 +356,7 @@ measuring whether it looks before it moves, and now something does.
 Stated plainly, because it is the transferable part.
 
 1. **Probe the thing, do not reason about it.** The GPU harness found the lamp
-   bug. Stubbing found the furniture cost. A centre-pixel read found the
+   bug. Stubbing found the furniture cost. A center-pixel read found the
    reticule error. Each took minutes; each replaced an argument I would have
    lost.
 2. **Measure before optimising, and stub before measuring.** Three of my
@@ -365,7 +365,7 @@ Stated plainly, because it is the transferable part.
 3. **A silent failure is worse than a loud one.** Pointer lock failing quietly
    cost a session. The fix was not making it work — it cannot work there — but
    making it *say so*.
-4. **Text identity is not behavioural identity.** A byte-identical inlined copy
+4. **Text identity is not behavioral identity.** A byte-identical inlined copy
    still threw in a browser. Tests should run the artifact, not just compare it.
 5. **A mean is the wrong instrument for a stutter.** An fps counter averaged over
    half a second reported 200 while the page felt terrible. The panel now shows
@@ -395,7 +395,7 @@ Stated plainly, because it is the transferable part.
 
 - Claimed pointer lock was refused for cross-origin reasons, without checking.
   Right conclusion, wrong mechanism, asserted too strongly.
-- "Verified" that behaviour with a test whose click never reached the page.
+- "Verified" that behavior with a test whose click never reached the page.
 - Blamed a doubled anchor scan for a 9 ms performance cliff. It cost 0.6 ms.
 - Expected a hoisted distance check to help. It gained 0.02 ms.
 - Corrupted two files during the final cleanup by writing a PowerShell script
@@ -409,7 +409,7 @@ Stated plainly, because it is the transferable part.
   never are, 0 of 234 sampled), and that a per-floor doorway pattern was closing
   behind the walker. Both plausible, both measured, both wrong. The evidence
   that mattered was a value sitting at exactly 0.00 in my own log.
-- Built the auto-walk on cell centres without noticing that adjacent galleries
+- Built the auto-walk on cell centers without noticing that adjacent galleries
   are 4.84 m apart and only 3.64 m wide, so they do not touch. The number was in
   `G` the whole time.
 
@@ -482,7 +482,7 @@ context did.
   and images. About 190 kept lines per prompt.
 - The two most expensive prompts were "go, do both together" ($35.04: the shared
   core, the `babel://` scheme, the agent skill) and "this is a good place to pause
-  and clean up" ($33.83: the case study, the repository, the licence and privacy
+  and clean up" ($33.83: the case study, the repository, the license and privacy
   audit — and the file corruption plus its recovery).
 - The cheapest useful prompts were the steering ones. "run step 0 first, then
   report back" cost $1.60 and set the frame for a four-part implementation. The

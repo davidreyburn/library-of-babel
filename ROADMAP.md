@@ -68,7 +68,7 @@ looking perfect on the one it was written on. One character, and two assertions
 that hold the three numbers together.
 
 *The warp is found and fixed (bug log §19).* A flight's cut runs `STAIR_EXT`
-past the cell boundary at each end to meet the neighbour's doorway — including
+past the cell boundary at each end to meet the neighbor's doorway — including
 past **walled** ends, straight through the rock. That is the stair that climbs
 into a black hole, and it walked bodies across a WALL edge in 31 of 684
 approaches. A flight now extends only at an end that opens, resolved once per
@@ -157,8 +157,8 @@ that wrote the bug. Put §21 back and run both backends:
 
 | | `getError()` | pixels | verdict |
 |---|---|---|---|
-| ANGLE Metal | `INVALID_OPERATION` | 1 colour | **2 of 29 fail** |
-| ANGLE SwiftShader | `NO_ERROR` | 9 colours | **29 of 29 pass** |
+| ANGLE Metal | `INVALID_OPERATION` | 1 color | **2 of 29 fail** |
+| ANGLE SwiftShader | `NO_ERROR` | 9 colors | **29 of 29 pass** |
 
 SwiftShader is the D3D11 case: it serves the over-read as zeroes, which adds
 degenerate triangles at the origin and leaves the lattice **looking entirely
@@ -298,7 +298,7 @@ this repository comes from the content plan, not from the README.
 **Closed by bug log §19, which found a different cause than this item spent
 three entries assuming.** The topology was never the defect. `STAIR_EXT` cuts a
 flight 0.75 m past the cell boundary at each end to meet the doorway box its
-neighbour draws — including past **walled** ends, straight through the rock.
+neighbor draws — including past **walled** ends, straight through the rock.
 That is both the black hole at the top of the stairs and the displacement:
 walking one put a body in the cell behind the wall, 31 times in 684 approaches.
 A flight now extends only at an end that opens. 31 → 0 crossings.
@@ -341,7 +341,7 @@ wearing one coat. None was "a stairwell is dim", which is what it looked like:
 1. **Downward-facing stone had no path to light at all.** Every stairwell lamp
    sits above the flight, so `max(dot(n,L), 0)` gives a soffit nothing; the
    near-vertical stone lift is gated `horiz > 0.80` and an underside's is ~0.01;
-   and `main()` quantises luminance to **six levels**, so below `lum ≈ 0.1`
+   and `main()` quantizes luminance to **six levels**, so below `lum ≈ 0.1`
    everything floors to step 0, and step 0 is `sub * 0.05`. **There is no dim
    setting in this renderer** — a surface is legible or it is a hole. Fixed with
    a floor bounce tapered on `(1 - lum)` so it cannot flatten a lit ceiling,
@@ -351,7 +351,7 @@ wearing one coat. None was "a stairwell is dim", which is what it looked like:
 2. **The remaining patch was a hue difference, not a brightness one.** The wall
    inside a gap measured luma 18.9 against 21.1 beside it — contrast 1.12 — but
    `tint = mix(green, warm, lit)` put it at `lit` 0.17 against a wall at 0.90.
-   Dominant colours 16,21,12 against 24,23,15: a green panel in a warm-grey
+   Dominant colors 16,21,12 against 24,23,15: a green panel in a warm-gray
    wall. Cold end pulled to `vec3(0.94, 1.00, 0.80)`, R/G gap 0.250 → 0.143.
    **A palette deviation from V-01 Verdigris Damp, recorded as one.**
    `?ablate=tintgreen`.
@@ -366,8 +366,8 @@ harness, not shader: it is free** — judged it visually indistinguishable from 
 screenshots, and moved it to a branch. The reporter had been looking at the
 running build while it was live, and it was the version they signed off:
 *"the gaps were finally looking good and you changed them back."* Restored to
-main. Both halves of my reasoning were wrong: the cost was a harness artefact,
-and the judgement that it made no visible difference was mine to make from a
+main. Both halves of my reasoning were wrong: the cost was a harness artifact,
+and the judgment that it made no visible difference was mine to make from a
 screenshot and should not have been. `?ablate=noreveal` switches it off.
 
 Its findings stand either way, and are in bug log §14 — particularly that
@@ -450,7 +450,7 @@ proportional to range (`0.00018 * t + 0.00012`) while `normalCtx` probes a fixed
 track the tolerance (`?ablate=normeps`, rewritten against the shipped tolerance)
 moves 3.45% to **3.35%**. Not the cause.
 
-**Closed on the second of its own two outcomes: the rise is an artefact of the
+**Closed on the second of its own two outcomes: the rise is an artifact of the
 view.** Ten views were chosen by walking the lattice for galleries with four to
 eight open cells in an unbroken run along one axis, so a ray genuinely travels,
 and binned with `?ablate=nydist` at a matched 1280×773. **The share falls from
@@ -519,11 +519,11 @@ is an architectural claim nobody made.
 
 **The clustering half of the complaint is not real, and that is worth writing
 down before somebody chases it.** Over 58,081 cells at 9.79% corridors, the
-mean number of corridor neighbours a corridor has is **0.581 against 0.587
+mean number of corridor neighbors a corridor has is **0.581 against 0.587
 expected** if they were placed independently, and the whole distribution fits
 the binomial:
 
-| corridor neighbours | observed | expected |
+| corridor neighbors | observed | expected |
 |---|---|---|
 | 0 | 3,098 | 3,064 |
 | 1 | 1,957 | 1,994 |
@@ -792,7 +792,7 @@ wanted twice. What the review adds is the size of the prize: **~20% fewer
 **Done when:** the step scale is back at 1.0 with no overshoot, measured by the
 bad-normal share from §13's metric, not by eye.
 
-### 2. A 160 ms worst frame, uncharacterised — **did not reproduce in 6,895 frames**
+### 2. A 160 ms worst frame, uncharacterized — **did not reproduce in 6,895 frames**
 
 Seen on the reporter's own panel while the mean sat at 8.1 ms. This
 repository's own method says a mean is the wrong instrument for a stutter, and
@@ -841,7 +841,7 @@ an over-reporting field steps a ray past the surface. Head-on that is invisible;
 at a grazing angle the ray runs almost parallel to the spines and the same
 0.04 m sweeps a long way along the wall, taking a chunk of cover with it.
 
-**Fixed by evaluating the nearest slot and its two neighbours**, min'd. Three is
+**Fixed by evaluating the nearest slot and its two neighbors**, min'd. Three is
 enough and four is unnecessary: two pitches is 0.104 m, already more than the
 largest depth step. Full working in [bug log §22](docs/BUG-LOG.md).
 
@@ -882,7 +882,7 @@ that knew it was being scored: a ceiling, not a typical case.
 > **That transcript is stamped `0.5.0` and the core is now `0.6.0`, so it no
 > longer replays** — reading rooms moved off their columns and the shaft and
 > stairwell shares changed, which moves the rooms the route passes through.
-> It is kept as the historical artefact it is rather than quietly re-recorded,
+> It is kept as the historical artifact it is rather than quietly re-recorded,
 > because the rule that a run replays only against its own version is the
 > reason the version is stamped on it at all. The distribution below should be
 > taken under 0.6.0 and will supersede it.
@@ -1014,7 +1014,7 @@ carries **51 shelf slots**, and `core/conformance.html` compares four lanes each
 on the GPU: **500 integers → 704**.
 
 **The tint was worse than un-mirrored — it was unknown.** The shader read bits
-16–31 of the same hash for a spine's colour and the core did not know the field
+16–31 of the same hash for a spine's color and the core did not know the field
 existed, so nothing could have checked it even in principle. It has a twin now.
 
 **And the first version of this check was vacuous**, which is recorded in

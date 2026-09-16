@@ -3,13 +3,13 @@
 <link rel="stylesheet" href="../core/ui-kit.css">
 <style>
   /* The model's own palette. These are not chrome: they are the substrate
-     colours the shader multiplies its tone ramp against, the way the
+     colors the shader multiplies its tone ramp against, the way the
      prototype's GLSL owns C_INK. Amber throughout, separated by value
      rather than by hue, because the dither only has six steps to spend and
-     two colours a step apart are two colours nobody can tell apart.
+     two colors a step apart are two colors nobody can tell apart.
 
      --alert is NOT reused here. It means attention in the kit, and a room
-     type that is always that colour would mean nothing is. */
+     type that is always that color would mean nothing is. */
   :root{
     --cell-gallery:#C8913C;   /* the common case, and the mid tone         */
     --cell-study:#E8C87A;     /* a reading room: the brightest thing here  */
@@ -24,7 +24,7 @@
   body{margin:0;background:var(--ink);color:var(--pale);
        font-family:var(--mono);overflow:hidden;}
   /* The buffer is an integer fraction of the canvas and upscaled by nearest
-     neighbour, so the dither pattern lands on whole pixels -- the same
+     neighbor, so the dither pattern lands on whole pixels -- the same
      reason, and the same trick, as the prototype. */
   #gl{position:fixed;inset:0;width:100%;height:100%;display:block;
       image-rendering:pixelated;}
@@ -168,7 +168,7 @@ const KINDS = [
 const DOOR = 5;                                   // not a cell type: what joins them
 
 /* ---- which rooms you can actually walk to --------------------------- *
- * The walk graph from the centre, breadth-first through doorways and up
+ * The walk graph from the center, breadth-first through doorways and up
  * flights, exactly as the agent walks it -- so a room this marks as lost is
  * one core/ agrees is lost, not one the renderer merely failed to join.
  *
@@ -176,7 +176,7 @@ const DOOR = 5;                                   // not a cell type: what joins
  * flight as an EDGE, not a place, so a stairwell cell never appears as a
  * graph node and would be reported lost every time. A shaft is not somewhere
  * anyone can be at all. */
-/* Bounded to the neighbourhood, and that bound is the honest part.
+/* Bounded to the neighborhood, and that bound is the honest part.
  *
  * core's walkGraph explores the Library outward with no notion of this
  * cluster, so a cap of 30,000 was spent on cells far outside it and came back
@@ -188,7 +188,7 @@ const DOOR = 5;                                   // not a cell type: what joins
  * storey wider than what is drawn. Rooms are allowed to route out and back
  * through that margin. A route that needs to go further than the margin to
  * come back is not one anybody would call reachable from here anyway, and
- * the panel says "within this neighbourhood" rather than pretending to know
+ * the panel says "within this neighborhood" rather than pretending to know
  * about the whole Library. */
 const REACH_R = RADIUS + 2, REACH_F = FLOORS + 1;
 const nearby = (q, r, fl) =>
@@ -360,9 +360,9 @@ precision highp float;
 in vec3 vN; in float vKind; in float vFloor; in float vDepth;
 in float vLost; in vec2 vWorld;
 uniform vec3  uTint[6];
-uniform vec3  uLost;         // the colour of a room with no way to it
+uniform vec3  uLost;         // the color of a room with no way to it
 uniform float uMarkLost;     // 1 while the mark is on
-uniform vec2  uPick;         // the selected cell's centre, in world
+uniform vec2  uPick;         // the selected cell's center, in world
 uniform float uPicked;       // 1 while something is selected
 uniform float uShow[6];      // 1 shown, 0 hidden, 0.22 pushed back
 uniform vec2  uSlice;        // the storeys still standing
@@ -575,7 +575,7 @@ const BINDINGS = [
     ["Shift 1 – 6", "That kind alone"],
     ["[ ]", "Down or up a floor"],
     ["H J", "One more or one fewer layer"],
-    ["U", "Mark rooms with no route from the centre"],
+    ["U", "Mark rooms with no route from the center"],
     ["Click", "Read a cell"],
     ["Esc", "Put the cell down"],
     ["\\", "One storey, or all of them"] ] },
@@ -609,7 +609,7 @@ function lostSaid(){
   return lost === 0
     ? "Every room on show can be walked to from " + CQ + "," + CR + "."
     : lost + " of " + rooms + " rooms on show have no route from " + CQ + "," + CR +
-      " within this neighbourhood.";
+      " within this neighborhood.";
 }
 const GRAINS = ["ordered", "noise", "fine", "smooth"];
 function renderStats(ms){
@@ -719,7 +719,7 @@ function renderCell(){
   }
   const lost = lostAt(q, r, fl);
   if (lost) h += '<div class="note lost">No route here from ' + CQ + ',' + CR +
-                 ' on floor 0, within this neighbourhood.</div>';
+                 ' on floor 0, within this neighborhood.</div>';
   h += '<div class="uri">babel://walk/00001594/floor/' + fl + '/cell/' + q + ',' + r + '</div>';
   el.cell.innerHTML = h;
   el.cell.hidden = false;

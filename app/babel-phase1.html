@@ -1,15 +1,15 @@
 <title>The Library of Babel - Phase 1</title>
 <style>
   /* ---- TOKENS -------------------------------------------------------- *
-   * Every colour, size and space the chrome uses is named here, and the
-   * chrome may use nothing else. A literal colour anywhere below this block
+   * Every color, size and space the chrome uses is named here, and the
+   * chrome may use nothing else. A literal color anywhere below this block
    * is a bug -- the whole point of naming them is that a change of mind is
    * one edit rather than a search.
    *
    * CRIMSON IS SPLIT IN TWO, because it was carrying three unrelated jobs:
    * the one crimson volume in the Library, focus outlines, and a label. An
-   * artefact and an alert are not the same thing and must not share a token.
-   *   --crimson  the artefact. If it is this colour it is THAT BOOK.
+   * artifact and an alert are not the same thing and must not share a token.
+   *   --crimson  the artifact. If it is this color it is THAT BOOK.
    *   --alert    attention: focus, refusals, the thing you just did.        */
   /* @tokens:begin */
   :root{
@@ -20,7 +20,7 @@
     --faint:#6E7360;        /* a label: what we call it              */
     --mute:#5A5F4E;         /* absent, unavailable, "nothing here"   */
     /* the two reds */
-    --crimson:#9E1B32;      /* the artefact, and only the artefact   */
+    --crimson:#9E1B32;      /* the artifact, and only the artifact   */
     --alert:#C8A55C;        /* attention: focus, refusal, confirmation */
     /* panel surfaces */
     --panel-bg:rgba(18,20,15,.90);
@@ -41,7 +41,7 @@
     --focus-lit:#A6B27E;      /* the same, as text */
     --bright:#D8DCC0;         /* the brightest chrome has: hover, a lit reticule */
     --wood:#6B4A3C;           /* a shaft, which is the one warm thing in the lattice */
-    --crimson-deep:#7C1428;   /* the artefact, on paper */
+    --crimson-deep:#7C1428;   /* the artifact, on paper */
     --spine:#CBD0B2;          /* a spine label */
     --paper:#E5DDC8;          /* the page */
     --paper2:#DCD3BC;         /* the page, further from the light */
@@ -60,7 +60,7 @@
 /* @tokens:end */
   html,body{height:100%;}
   body{margin:0;background:var(--ink);color:var(--pale);font-family:var(--mono);overflow:hidden;}
-  /* nearest-neighbour upscale: the dither must land on whole pixels, or the
+  /* nearest-neighbor upscale: the dither must land on whole pixels, or the
      8x8 pattern beats against the output grid and shimmers on flat walls */
   canvas{
     position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair;
@@ -116,7 +116,7 @@
   }
   #toast.up{opacity:1;}
   #toast.alert{color:var(--alert);border-color:var(--alert);}
-  /* focus is attention, not artefact */
+  /* focus is attention, not artifact */
   #help b{color:var(--pale);font-weight:400;}
   #help .t{color:var(--dim);}
   #help .grp{margin:.15rem 0;}
@@ -162,7 +162,7 @@
   }
   #jump .uri:empty{display:none;}
 
-  /* Bottom centre: it is a transient state, so it sits where the eye goes
+  /* Bottom center: it is a transient state, so it sits where the eye goes
      when the view is moving on its own and nowhere near the other panels. */
   #auto{
     bottom:.7rem;left:50%;transform:translateX(-50%);text-align:center;min-width:15rem;
@@ -174,9 +174,9 @@
 
   /* ---- the reticule ------------------------------------------------- *
      With the cursor hidden this is the only thing telling you what you are
-     pointing at, so it does two jobs: it marks the centre, and it changes
+     pointing at, so it does two jobs: it marks the center, and it changes
      state when there is a volume under it. Four ticks and a gap, no circle
-     and no centre dot -- the gap is where you look.                      */
+     and no center dot -- the gap is where you look.                      */
   #aim{
     position:fixed;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;
     z-index:8;pointer-events:none;opacity:0;
@@ -196,7 +196,7 @@
   #aim.gap i{background:var(--warn);opacity:.7;}
 
   /* The name goes in the address panel, not under the crosshair: a label at
-     the centre of the screen sits on top of the very spine it is naming.
+     the center of the screen sits on top of the very spine it is naming.
      The reticule carries the instant feedback, the panel carries the
      detail -- which is also where "you are here" already lives.        */
   #addr .aimed{margin-top:.1rem;}
@@ -539,7 +539,7 @@ const RENDERER_VERSION = "1.1.0";
 /* Stamped onto every transcript and every vector file. A run recorded
    under one version replays only against that version: a rules change
    must break a replay loudly rather than invalidate it quietly. Bump it
-   whenever the lattice, the corpus or the seam changes behaviour. */
+   whenever the lattice, the corpus or the seam changes behavior. */
 const CORE_VERSION = "0.6.0";
 
 /* ---- lattice constants (verbatim from the prototype) --------------- */
@@ -708,7 +708,7 @@ const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : 
  * hallway and this is as close as a cell-per-stair layout gets to it. Then
  * any axis with somewhere to walk at both ends.
  *
- * That first pass calls axisOf on a neighbour, from inside a function gapAt
+ * That first pass calls axisOf on a neighbor, from inside a function gapAt
  * calls, which cellDesc calls six times, which the shader calls for every
  * cell a ray enters. It was suspected of the 127-second shader link and
  * acquitted -- the cause was two call sites in main(), §17.13 -- so it is
@@ -984,7 +984,7 @@ const SHELF_PITCH = G.SHELF_P, SHELF_BASE = G.SHELF_BASE;
  *
  * One 32-bit hash carries every fact about a slot: the low half decides
  * presence and depth, the high half is the spine's tint. The tint had no
- * twin here at all before this -- the shader read bits 16-31 for a colour
+ * twin here at all before this -- the shader read bits 16-31 for a color
  * the core did not know existed, so nothing could have checked it. */
 function volumeBits(q, r, wall, shelf, slot){
   return u32(uhash(u32(cellKey(q, r) ^
@@ -998,7 +998,7 @@ const volumePresent = (q, r, wall, shelf, slot) => volumeHash(q, r, wall, shelf,
    face is what you see and what the reticule must hit. */
 const volumeDepth = (q, r, wall, shelf, slot) =>
   G.BOOK_D * (0.80 + 0.20 * volumeHash(q, r, wall, shelf, slot));
-/* The spine's colour, which until now only the shader knew about. */
+/* The spine's color, which until now only the shader knew about. */
 const volumeTint = (q, r, wall, shelf, slot) =>
   ((volumeBits(q, r, wall, shelf, slot) >>> 16) & 0xFFFF) / 65536;
 function galleryCapacity(q, r, fl){
@@ -1133,7 +1133,7 @@ const seatsIn = (q, r, fl) => studyPieces(q, r, fl).filter(p => p.sittable);
  * frame in a furnished room. It is computed here, once. The alcoves are
  * carried for exactly the same reason. */
 /* Which ends of a flight carry the 0.75 m overhang. The overhang exists to
-   reach a neighbour doorway; an end with no doorway must not have one, or
+   reach a neighbor doorway; an end with no doorway must not have one, or
    the cut runs through the rock (BUG-LOG 19). +u runs toward the axis when
    the flight rises that way, and toward its opposite when it does not. */
 function stairExtends(q, r, fl){
@@ -1592,7 +1592,7 @@ const WALK_D0 = WALK_DOMAIN, WALK_D1 = u32(WALK_DOMAIN ^ 0xA5A5A5A5);
 const TEXT_D0 = TEXT_DOMAIN, TEXT_D1 = u32(TEXT_DOMAIN ^ 0xA5A5A5A5);
 
 /* The position is hashed, not used positionally, and that single choice
-   is what stops neighbouring slots from being near-identical twins --
+   is what stops neighboring slots from being near-identical twins --
    the failure mode of every Library that shelves books in index order.
    Consecutive integers have near-identical base-29 expansions; hashing
    first means slot 17 and slot 18 share nothing.
@@ -1912,7 +1912,7 @@ function findPhrase(phrase, { offset = 0, seed = DEFAULT_SEED } = {}){
  * The third way in, beside walking to a shelf and searching for a phrase:
  * be turned loose. "Look through books until you find text that relates
  * to this, then find a chair and sit" is a job for a reader, not for this
- * module -- whether a page *relates* to anything is a judgement no core
+ * module -- whether a page *relates* to anything is a judgment no core
  * can make. What the core owes such a reader is that every room it passed
  * through and every volume it opened has coordinates someone else can
  * follow, and that the same journey seed always gives the same journey.  */
@@ -2082,7 +2082,7 @@ const vec3 C_LAMP   = vec3(1.000, 0.769, 0.431);
 
 float gMat;    // 0 stone . 1 volume . 2 crimson . 3 structure . 5 wood . 8 mirror . 9 void
 float gTgt;    // 1 on the one volume the reticule is resting on
-float gTint;   // per-volume colour draw
+float gTint;   // per-volume color draw
 float gSpineY; // 0 at the tail of the spine, 1 at the head
 uint  gKey;    // per-volume hash
 
@@ -2285,10 +2285,10 @@ int studyKit(uint key){
   return 7;
 }
 /* Every doorway axis runs through the middle of the room, so keeping a
-   0.55 m corridor clear along each one guarantees the centre is open and
+   0.55 m corridor clear along each one guarantees the center is open and
    any door reaches any other. A piece that would stand in one is dropped
    -- anchoring to a blank wall alone still let a recliner reach across a
-   neighbouring doorway.                                                 */
+   neighboring doorway.                                                 */
 bool clearOfDoors(vec2 pos, float rad, int desc){
   for (int i = 0; i < 6; i++){
     if (((desc >> (i * 2)) & 3) == 0) continue;
@@ -2437,7 +2437,7 @@ float alcoveFixtures(vec2 lp, float fy, int desc, float dBest){
   float u = dot(lp, ax), v = dot(lp, vec2(-ax.y, ax.x));
   /* The same exact bound the furniture gets, and it bites harder here: a
      corridor is long in u and every fixture sits within 0.30 of the alcove
-     centre, so most of its length culls on the first compare. |u| <= 0.30,
+     center, so most of its length culls on the first compare. |u| <= 0.30,
      |v| <= CORR_HW + ALC_D = 1.24, fy in [0, 1.82], padded outward. A box
      containing the fixtures is never further than the fixtures, so exceeding
      the caller's best distance means none of them can win. */
@@ -2521,8 +2521,8 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     float stepY   = ceil(t * 14.0) * (H_FLOOR / 14.0);
     /* The overhang belongs to a doorway, not to the flight. STAIR_RUN is
        exactly the cell radius, so the run ends on the boundary and EXT
-       carries it 0.75 m into the neighbour to meet that neighbour's opening.
-       Carrying it into a neighbour there is no opening to meet drives the
+       carries it 0.75 m into the neighbor to meet that neighbor's opening.
+       Carrying it into a neighbor there is no opening to meet drives the
        cut straight through the rock: from the gallery it reads as a stair
        climbing into a black hole, and a walker who followed it came out
        inside the next cell, across an edge gapAt calls WALL (BUG-LOG 19).
@@ -2546,14 +2546,14 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
   /* THE REVEAL: the wall you see INSIDE a gap. A distinct architectural
      surface that was being shaded as if it were open wall -- obliquely lit,
-     self-occluded, and so green and dark against its warm bright neighbours a
-     few centimetres away, which is the patch reported four times over.
+     self-occluded, and so green and dark against its warm bright neighbors a
+     few centimeters away, which is the patch reported four times over.
 
      Named POSITIONALLY, not by asking which primitive won. The obvious test,
      "is the doorway box nearer than the room", fails: at a hit point both are
      ~0 and the march stops a fraction short, so the comparison is decided by
      noise and the tag spread over 43-98% of a frame. The wall between two
-     cells spans |u| < HALF_D - APO_ROOM = 0.600 m about the gap centre, and
+     cells spans |u| < HALF_D - APO_ROOM = 0.600 m about the gap center, and
      inside that slab the only surfaces there are belong to the hole. No SDF
      comparison, no epsilon, nothing to go wrong at a grazing angle.
 
@@ -2566,7 +2566,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
   /* A stair and a corridor cut their own way out past the cell boundary,
      so they must not also punch a doorway box: they meet the opening the
-     neighbouring gallery draws on its side. */
+     neighboring gallery draws on its side. */
   if (ctype != 2 && ctype != 4) for (int i = 0; i < 6; i++){
     int g = (desc >> (i * 2)) & 3;
     if (g == 0) continue;
@@ -2586,7 +2586,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     else {
       /* A guardrail at the shaft's own lip. Anchoring it to the ray's cell
          put it in two different places depending on which side you looked
-         from; the lip is at APO_SHAFT from the shaft's centre, so the offset
+         from; the lip is at APO_SHAFT from the shaft's center, so the offset
          flips sign according to which of the pair is the well.   D-23     */
       dv = min(dv, sdBox3(vec3(u, fy - 1.02, v), vec3(0.78, 1.02, 0.62)));
       float lip = (ctype == 1) ? -(HALF_D - APO_SHAFT) : (HALF_D - APO_SHAFT);
@@ -2673,7 +2673,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
   float base = fy - SHELF_BASE;
   /* THE NEAREST OF THE FIVE REAL SHELVES, not the containing one modulo the
      pitch. mod(base, SHELF_P) - 0.167 repeats the shelf up the wall for
-     ever and is not centred on the volume, so above the top shelf it
+     ever and is not centered on the volume, so above the top shelf it
      measured to a book that is not there, and in the upper part of each gap
      it measured to the farther of the two books rather than the nearer.
      Both over-report the distance, and an SDF that over-reports lets the
@@ -2693,7 +2693,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
      quoting it.                                                           */
   float shelfIdx = clamp(floor((base - 0.167) / SHELF_P + 0.5), 0.0, 4.0);
   float ys = base - (shelfIdx * SHELF_P + 0.167);
-  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centred
+  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centered
   float cx = APO_ROOM - CARC_D * 0.5;
 
   /* Two iterations, not six over a six-way test. The selection loop above
@@ -2753,12 +2753,12 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
     if (abs(w.y) - RUN_HALF > d) continue;
     /* and the nearest of the thirty-five real slots, clamped rather than
-       dropped, for the same reason -- AND its two neighbours.
+       dropped, for the same reason -- AND its two neighbors.
 
        Sampling one cell of a repeating structure is conservative only if the
        contents fill the cell, and they do not. A book is BOOK_W*0.90 wide in
        a BOOK_W pitch; it stands proud by BOOK_D*(0.80 + 0.20*hh), so a
-       neighbour can be up to 0.04 m nearer in depth than this slot; and 3.5%
+       neighbor can be up to 0.04 m nearer in depth than this slot; and 3.5%
        of slots are empty and contribute nothing at all. The single-slot
        distance therefore OVER-reports, and \`t += d * 1.00\` steps a ray past
        the surface.
@@ -2776,7 +2776,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     float bi0 = clamp(floor((w.y + RUN_HALF) / BOOK_W), 0.0, 34.0);
     for (int bo = -1; bo <= 1; bo++){
     float bi = clamp(bi0 + float(bo), 0.0, 34.0);
-    if (bo != 0 && bi == bi0) continue;         // clamped onto the centre slot
+    if (bo != 0 && bi == bi0) continue;         // clamped onto the center slot
     /* All four are generated from core/babel-glsl.mjs and checked against
        the CPU slot by slot by core/conformance.html. They used to be typed
        out here, which made them the last un-mirrored twin in the system. */
@@ -2824,7 +2824,7 @@ int cellDesc(ivec2 c, int fl){
     packed |= a << 12;
     packed |= (up ? 1 : 0) << 14;
     /* bits 15-16: does each end of the flight open? The overhang that meets
-       a neighbour doorway must not be cut where there is no doorway, or it
+       a neighbor doorway must not be cut where there is no doorway, or it
        runs through the rock (BUG-LOG 19). Resolved here rather than in
        mapAt, which is inlined at eight call sites -- doing it there cost 94
        seconds of link time. Spelled out per axis so every shift is a
@@ -2944,8 +2944,8 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
         int flf = fl0 + f;
         /* Reject on the room before working out where its lamp is. Whatever
            wall the lamp is anchored to it sits 1.646 m from the room's
-           centre, so beyond 7 + 1.646 it cannot reach us. Without this the
-           anchor scan ran three times per neighbouring room -- once per
+           center, so beyond 7 + 1.646 it cannot reach us. Without this the
+           anchor scan ran three times per neighboring room -- once per
            storey -- and the dl > 7.0 test below then threw two of them away.
            That scan is the most expensive thing in this function.
            Distance first, then whether the room is furnished at all: the
@@ -2987,7 +2987,7 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
 
 /* Ordered dither to a short tone ramp: an early indexed display. The
    buffer is an integer fraction of the canvas and upscaled by nearest
-   neighbour, so the pattern stays on whole pixels.                     */
+   neighbor, so the pattern stays on whole pixels.                     */
 float bayer8(ivec2 c){
   int x = c.x & 7, y = c.y & 7, v = 0;
   for (int i = 0; i < 3; i++){
@@ -3027,7 +3027,7 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        It used to read 0.0018 * t + 0.0012 -- about 5.5 mm at 2.4 m, 12 mm at
        6 m. The residual offset it leaves at the hit point is what corrupts
        normalCtx's gradient, and because the step count that first satisfies
-       it is an integer, the error came out as CONCENTRIC RINGS centred on
+       it is an integer, the error came out as CONCENTRIC RINGS centered on
        wherever the view is perpendicular to a surface. Rendered as a
        normal-error map it is a bullseye, which is what finally identified it
        (bug log §13).
@@ -3044,7 +3044,7 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        A factor of 135 on that surface, and 0.36% on a plain stone wall.
        Frame cost is NEUTRAL -- within +/-2% across three views at a matched
        775x445 buffer. An earlier draft of this comment claimed -30%, and that
-       was an artefact of the probe rather than the shader: bug log §13 records
+       was an artifact of the probe rather than the shader: bug log §13 records
        the two harness faults behind it. Do not restate this as free speed.
        The step scale went back to 0.80 with it. */
     /* DO NOT "refine" this by returning t + d. It was tried, it measured well
@@ -3093,14 +3093,14 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     mapAt(hp, c, d2, ct2, fl);
     float mat = gMat, tint0 = gTint, spy = gSpineY, tgt = gTgt;
     uint  key0 = gKey;   // captured now: normalCtx and aoCtx overwrite these
-    /* 35 spines across a 1.82 m wall fall below a pixel at a few metres, and
-       their per-volume colours then beat into moire. Converge the detail on
+    /* 35 spines across a 1.82 m wall fall below a pixel at a few meters, and
+       their per-volume colors then beat into moire. Converge the detail on
        its mean with distance -- the procedural equivalent of a mip level. */
     float detail = clamp(1.0 - (hit - 2.5) / 7.0, 0.0, 1.0);
     tint0 = mix(0.5, tint0, detail);
 
     /* THE REVEAL, named here and deliberately NOT in mapAt. The wall between
-       two cells spans |u| < HALF_D - APO_ROOM = 0.600 m about a gap centre,
+       two cells spans |u| < HALF_D - APO_ROOM = 0.600 m about a gap center,
        and inside that slab the only surfaces are the ones the hole was cut
        through -- so the test is positional and needs no SDF comparison. The
        obvious alternative, asking which primitive the field says is nearest,
@@ -3158,7 +3158,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        every opening. Without this the well is unreadably black.        */
     if (ct2 == 1) lightSum += vec3(0.155, 0.130, 0.092) * (0.40 + 0.60 * max(n.y, 0.0));
     /* A stairwell needs the same courtesy, biased the other way. The shaft's
-       term favours UP-facing surfaces because a well is lit from the openings
+       term favors UP-facing surfaces because a well is lit from the openings
        around it; a stairwell's problem is the opposite, and specific: every
        one of its lamps sits above the flight, so the soffit -- the underside
        of the ascending flight, which is most of what you see through the
@@ -3173,7 +3173,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        with no height test at all, so every up-facing stone surface in the
        Library got the board pattern -- including ledges inside a doorway.
        Reported twice as "gap walls with wood texture", and measured: up-facing
-       stone at 0.83 m and 1.20 m above the floor, three metres away, framed by
+       stone at 0.83 m and 1.20 m above the floor, three meters away, framed by
        the reveal on both sides. The pattern is keyed on hp.x/hp.z, so it tiles
        horizontally at any height and reads as a wooden shelf let into the
        stone. The floor of a storey is fy = 0 exactly; fract() handles negative
@@ -3183,7 +3183,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     vec3 base;
     if (mat > 1.5 && mat < 2.5) base = C_CRIM;
     else if (mat > 0.5 && mat < 1.5){
-      /* One flat colour per volume, keyed to the volume. Wear is what a
+      /* One flat color per volume, keyed to the volume. Wear is what a
          spine really gets: darkening at head and tail, and on some books
          a paler label band -- no random blotching.                      */
       vec3 sp = mix(C_PAPER2, C_PAPER, 0.15 + 0.85 * tint0);
@@ -3233,7 +3233,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        in BRIGHTNESS -- measured luma 18.9 against 21.1, a contrast of 1.12 --
        they differed in HUE: this ramp tints stone green when lit is low and
        warm when it is high, the reveal sits at lit 0.17 and the wall beside it
-       at 0.90, so a green panel sat inside a warm-grey wall. Dominant colours
+       at 0.90, so a green panel sat inside a warm-gray wall. Dominant colors
        16,21,12 against 24,23,15.
 
        0.82 -> 0.94 on red halves the R/G gap between them, 0.250 -> 0.143,
@@ -3247,7 +3247,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     lum = clamp(dot(shaded, vec3(0.299, 0.587, 0.114)) * 1.60, 0.0, 1.0);
     /* The targeted volume, picked out. Deliberately small: enough to find
        the spine you are pointing at along a run of thirty-five, not enough
-       to light the room. The dither quantises luminance to a short ramp, so
+       to light the room. The dither quantizes luminance to a short ramp, so
        a lift this size lands on the next step and reads cleanly. */
     if (tgt > 0.5){
       sub = mix(sub, vec3(0.86, 0.88, 0.74), 0.30);
@@ -3271,10 +3271,10 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        measures lit ~0.135 where the wall on either side of the opening
        measures 1.0. The old gate was smoothstep(0.18, 0.38, lit): the wall
        in the gap fell BELOW the knee and got none of the lift, its
-       neighbours sat far above it and got all of it. Since this lift is, by
+       neighbors sat far above it and got all of it. Since this lift is, by
        its own comment, most of what makes stone visible, that is a cliff
-       between two surfaces a few centimetres apart -- and main()'s six-level
-       quantiser then rounds the unlit side down to step 0, which is black.
+       between two surfaces a few centimeters apart -- and main()'s six-level
+       quantizer then rounds the unlit side down to step 0, which is black.
        Hence a dark rectangle in the doorway with clean bright wall around it.
 
        0.35 + 0.65 * gate keeps bright walls exactly as they were and gives
@@ -3294,7 +3294,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
 
        It matters far more than a ceiling normally would, because the
        underside of a flight FILLS the opening when a stairwell is seen from
-       a gallery, and because the six-level quantiser in main() has no dim
+       a gallery, and because the six-level quantizer in main() has no dim
        setting: under lum ~0.1 it floors to step 0, and step 0 is sub*0.05.
        A surface is legible or it is a black rectangle; there is no between.
 
@@ -3313,7 +3313,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        through this. UP-FACING stone that is not a floor -- the treads of a
        flight, where they run past the stairwell's own cell and shade as
        stone rather than wood -- escaped through neither, and measured RGB
-       (2,2,1) against a jamb at (20,20,13) three metres away.
+       (2,2,1) against a jamb at (20,20,13) three meters away.
 
        So the rule is: whatever the vertical lift excludes, this catches.
        floorish is excluded because the floor already has an answer, and
@@ -3325,7 +3325,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     /* And the reveal gets a FLOOR rather than a lift. Everything above is a
        lighting model, and the reveal is the one surface where the lighting
        model has nothing useful to say: it is the inside of a hole, so every
-       lamp is oblique to it and the six-level quantiser has no step between
+       lamp is oblique to it and the six-level quantizer has no step between
        "lit" and "black". Pin it to a step instead. That is what makes it read
        as a flat plane of dressed stone at any range -- which is the whole
        point of naming it a material, and is what the reporter asked for when
@@ -3438,7 +3438,7 @@ const ABLATIONS = {
   occ:    [/float occ = aoCtx\([^;]*\);/, "float occ = 1.0;"],
   /* The floor bounce on downward-facing stone, removed -- the A/B for the
      black stairwell doorway. Without it, an underside's only light is the
-     0.045 ambient floor in `shaded`, which the six-level quantiser rounds
+     0.045 ambient floor in `shaded`, which the six-level quantizer rounds
      to step 0. */
   nobounce: [/lum = min\(1\.0, lum \+ 0\.40 \* smoothstep\(0\.70, 0\.95, abs\(n\.y\)\) \* \(1\.0 - lum\)\);/,
              "lum = lum;"],
@@ -3459,8 +3459,8 @@ const ABLATIONS = {
   /* The tint ramp, which is what actually separates the patch from the wall
      around it. It lerps stone from a GREEN cold end to a WARM end on lit, and
      the reveal sits at lit 0.17 while the wall beside it sits at 0.90 -- so
-     the two read as different colours, not merely different brightnesses
-     (measured dominant colours: 16,21,12 against 24,23,15). Two ways to close
+     the two read as different colors, not merely different brightnesses
+     (measured dominant colors: 16,21,12 against 24,23,15). Two ways to close
      that: pull the cold end toward neutral, or compress the ramp so nothing
      reaches its green extreme. */
   tintgreen: [/vec3 tint = mix\(vec3\(0\.94, 1\.00, 0\.80\), vec3\(1\.06, 0\.94, 0\.78\), lit\);/,
@@ -3494,7 +3494,7 @@ const ABLATIONS = {
             [/    float f = alcoveFixtures\(lp, fy, desc, d\);/,
              "    float f = 1e5;"]],
   /* Lamps from the cell you are standing in only, instead of it and its six
-     neighbours -- seven cellType/worldOf lookups a shaded pixel become one. */
+     neighbors -- seven cellType/worldOf lookups a shaded pixel become one. */
   onelamp: [/  for \(int i = -1; i < 6; i\+\+\)\{\s*\n\s*ivec2 c = \(i < 0\) \? c0 : c0 \+ dirOf\(i\);/,
             "  for (int i = -1; i < 0; i++){\n    ivec2 c = c0;"],
   /* How hard the march worked, as a picture: green is cheap, red is at the
@@ -3578,7 +3578,7 @@ const ABLATIONS = {
   /* ---- ITEM 4, the A/B the other way round ----------------------------
      Put the single-slot shelving distance back and the covers tear again at
      a grazing angle. The shipped field evaluates the nearest slot and its two
-     neighbours because one slot OVER-reports -- books vary in depth and 3.5%
+     neighbors because one slot OVER-reports -- books vary in depth and 3.5%
      of slots are empty -- and an over-reporting field with `t += d * 1.00` is
      a ray that steps past a surface. Bug log 22.
 
@@ -3688,7 +3688,7 @@ const ABLATIONS = {
 
   /* THE PROBE. Not a suspect -- an instrument. Renders three measurements
      instead of the scene, so "where does the field over-report, and does its
-     boundary coincide with anything" stops being a judgement about a
+     boundary coincide with anything" stops being a judgment about a
      screenshot. One variant, three channels, one link:
        R  |mapAt| at the converged hit point. Zero on a real surface; bright
           wherever the march landed PAST one. This is the defect itself.
@@ -3759,7 +3759,7 @@ if (FRESH !== null)
 
 gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG_SRC));
 /* A link can fail slowly, and silently. The corridor's first axis rule
-   asked a neighbouring flight for its own axis, from inside gapAt, which
+   asked a neighboring flight for its own axis, from inside gapAt, which
    cellDesc calls six times, which the shader calls for every cell a ray
    enters. The GLSL compiled in 17 ms; the linker then ran for 127 seconds
    and returned false with an empty info log. All the page did was freeze,
@@ -3785,7 +3785,7 @@ gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG_SRC));
 /* Deferred means there is a moment -- 0.7 s warm, a minute and a half
    cold -- where the veil is on screen and its handler is not attached
    yet. A click in that window used to vanish, which reads as a page that
-   ignored you. Remember it and honour it once the door works. */
+   ignored you. Remember it and honor it once the door works. */
 let earlyEnter = false;
 const rememberEnter = () => { earlyEnter = true; };
 document.getElementById("veil").addEventListener("click", rememberEnter);
@@ -3915,7 +3915,7 @@ function voidDist2D(x, z, fl){
   const lx = x - wx, lz = z - wz;
   let d;
   // Not walkable -- but return a real outward distance, not a huge number:
-  // resolve() pushes by (d + radius), and 1e5 threw the player kilometres.
+  // resolve() pushes by (d + radius), and 1e5 threw the player kilometers.
   if (t === TYPE.SHAFT) d = -sdHexFlat(lx, lz, G.APO_SHAFT);
   else if (t === TYPE.STAIRWELL){
     // the corridor, plus (below) the doorways -- returning early here left a
@@ -3924,7 +3924,7 @@ function voidDist2D(x, z, fl){
     const [u, v] = stairUV(lx, lz, cq, cr);
     /* Extended only at an end that opens, from the same rule the shader
        reads out of cellDesc. The overhang exists to meet the doorway box a
-       neighbour draws; run it past a *walled* end and the cut goes through
+       neighbor draws; run it past a *walled* end and the cut goes through
        the rock, which is how a stair came to climb into a black hole and
        let a walker out inside the next cell, across an edge gapAt calls
        WALL (BUG-LOG 19). */
@@ -3970,7 +3970,7 @@ function voidDist2D(x, z, fl){
        the field jump the moment you crossed one, so the gradient spiked and
        the push-out lurched -- that was the jostle against the guardrail. */
     if (g === GAP.SHAFT){
-      // measured from the shaft's own centre, so it reads the same from either side
+      // measured from the shaft's own center, so it reads the same from either side
       const pu = u + G.HALF_D;
       const fromShaft = (t === TYPE.SHAFT) ? pu : (G.CENTRE_D - pu);
       const past = (G.APO_SHAFT + 0.03) - fromShaft;      // >0 beyond the rail
@@ -4076,7 +4076,7 @@ function goTo(uri){
  * Five numbers, not two: reproducing a frame needs where you stood as well
  * as where you looked, because the ambient term and both lamps are
  * distance functions.                                                    */
-/* x,y,z,yaw,pitch -- metres and RADIANS, written at full precision rather
+/* x,y,z,yaw,pitch -- meters and RADIANS, written at full precision rather
    than rounded prettily. Number -> String -> Number is exact for a double
    in JavaScript, so a pasted view restores the camera bit for bit and two
    loads of the same URL render identically.
@@ -4168,7 +4168,7 @@ function copyView(){
 }
 
 /* Called at the foot of this script, not here: openBook() reaches into the
-   input section's consts, and running before those are initialised threw a
+   input section's consts, and running before those are initialized threw a
    temporal-dead-zone error that left the pane silently shut. ?at= worked
    and ?read= did not -- exactly the kind of thing only a browser tells
    you, since both parse identically outside one. */
@@ -4216,7 +4216,7 @@ let reading = null;                    // { address, page } while the pane is op
 
 /* Which volume is in front of you: the first shelved wall the view ray
    meets, then the slot and shelf from where on that wall it lands. The
-   plane is at APO_ROOM from the cell's centre, the run of books spans
+   plane is at APO_ROOM from the cell's center, the run of books spans
    +/-RUN_HALF along the wall, and the shelves are pitched exactly as the
    shader pitches them. */
 function volumeInFront(){
@@ -4562,16 +4562,16 @@ function stopAuto(msg){
   auto = null;
   if (msg) autoSays(msg, true); else aw.panel.hidden = true;
 }
-/* Cell centres alone are not a walkable line. Rooms are 3.64 m across but
-   their centres are 4.84 m apart, so adjacent galleries do not touch --
-   they are joined by a corridor barely a metre wide. Aim from wherever you
-   are straight at the next centre and the moment you are off-centre that
+/* Cell centers alone are not a walkable line. Rooms are 3.64 m across but
+   their centers are 4.84 m apart, so adjacent galleries do not touch --
+   they are joined by a corridor barely a meter wide. Aim from wherever you
+   are straight at the next center and the moment you are off-center that
    line misses the corridor: it clips the wall, or worse, threads the wrong
    doorway and lands you in a room the route never mentioned, one wall away
    from a waypoint you can no longer reach. Measured: 32 of 40 walks died
    that way.
    So every opening is a waypoint of its own. The doorway sits exactly
-   halfway between the two centres, and centre -> doorway -> centre is
+   halfway between the two centers, and center -> doorway -> center is
    always inside the walkable space. */
 function legsFor(from, moves){
   const mid = (a, b) => {
@@ -4591,7 +4591,7 @@ function legsFor(from, moves){
   }
   return legs;
 }
-/* Steering through a one-metre corridor is approximate, and now and then the
+/* Steering through a one-meter corridor is approximate, and now and then the
    walker fetches up in a room the route never mentioned -- from where the
    next waypoint is behind a solid wall and no amount of pushing will do.
    So ask the lattice again from where it actually is. Re-planning is the
@@ -4612,7 +4612,7 @@ function replan(){
 }
 function startAuto(seed = (Math.random() * 0xFFFFFFFF) >>> 0){
   const [q, r] = cellOf(st.x, st.z), fl = storeyOf(st.y);
-  /* Far enough to be a journey: six to fifteen rooms, and a room's centre
+  /* Far enough to be a journey: six to fifteen rooms, and a room's center
      is 4.84 m from the next, so most of these are half a minute of walking
      and most cross a storey or three on the way. */
   const pick = routeToShelves({ q, r, floor: fl }, seed, { minSteps: 6, maxSteps: 15 });
@@ -4692,7 +4692,7 @@ function autoStep(dt){
   /* Reached, or gone past: a doorway is narrow, so it gets a tighter radius
      than a room, and either way crossing the line through it counts.
      The last waypoint is stricter and does not take the shortcut: stopping
-     half a metre off the middle of the room aims the reticule from the
+     half a meter off the middle of the room aims the reticule from the
      wrong place, and then the spine that lights up is not the spine that
      opens. Once in 196 walks, measured -- rare enough to have shipped. */
   const last = auto.i === auto.legs.length - 1;
@@ -4898,7 +4898,7 @@ addEventListener("keydown", e => {
     else { placeInNetwork(storeyOf(st.y), ...cellOf(st.x, st.z)); }
   }
   /* The instruments, the help, and the two settings that used to be
-     unlabelled dropdowns nobody could tell apart. */
+     unlabeled dropdowns nobody could tell apart. */
   if (e.code === "F1"){ e.preventDefault(); togglePanel(el.perf, "Instruments"); }
   if (e.key === "?"){   e.preventDefault(); togglePanel(el.help, "Keys"); }
   if (e.code === "KeyG"){ cycleGrain(); }
@@ -5068,8 +5068,8 @@ function hud(){
    * it out loud: "A reading room with an end table.", not "No shelves at
    * all: an end table." -- name what is there, not what is missing.
    *
-   * Sentence case, and no crimson. Crimson means the artefact now, and a
-   * reading room is not an artefact; the one crimson volume still gets it. */
+   * Sentence case, and no crimson. Crimson means the artifact now, and a
+   * reading room is not an artifact; the one crimson volume still gets it. */
   const list = xs => xs.length === 1 ? xs[0]
                    : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
   const here = q === CRIM.q && r === CRIM.r && fl === CRIM.floor;
@@ -5090,7 +5090,7 @@ function hud(){
   }
   else s = "A gallery with " + shelved + (shelved === 1 ? " shelved wall" : " shelved walls") +
            ", " + volumesIn(q, r, fl).toLocaleString() + " volumes.";
-  /* The one exception to no-crimson: the artefact really is here. */
+  /* The one exception to no-crimson: the artifact really is here. */
   el.note.innerHTML = here
     ? s + '<br><span class="cr">The crimson volume is in this gallery.</span> Wall 1, shelf 2, slot 17.'
     : s;
@@ -5195,7 +5195,7 @@ hudPerf();
  * so the console lost both, and with them the technique. A background tab
  * has no frames either, so waiting for one is not a substitute.
  *
- * Three references, no behaviour. The alternative is instruments that only
+ * Three references, no behavior. The alternative is instruments that only
  * work if the tab happens to be in front. */
 /* The mouse mode, readable rather than looked at. Item 6's whole failure was
    that which mode you were in could only be judged by eye, so core/pagecheck

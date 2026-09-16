@@ -36,7 +36,7 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
     let rel = decodeURIComponent(url.pathname);
     if (rel === "/") rel = "/app/babel-phase1.html";
-    /* stay inside the repository: normalise, then check the prefix */
+    /* stay inside the repository: normalize, then check the prefix */
     const path = normalize(join(ROOT, rel));
     if (!path.startsWith(ROOT.endsWith(sep) ? ROOT : ROOT + sep)){
       res.writeHead(403).end("outside the repository");

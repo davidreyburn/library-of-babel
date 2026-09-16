@@ -5,8 +5,8 @@
  * copy, and the moment a second page wanted a panel there would have been
  * two -- which is how a kit stops being a kit.
  *
- * A colour belongs here if anything renders it. The rule the suite enforces
- * is that chrome CSS may NAME a colour and may not SPELL one, so a literal
+ * A color belongs here if anything renders it. The rule the suite enforces
+ * is that chrome CSS may NAME a color and may not SPELL one, so a literal
  * anywhere but this file is a failure.
  */
 :root{
@@ -17,7 +17,7 @@
   --faint:#6E7360;        /* a label: what we call it              */
   --mute:#5A5F4E;         /* absent, unavailable, "nothing here"   */
   /* the two reds */
-  --crimson:#9E1B32;      /* the artefact, and only the artefact   */
+  --crimson:#9E1B32;      /* the artifact, and only the artifact   */
   --alert:#C8A55C;        /* attention: focus, refusal, confirmation */
   /* panel surfaces */
   --panel-bg:rgba(18,20,15,.90);
@@ -38,7 +38,7 @@
   --focus-lit:#A6B27E;      /* the same, as text */
   --bright:#D8DCC0;         /* the brightest chrome has: hover, a lit reticule */
   --wood:#6B4A3C;           /* a shaft, which is the one warm thing in the lattice */
-  --crimson-deep:#7C1428;   /* the artefact, on paper */
+  --crimson-deep:#7C1428;   /* the artifact, on paper */
   --spine:#CBD0B2;          /* a spine label */
   --paper:#E5DDC8;          /* the page */
   --paper2:#DCD3BC;         /* the page, further from the light */

@@ -9,7 +9,7 @@
  *      are indistinguishable to this module."
  *
  * WHAT IS BEING MEASURED. Not whether the model finds anything -- whether
- * a page *relates* to your situation is a judgement no core can make, and
+ * a page *relates* to your situation is a judgment no core can make, and
  * this one still does not try. What is measured is CITATION INTEGRITY: of
  * the claims it makes about text, how many are really there. That is
  * decidable exactly, by string comparison, with no judge model.
@@ -220,7 +220,7 @@ const TOOL_NAMES = new Set(TOOLS.map(t => t.name));
 /* A tool call becomes an action verbatim. Nothing is corrected on the way
    through: if the model names a wall that is a doorway or a slot that
    stands empty, apply() records the refusal and it costs a step, which is
-   the behaviour those paths exist for (§ the adversary policy). */
+   the behavior those paths exist for (§ the adversary policy). */
 function actionOf(call){
   const a = { kind: call.name, ...(call.input || {}) };
   return TOOL_NAMES.has(call.name) ? a : { kind: "unknown", named: call.name };

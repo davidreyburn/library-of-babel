@@ -10,7 +10,7 @@
  *   the fraction of its claims that survive checking.
  *
  * That last sentence is why this environment is worth building a harness
- * around. Whether a page *relates* to anything is a judgement no core can
+ * around. Whether a page *relates* to anything is a judgment no core can
  * make -- but whether a quoted passage is really at the cited address is
  * decidable exactly, in constant time, with no judge model and no rubric.
  * A fabricated citation is not a matter of opinion here. That makes

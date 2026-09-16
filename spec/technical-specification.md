@@ -54,7 +54,7 @@ Every requirement below carries a traceability note in the form *[src: …]* poi
 
 ## 3. Requirements Notation
 
-Requirement IDs are grouped by area: **C** corpus, **A** addressing, **G** generation, **L** labelling, **S** search, **P** physical plant, **O** operations, **D** durability, **N** non-functional, **X** excluded.
+Requirement IDs are grouped by area: **C** corpus, **A** addressing, **G** generation, **L** labeling, **S** search, **P** physical plant, **O** operations, **D** durability, **N** non-functional, **X** excluded.
 
 ---
 
@@ -100,8 +100,8 @@ Requirement IDs are grouped by area: **C** corpus, **A** addressing, **G** gener
 
 ### 5.2 Lattice
 
-- **LIB-A-010** A hexagon MUST connect to its neighbours through a hallway on a free side. *[src]*
-- **LIB-A-011** Because only two of six walls are free, the floor plan MUST be a **chain**, not a plane tiling: each hexagon has at most two lateral neighbours. This is the structural basis of the *circuit*. *[derived]*
+- **LIB-A-010** A hexagon MUST connect to its neighbors through a hallway on a free side. *[src]*
+- **LIB-A-011** Because only two of six walls are free, the floor plan MUST be a **chain**, not a plane tiling: each hexagon has at most two lateral neighbors. This is the structural basis of the *circuit*. *[derived]*
 - **LIB-A-012** Circuits MUST be numbered, and the numbering MUST be stable and total. *[src: "circuit fifteen ninety-four"]*
 - **LIB-A-013** Floors MUST be numbered, connected by the hallway stairways, and unbounded in both directions. *[src: "ninety floors farther up"; "sinks abysmally and soars upwards"]*
 - **LIB-A-014** The canonical address MUST be the tuple
@@ -113,7 +113,7 @@ Requirement IDs are grouped by area: **C** corpus, **A** addressing, **G** gener
 
 - **LIB-A-020** The lattice MUST be unbounded. No traversal in any direction MAY terminate. *[src: "the corridors and stairways and hexagons can conceivably come to an end -- which is absurd"]*
 - **LIB-A-021** The corpus is nevertheless finite (§4.3). The system MUST reconcile these by making the Library **unlimited and cyclical**: content MUST be assigned by index modulo N. *[src: "The Library is unlimited and cyclical"]*
-- **LIB-A-022** A traveller proceeding in a fixed direction MUST eventually encounter the same volumes in the same order. The period MUST be exactly N books — **≈ 2.794 × 10^1,834,094 hexagons**. *[src: "the same volumes were repeated in the same disorder"]*
+- **LIB-A-022** A traveler proceeding in a fixed direction MUST eventually encounter the same volumes in the same order. The period MUST be exactly N books — **≈ 2.794 × 10^1,834,094 hexagons**. *[src: "the same volumes were repeated in the same disorder"]*
 - **LIB-A-023** LIB-C-021 (uniqueness) MUST be interpreted as holding **within one period**. Across periods, repetition is required, not merely permitted. *[derived; resolves §13.4]*
 - **LIB-A-024** The address→index map MUST be a bijection from one period of the lattice onto `[0, N)`. *[derived]*
 
@@ -176,7 +176,7 @@ This is the section on which the feasibility of the entire system turns.
 ### 8.2 Reverse Lookup — A Deliberate Divergence
 
 - **LIB-S-010** The inverse of LIB-G-011 is trivial: any desired C-symbol string, read as a base-25 numeral, **is** its own index, and the address follows immediately. Locating any specific book is therefore **O(C)**, not a search at all.
-- **LIB-S-011** Implementers MUST recognise that exposing this inverse **destroys the narrative premise**. The source's librarians wander for generations because they compute the probability of finding a specific book as zero; a working reverse-lookup endpoint makes every Vindication instantly retrievable and the Man of the Book a trivial query. *[src: "can be computed as zero"]*
+- **LIB-S-011** Implementers MUST recognize that exposing this inverse **destroys the narrative premise**. The source's librarians wander for generations because they compute the probability of finding a specific book as zero; a working reverse-lookup endpoint makes every Vindication instantly retrievable and the Man of the Book a trivial query. *[src: "can be computed as zero"]*
 - **LIB-S-012** Reverse lookup MUST therefore be a configurable capability with two conformance profiles:
   - **Profile F (Faithful):** reverse lookup disabled. Books MAY be reached only by physical traversal. Preserves the source's epistemic condition and its tragedy.
   - **Profile U (Utility):** reverse lookup enabled. Preserves the source's *structure* but not its *predicament*.
@@ -274,7 +274,7 @@ The source is internally inconsistent at six points. Each is recorded with the a
 **13.3 — Infinite versus finite.** The galleries are "indefinite and perhaps infinite," yet the possible number of books "does have such a limit."
 **Resolution:** the source resolves this itself, and the resolution is normative: unlimited and cyclical (LIB-A-021). Infinite extent, finite corpus, periodic assignment.
 
-**13.4 — Uniqueness versus repetition.** "No two identical books" contradicts a traveller seeing the same volumes repeat.
+**13.4 — Uniqueness versus repetition.** "No two identical books" contradicts a traveler seeing the same volumes repeat.
 **Resolution:** uniqueness holds within one period; repetition holds across periods (LIB-A-023).
 
 **13.5 — The second free wall.** Two walls are unshelved; only one is accounted for.
@@ -310,7 +310,7 @@ The decisive insight is that the Library's totality makes it *cheaper*, not more
 | T-03 | Injectivity | Distinct addresses within one period yield distinct content; verified by construction proof plus spot-check |
 | T-04 | Determinism | Repeated retrieval of one address across processes, hosts, and restarts is bit-identical |
 | T-05 | Cyclicity | `content(0) == content(N)`; period measured as exactly N books |
-| T-06 | Known artefacts | The all-`mcv` book is retrievable. Note C mod 3 = 1, so the final cycle is truncated after one symbol — 437,333 full repetitions plus `m`. A book whose penultimate page carries `oh time thy pyramids` is likewise retrievable |
+| T-06 | Known artifacts | The all-`mcv` book is retrievable. Note C mod 3 = 1, so the final cycle is truncated after one symbol — 437,333 full repetitions plus `m`. A book whose penultimate page carries `oh time thy pyramids` is likewise retrievable |
 | T-07 | Storage | Measured content storage is 0 bytes; total persistent state is O(1) and does not grow with reads |
 | T-08 | Label non-correlation | Spine labels are deterministic per address, and statistically independent of page content under standard randomness tests |
 | T-09 | No filtering | Adversarial content is returned unaltered; no code path rejects, sanitises, or flags any C-symbol string *(LIB-C-023)* |
@@ -374,7 +374,7 @@ two.
 | Wall (hexagon side) | 2.10 m | run + uprights + a 0.09 m return at each end |
 | Gallery across flats | 3.64 m | apothem 1.819 |
 | Ceiling | 2.10 m | fixed by the text (D-20); width is the lever, not height |
-| Cell centre to centre | 4.838 m | |
+| Cell center to center | 4.838 m | |
 | Storey height | 2.60 m | |
 | Stair | one straight flight, 4.84 m run, ~28° | enclosed corridor 1.24 m wide, cut in rock |
 | Shaft void | 3.40 m across | guardrailed at the lip, never crossable |
@@ -404,7 +404,7 @@ sixteen fixed arrangements of at most three pieces, and a desk never shares a
 room with a recliner. And nothing blocks the way: the group is anchored to a
 wall with no doorway, and any piece coming within 0.55 m of a doorway's axis
 is dropped. Since every doorway axis runs through the middle of the room,
-that keeps the centre clear and guarantees any door reaches any other —
+that keeps the center clear and guarantees any door reaches any other —
 verified by flood fill over 500 rooms, zero failures.
 
 **A fifth piece, added later: the mirror.** Three of the sixteen
@@ -519,7 +519,7 @@ Beside walking to a known shelf and searching for a phrase, an agent can be
 sent wandering — *"look through books until you find text that seems to relate
 to this, then find a chair, sit, and tell me what you thought."*
 
-Whether a page **relates** to anything is a judgement no specification can
+Whether a page **relates** to anything is a judgment no specification can
 make, and the core does not try. What it owes such a reader is that the
 journey be **followable**, and that requires the walk be reproducible: the
 choice at step *n* is `uhash(route, n)`, not a random draw. So the same route
@@ -566,7 +566,7 @@ shafts have no shelved wall at all, so only the room scope can name them.
 The corpus was computable from the start of Phase 2; this is where it became
 legible. Facing a wall of books, **E** opens the volume you are looking at —
 the wall, shelf and slot come from a ray against the same plane the shader
-shelves them on (`APO_ROOM` from the cell's centre, the run spanning
+shelves them on (`APO_ROOM` from the cell's center, the run spanning
 ±`RUN_HALF`, shelves pitched at 0.40 m from a 0.05 m base), so what opens is
 what you were looking at rather than an approximation. Aiming at the middle
 of wall 1, shelf 2 in cell 15,94 returns slot 17: the crimson volume, which
@@ -600,7 +600,7 @@ shelf while reading would lose the citation. Slots the Purifiers emptied
 volume out of a hole.
 
 **Knowing what you are pointing at.** The cursor is hidden while you look, so
-a reticule marks the centre: four ticks and a gap, which close in and brighten
+a reticule marks the center: four ticks and a gap, which close in and brighten
 when a volume is under them, and turn to the shafts' warm brown over a slot
 that stands empty. The targeted volume itself is picked out in the render — a
 20% lift toward lit paper, enough to find one spine along a run of thirty-five
@@ -621,12 +621,12 @@ nearest face the ray really passes through. Exhaustive rather than clever:
 there is no candidate window to get wrong.
 
 Verified by probing the renderer rather than by eye: at 49 angles from −76° to
-+76° across three pitches, the centre pixel changes when the highlight is
++76° across three pitches, the center pixel changes when the highlight is
 switched on, which is only true if the highlighted spine is the one under the
 crosshair. The old ray disagreed with the new one at 24 of 44 of those angles.
 
 The volume's name goes in the address panel beside "you are here", not under
-the crosshair. A label at the centre of the screen sits on top of the very
+the crosshair. A label at the center of the screen sits on top of the very
 spine it is naming; the reticule carries the instant feedback and the panel
 carries the detail, which is where the other coordinates already live.
 
@@ -701,15 +701,15 @@ cell beyond, one storey up or down.
 Three things had to be fixed to get there, and each was found by measurement
 rather than by reading the code:
 
-1. **Cell centres are not a walkable line.** Galleries are 3.64 m across but
-   their centres are 4.84 m apart, so adjacent rooms do not touch — they are
-   joined by a corridor about a metre wide. Steering from wherever you are
-   straight at the next centre threads the wrong doorway and lands you in a
+1. **Cell centers are not a walkable line.** Galleries are 3.64 m across but
+   their centers are 4.84 m apart, so adjacent rooms do not touch — they are
+   joined by a corridor about a meter wide. Steering from wherever you are
+   straight at the next center threads the wrong doorway and lands you in a
    room the route never mentioned, one wall away from a waypoint you can no
    longer reach. **32 of 40 walks died that way.** Every opening is now a
    waypoint of its own.
 2. **Straying has to be expected, not prevented.** Steering through a
-   one-metre gap is approximate. Rather than tune it, the walker notices it is
+   one-meter gap is approximate. Rather than tune it, the walker notices it is
    in a room the route does not mention and asks the lattice again from where
    it actually is. 17 of 400 journeys re-planned once and arrived anyway.
 3. **A test that leaves out the vertical concludes the stairs are broken.**
@@ -850,7 +850,7 @@ when the two types are indifferent to each other.
 
 **The axis rule is the richer of the two that were written.** A corridor
 prefers an axis with a flight *whose own axis agrees*, which means calling
-`axisOf` on a neighbour from inside `corridorAxis` — which `gapAt` calls,
+`axisOf` on a neighbor from inside `corridorAxis` — which `gapAt` calls,
 which `cellDesc` calls six times, which the shader calls for every cell a ray
 enters. When the shader first refused to link that was the obvious suspect and
 it was innocent (§17.13 below), so a flat version shipped briefly and this one
@@ -871,7 +871,7 @@ wall was nearest.
 That is not a defect and nothing seals it: you walk in, you climb, and the top
 is a wall. What *was* a defect is that the flight did not stop there.
 `STAIR_EXT` cuts a flight 0.75 m past the cell boundary at each end so it meets
-the doorway box its neighbour draws, and `STAIR_RUN` is exactly the cell radius
+the doorway box its neighbor draws, and `STAIR_RUN` is exactly the cell radius
 — so at a walled end the cut ran through the rock into the next cell. It read as
 a stair climbing into a black hole, and it walked bodies across a WALL edge in
 31 of 684 approaches (BUG-LOG §19).
@@ -897,7 +897,7 @@ shelved walls is 700 *slots*; 3.5% of slots stand empty — the gaps the
 Purifiers left, D-42 — so the room holds about 676 volumes. Every count in the
 build reported the capacity and called it volumes.
 
-That is worse than a mislabelled number, because `describeCell` is the agent
+That is worse than a mislabeled number, because `describeCell` is the agent
 surface. A reader told "700 volumes" that picks a slot and cites it has a
 1-in-29 chance of citing a hole, and `verify` then scores that citation false.
 Grading a reader down for believing us is the worst shape a defect can take in
@@ -991,7 +991,7 @@ Three things about it are deliberate:
 - **It shares the kit and cannot fork it.** The palette moved to
   `core/ui-kit.css`; the prototype inlines it at `@tokens`, the atlas links it.
   Four tests hold the atlas to the same rules the prototype has: link the kit,
-  redeclare none of its 38 tokens, name its own model colours and spell them
+  redeclare none of its 38 tokens, name its own model colors and spell them
   nowhere else, and document every key it handles.
 
 Two of its controls are diagnostics rather than views. **Clicking a cell**
@@ -1001,7 +1001,7 @@ room's furniture, shelved walls, and the `babel://` address to cite it by.
 The pick is a ray marched against the same predicates the mesh was built
 from, so what a click selects and what you can see cannot disagree.
 
-**U marks rooms with no route from the centre**, using `movesFrom` -- the
+**U marks rooms with no route from the center**, using `movesFrom` -- the
 seam's own rules, refusing a shaft and refusing a flight that arrives
 nowhere -- so a room it marks is one the agent agrees is cut off. The search
 is bounded to two cells and one storey beyond what is drawn, and says so:
@@ -1012,9 +1012,9 @@ because a fact about the Library should read at full brightness and differ
 in hue -- §14 spent four reports learning that.
 
 The model palette is amber separated by **value, not hue** — the dither has six
-steps to spend, and two colours one step apart are two colours nobody can tell
+steps to spend, and two colors one step apart are two colors nobody can tell
 apart. `--alert` is not reused for a room type: it means attention, and a type
-that is always that colour would mean nothing is.
+that is always that color would mean nothing is.
 
 **What actually stopped the shader linking, and how it was found.** The GLSL
 compiled in 17 ms; the linker then ran for **127 seconds** and returned false
@@ -1178,7 +1178,7 @@ the dark ones.
 
 **And the black was hiding something.** Lifting the treads at all reveals a hot
 spot: the lamp falloff `1/(1+(d/1.35)²)` across a flight is a genuine ramp, and
-the previous behaviour clipped it to step 0 so nobody saw it. Any future
+the previous behavior clipped it to step 0 so nobody saw it. Any future
 attempt to close the gap has to fix **the stairwell's lamp placement**, not the
 lifts — the lifts are compensating for a lighting model that puts a hot spot in
 the middle of every flight, and no amount of compensation downstream turns that
@@ -1187,7 +1187,7 @@ into an even one.
 Reverted. The gates and their gap stay until the lamps are dealt with.
 
 **The rule underneath all of it, and the one to carry to any future "too dark"
-report:** `main()` quantises luminance to **six levels**
+report:** `main()` quantizes luminance to **six levels**
 (`q = floor(lum * 5.0 + 0.5 + dither) / 5.0`, `final = sub * (0.050 + 1.35*q)`).
 Below `lum ≈ 0.1` everything floors to step 0, and step 0 is `sub * 0.05`.
 **There is no dim in this renderer.** Any surface that falls off the bottom of
@@ -1199,7 +1199,7 @@ through the surface.** Three places in the shelving took geometry out of the
 field rather than measuring it:
 
 - `mod(base, SHELF_P) - 0.167` repeated the shelf up the wall for ever and was
-  not centred on the volume, so above the top shelf it measured to a book that
+  not centered on the volume, so above the top shelf it measured to a book that
   is not there, and in the upper part of each gap to the farther of two books;
 - `abs(w.y) > CASE_HALF + 0.03` dropped a wall's casework out of the field
   outright — that is what tore the corners;
@@ -1245,7 +1245,7 @@ edge-on at a grazing angle: possibly the same overshoot as the spine case and
 therefore possibly already gone, unverified either way. And a cost that was
 not there before — raising corridors to 10% and restoring the richer axis rule
 took a gallery from 6.58 ms to 7.45 ms at 1550×945, **+13%**, with a 160 ms
-worst frame on the reporter's own panel that has not been characterised. The
+worst frame on the reporter's own panel that has not been characterized. The
 mean is understood; the spike is not.
 
 **What you can get into.** The alcoves are void in the collision field, not
@@ -1345,7 +1345,7 @@ ADDRESS_OF(text) -> address                       # Profile U only; LIB-S-012
   return LATTICE_POSITION( FROM_BASE_25(text) )
 
 SPINE(address) -> string of <= 80 letters         # LIB-L-005
-  return RENDER_LETTERS( PRF(key, SERIALISE(address)) )
+  return RENDER_LETTERS( PRF(key, SERIALIZE(address)) )
 ```
 
 `LATTICE_ORDINAL` and `LATTICE_POSITION` are mutual inverses enumerating the hexagon chain — slot within shelf, shelf within wall, wall within hexagon, hexagon along circuit, circuit within floor, floor along the vertical axis. Their bijectivity is the whole correctness argument for LIB-A-024, LIB-C-020, and LIB-C-021 simultaneously.

@@ -13,7 +13,7 @@ everything else is defined relative to it:
 Most agent evaluations need a judge, because most questions of the form "did the agent do
 well?" are matters of degree. Here one is not.
 
-Whether a page *relates* to your situation is a judgement no core can make, and this one
+Whether a page *relates* to your situation is a judgment no core can make, and this one
 doesn't try. But whether a quoted passage really sits at the cited address is decidable
 **exactly, in constant time, with no judge model and no rubric** — the corpus is a pure
 function of the address, so the oracle is a string comparison. A fabricated citation is
@@ -44,7 +44,7 @@ exotic one.
 
 `cite` is deliberately **off-menu**. It is the one action that cannot be chosen
 mechanically: it asserts something about text, which means having read the text. Policies
-that cite must construct the claim themselves, which is exactly the behaviour under test.
+that cite must construct the claim themselves, which is exactly the behavior under test.
 
 ## The readout
 
@@ -78,7 +78,7 @@ same `actions()`/`apply()` pair, one tool call per step, and scores it with the
 same oracle.
 
 **What it measures.** Not whether the model finds anything — whether a page
-*relates* to your situation is still a judgement no core makes. What is measured
+*relates* to your situation is still a judgment no core makes. What is measured
 is whether its claims about text are true. To cite, the reader is shown the page
 with the grid drawn on it (line numbers down the side, a column ruler across the
 top, exactly as the reading pane draws them in §17.9) and must name a volume, a

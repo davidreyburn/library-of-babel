@@ -20,7 +20,7 @@
 /* Stamped onto every transcript and every vector file. A run recorded
    under one version replays only against that version: a rules change
    must break a replay loudly rather than invalidate it quietly. Bump it
-   whenever the lattice, the corpus or the seam changes behaviour. */
+   whenever the lattice, the corpus or the seam changes behavior. */
 const CORE_VERSION = "0.6.0";
 
 /* ---- lattice constants (verbatim from the prototype) --------------- */
@@ -189,7 +189,7 @@ const riseOf = (q,r) => (uhash(u32(cellKey(q,r) ^ 0x27d4eb2d)) & 1) === 0 ? 1 : 
  * hallway and this is as close as a cell-per-stair layout gets to it. Then
  * any axis with somewhere to walk at both ends.
  *
- * That first pass calls axisOf on a neighbour, from inside a function gapAt
+ * That first pass calls axisOf on a neighbor, from inside a function gapAt
  * calls, which cellDesc calls six times, which the shader calls for every
  * cell a ray enters. It was suspected of the 127-second shader link and
  * acquitted -- the cause was two call sites in main(), §17.13 -- so it is
@@ -465,7 +465,7 @@ const SHELF_PITCH = G.SHELF_P, SHELF_BASE = G.SHELF_BASE;
  *
  * One 32-bit hash carries every fact about a slot: the low half decides
  * presence and depth, the high half is the spine's tint. The tint had no
- * twin here at all before this -- the shader read bits 16-31 for a colour
+ * twin here at all before this -- the shader read bits 16-31 for a color
  * the core did not know existed, so nothing could have checked it. */
 function volumeBits(q, r, wall, shelf, slot){
   return u32(uhash(u32(cellKey(q, r) ^
@@ -479,7 +479,7 @@ const volumePresent = (q, r, wall, shelf, slot) => volumeHash(q, r, wall, shelf,
    face is what you see and what the reticule must hit. */
 const volumeDepth = (q, r, wall, shelf, slot) =>
   G.BOOK_D * (0.80 + 0.20 * volumeHash(q, r, wall, shelf, slot));
-/* The spine's colour, which until now only the shader knew about. */
+/* The spine's color, which until now only the shader knew about. */
 const volumeTint = (q, r, wall, shelf, slot) =>
   ((volumeBits(q, r, wall, shelf, slot) >>> 16) & 0xFFFF) / 65536;
 function galleryCapacity(q, r, fl){
@@ -614,7 +614,7 @@ const seatsIn = (q, r, fl) => studyPieces(q, r, fl).filter(p => p.sittable);
  * frame in a furnished room. It is computed here, once. The alcoves are
  * carried for exactly the same reason. */
 /* Which ends of a flight carry the 0.75 m overhang. The overhang exists to
-   reach a neighbour doorway; an end with no doorway must not have one, or
+   reach a neighbor doorway; an end with no doorway must not have one, or
    the cut runs through the rock (BUG-LOG 19). +u runs toward the axis when
    the flight rises that way, and toward its opposite when it does not. */
 function stairExtends(q, r, fl){

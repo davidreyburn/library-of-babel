@@ -6,7 +6,7 @@ Library, and carries the backend it ran on inside the image.
 The numbered images are
 the milestones referenced from `docs/CASE-STUDY.md` and `docs/BUG-LOG.md`;
 `archive/` holds every shot taken, chronologically by the timestamp in the
-filename, unlabelled.
+filename, unlabeled.
 
 | | what it shows |
 |---|---|

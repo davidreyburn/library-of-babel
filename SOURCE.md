@@ -1,6 +1,6 @@
 # The source text is not in this repository
 
-> **On the licence.** `LICENSE` (MIT) covers the work in this repository: the
+> **On the license.** `LICENSE` (MIT) covers the work in this repository: the
 > code, the specifications, the case study, the documentation. It does not and
 > cannot cover Borges's story, which is not included here.
 

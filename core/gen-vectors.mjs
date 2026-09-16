@@ -1,7 +1,7 @@
 /* Generates core/vectors.json from babel-core.mjs -- the shared ground
  * truth for every consumer. Deterministic: the sample cells come from a
  * fixed integer walk, not a random source, so the file only changes when
- * the core's behaviour does. Regenerate deliberately, never to make a
+ * the core's behavior does. Regenerate deliberately, never to make a
  * failing test pass. */
 
 import { writeFileSync } from "node:fs";

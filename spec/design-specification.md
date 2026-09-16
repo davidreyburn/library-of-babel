@@ -9,7 +9,7 @@
 
 ## 1. The Sparseness Problem
 
-Borges wrote roughly 2,900 words and spent almost none of them on appearance. There is no description of a wall's material, a book's binding, a floor, a ceiling colour, a sound, a smell, or a temperature. Two colours are named in the entire story. This document therefore does three things, kept strictly separate:
+Borges wrote roughly 2,900 words and spent almost none of them on appearance. There is no description of a wall's material, a book's binding, a floor, a ceiling color, a sound, a smell, or a temperature. Two colors are named in the entire story. This document therefore does three things, kept strictly separate:
 
 1. **§3 — What the text fixes.** Determinate visual requirements, quoted and traced. Small in number, but unusually specific where they exist.
 2. **§4 — Mood and tone.** Not visual instruction, but the emotional register any visual treatment must land.
@@ -25,7 +25,7 @@ Exhaustively, the text supplies:
 
 | Category | What is actually given |
 |---|---|
-| **Colour** | Black (the letters). Crimson (one hexagon). Nothing else. |
+| **Color** | Black (the letters). Crimson (one hexagon). Nothing else. |
 | **Light** | Two spherical lamps per hexagon, transversally placed; "insufficient, incessant." |
 | **Geometry** | Hexagonal gallery; ceiling barely above bookcase height; narrow hallway; spiral stair; vast vertical shafts; very low railings. |
 | **Surface** | The mirror is polished. The stairways are polished. Nothing else has a stated finish. |
@@ -42,15 +42,15 @@ That is the whole inventory. Everything else in this document is either mood inf
 
 ### 3.1 Light — the strongest directive in the story
 
-- **D-01** Exactly two light sources per hexagon, spherical, **transversally placed** — i.e. opposed across the room, not centred. Lighting must therefore be **bilateral**, producing two overlapping pools with a measurable falloff between them, never a flat ambient wash.
+- **D-01** Exactly two light sources per hexagon, spherical, **transversally placed** — i.e. opposed across the room, not centered. Lighting must therefore be **bilateral**, producing two overlapping pools with a measurable falloff between them, never a flat ambient wash.
 - **D-02** Light is **insufficient**. Underlit is correct; comfortable is a defect. Reading in this room should look difficult.
 - **D-03** Light is **incessant** — permanently on. There is **no day, no night, no dusk, no dawn, and no flicker.** Any temporal lighting cycle is a fabrication, and flicker in particular contradicts the word directly. Whatever unease the design carries must come from insufficiency, not instability.
 - **D-04** The lamps are introduced as "spherical fruit which bear the name of lamps" — the story's only figurative description of a manufactured object, and it is **botanical**. The lamps should read as *grown* rather than engineered: no filaments, fixtures, cabling, sconces, or industrial hardware.
 
-### 3.2 Colour
+### 3.2 Color
 
 - **D-10** Printed letters are black — restated later as "perfectly black." This is the only absolute value in the story and should be the design's true black.
-- **D-11** **Crimson is the sole named hue**, attached to a single unreachable hexagon of magical books. It is therefore the accent by authorial appointment, and it is structurally *rare* — one hexagon out of an unbounded lattice. A design that spreads crimson liberally destroys the only colour event Borges wrote.
+- **D-11** **Crimson is the sole named hue**, attached to a single unreachable hexagon of magical books. It is therefore the accent by authorial appointment, and it is structurally *rare* — one hexagon out of an unbounded lattice. A design that spreads crimson liberally destroys the only color event Borges wrote.
 - **D-12** Every other hue is unspecified. See VIS-01.
 
 ### 3.3 Proportion
@@ -80,7 +80,7 @@ Borges sets up a direct comparison, and it is the most designed passage in the s
 
 - **D-50** "The distribution of the galleries is invariable." Every gallery is identical. There is **no landmark, no hierarchy, no signage, no wayfinding, and no focal point.**
 - **D-51** This is an instruction toward **anti-composition**: repetition without accent, symmetry without emphasis. Conventional visual interest — a hero view, a dominant diagonal, a figure placed at the third — is a departure from the text and should be a conscious one.
-- **D-52** The classic dictum is that the Library is a sphere whose centre is any hexagon and whose circumference is inaccessible. Formally: **every position is the centre; no position is distinguished.** Placelessness is the goal.
+- **D-52** The classic dictum is that the Library is a sphere whose center is any hexagon and whose circumference is inaccessible. Formally: **every position is the center; no position is distinguished.** Placelessness is the goal.
 - **D-53** Each hallway holds a mirror that "faithfully duplicates all appearances." Doubling is an available motif, and the text attaches genuine ambiguity to it — the men read it as proof of limits, the narrator as a promise of the infinite. The mirror should not resolve the question.
 
   **Built** (see LIB-BABEL-SPEC-001 §17.13 and §17.4). A real single-bounce reflection, shaded through the same path as the primary ray. It hangs in two places: in an alcove off a corridor, and — in 22% of reading rooms — alone on the wall of a room holding nothing else. Together, a mirror stands in about 1 cell in 80. *Faithfully* is taken literally: the loss at the surface is in level, not in hue. The ambiguity survives by arithmetic rather than by taste — one bounce means a facing pair doubles the corridor once and terminates in a dark pane, so the mirror shows neither a bounded room nor an endless one.
@@ -116,11 +116,11 @@ If the treatment is sequential — a scroll, a film, a game's progression — th
 ### 4.3 Failing sight as a design constraint
 
 - **T-10** The narrator states early that his eyes "can hardly decipher" his own writing. The story is narrated by someone who **cannot see well, in a room that is deliberately too dark.** Strain is thematic.
-- **T-11** This does **not** license illegible design. It licenses depicted difficulty — text shown at the edge of readability *within* the image — while the artefact the viewer actually operates stays legible. Distinguish the Library's illegibility from the interface's. See VIS-03, which is where this trade-off gets decided.
+- **T-11** This does **not** license illegible design. It licenses depicted difficulty — text shown at the edge of readability *within* the image — while the artifact the viewer actually operates stays legible. Distinguish the Library's illegibility from the interface's. See VIS-03, which is where this trade-off gets decided.
 
 ### 4.4 Solitude
 
-- **T-20** Population density was one librarian per three hexagons and has fallen; the narrator recalls travelling many nights without meeting anyone. The default state of any view is **empty.** Crowds appear only in the historical pilgrimage passage.
+- **T-20** Population density was one librarian per three hexagons and has fallen; the narrator recalls traveling many nights without meeting anyone. The default state of any view is **empty.** Crowds appear only in the historical pilgrimage passage.
 
 ---
 
@@ -166,7 +166,7 @@ Botanical light in a stone throat, cut in line. The selections cohere around a s
   Two spheres, transversally placed per D-01. Emission `rgb(255, 196, 110)`; ambient floor ≈ 0.055 of peak; falloff radius ≈ 46% of room width per lamp; linear gamma (soft, wide, no hard terminator). Warm amber is the most botanical reading of D-04 and the friendliest to the "fruit" simile. Never flickers (D-03).
 
 - **V-03 · Legibility — Uniformly Dim.**
-  Image and interface share one low-light world; no bright chrome surrounding a dark picture. **Dimness is a matter of absolute luminance, not of contrast ratio** — the two are independent axes, and this requirement governs only the first. See E-07 for the contrast floor that keeps the artefact operable without reintroducing the bright-UI option this rejects.
+  Image and interface share one low-light world; no bright chrome surrounding a dark picture. **Dimness is a matter of absolute luminance, not of contrast ratio** — the two are independent axes, and this requirement governs only the first. See E-07 for the contrast floor that keeps the artifact operable without reintroducing the bright-UI option this rejects.
 
 - **V-04 · Material — Black Basalt.**
   Walls, shelves, floor, stair: dense dark volcanic stone, base `rgb(38, 38, 42)`, matte except where V-06 applies. Basalt absorbs the lamps and makes insufficient light look weaker still, which serves D-02 and compounds with V-03 (see E-07).
@@ -184,10 +184,10 @@ Botanical light in a stone throat, cut in line. The selections cohere around a s
   Cursive, uneven, hurried — a hand that knows it is failing (T-10). Covers only, never pages (D-31). See E-05: in a line medium this contrast needs deliberate protection.
 
 - **V-09 · Crimson — One Appearance.**
-  **`#9E1B32`**, occurring **exactly once** across the entire body of work, as the Crimson Hexagon. Not an accent, not a system colour, not a UI state. Once spent it cannot be spent again. See E-06 for the production consequence and E-11 for a value conflict resolved.
+  **`#9E1B32`**, occurring **exactly once** across the entire body of work, as the Crimson Hexagon. Not an accent, not a system color, not a UI state. Once spent it cannot be spent again. See E-06 for the production consequence and E-11 for a value conflict resolved.
 
 - **V-10 · Mode — Engraving.**
-  Line and hatch, no photographic optics, no lens artefacts, no depth-of-field. Depiction by mark, not by light transport.
+  Line and hatch, no photographic optics, no lens artifacts, no depth-of-field. Depiction by mark, not by light transport.
 
 - **V-11 · Framing — Held in Tension.**
   Compressed room and bottomless shaft in a single frame, per D-22. This is the hardest composition in the set and it constrains aspect ratio: the frame must give a low horizontal band to the gallery and full frame height to the shaft, so **portrait or square, never letterbox**. Letterboxing would deliver the horizontal crush at the cost of the vertical infinity, collapsing the tension this requirement exists to hold.
@@ -214,10 +214,10 @@ The thirteen selections interact. These requirements follow from *combinations* 
   V-01 supplies a pale olive `#8C9179` as its ground value, but V-04 makes every architectural surface near-black basalt. As written the palette's lightest value has nothing to attach to. **Resolution:** reassign by substance rather than by depth. `#8C9179` and `#5F6650` belong to **paper and book spines**; `#363A2E` and `#12140F` belong to **stone**. The consequence is exact and worth stating plainly: *the only pale objects in the Library are the books.* The room absorbs; the volumes hold what little light there is. This is a stronger reading than the palette alone implied and should be treated as the governing one.
 
 - **E-02 · The green survives only in the falloff.**
-  Amber emission (V-02) on olive-green surfaces (V-01) desaturates toward muddy neutral wherever the light is strongest. The verdigris cast will therefore read **only in the penumbra and the shadow**, not in the lit pools. Do not correct for this. The palette's identity living exactly where the light fails is a precise visual restatement of D-02, and it means the two lamps carve *colour* out of the room as well as brightness.
+  Amber emission (V-02) on olive-green surfaces (V-01) desaturates toward muddy neutral wherever the light is strongest. The verdigris cast will therefore read **only in the penumbra and the shadow**, not in the lit pools. Do not correct for this. The palette's identity living exactly where the light fails is a precise visual restatement of D-02, and it means the two lamps carve *color* out of the room as well as brightness.
 
-- **E-03 · Falloff must be tonally quantised.**
-  V-02 specifies a soft, wide, linear falloff; V-05 and V-10 specify a pure line medium. Smooth continuous gradient is precisely what hatch renders worst — it bands, or it degenerates into mush. **Resolution:** quantise each lamp's falloff into **five to seven discrete tonal registers**, each a distinct hatch density, in the manner of an actual engraved plate. Do not attempt continuous gradation. This is both the historically correct technique and thematically apt: light in the Library becomes countable, discrete, and systematic, like everything else in it.
+- **E-03 · Falloff must be tonally quantized.**
+  V-02 specifies a soft, wide, linear falloff; V-05 and V-10 specify a pure line medium. Smooth continuous gradient is precisely what hatch renders worst — it bands, or it degenerates into mush. **Resolution:** quantize each lamp's falloff into **five to seven discrete tonal registers**, each a distinct hatch density, in the manner of an actual engraved plate. Do not attempt continuous gradation. This is both the historically correct technique and thematically apt: light in the Library becomes countable, discrete, and systematic, like everything else in it.
 
 ### 7.2 Consequences
 
@@ -228,7 +228,7 @@ The thirteen selections interact. These requirements follow from *combinations* 
   D-32 requires that printed and hand lettering differ *in kind*. But in an engraving everything is made of the same marks, which threatens to collapse V-07 into V-08. **Resolution:** distinguish them by engraving convention rather than by typeface alone. The printed register is **burin lettering** — ruled, mechanically even, closed forms. The hand register is **free etched line** — needle-drawn, open, variable in weight. Historical plates already separate formal engraved lettering from etched drawing; use that separation. Typeface choice alone will not carry D-32 in this medium.
 
 - **E-06 · Crimson is a second plate.**
-  A single crimson event (V-09) in a monochrome line medium (V-10) is, in production terms, a **spot colour requiring its own printing plate** — used once, for one image, and never again. Adopt this literally. The method then enforces the rarity rather than relying on restraint: crimson cannot leak into general use, because using it means pulling a second plate. This is the neatest alignment in the whole set, and it makes the Crimson Hexagon's unreachability a fact about the artefact and not only about the fiction.
+  A single crimson event (V-09) in a monochrome line medium (V-10) is, in production terms, a **spot color requiring its own printing plate** — used once, for one image, and never again. Adopt this literally. The method then enforces the rarity rather than relying on restraint: crimson cannot leak into general use, because using it means pulling a second plate. This is the neatest alignment in the whole set, and it makes the Crimson Hexagon's unreachability a fact about the artifact and not only about the fiction.
 
 - **E-08 · Motion must not betray the medium.**
   V-13 grants moving air; V-10 is a medium that does not move. Smooth interpolated animation would read as digital and dissolve the engraving. **Resolution:** if the treatment animates, run the moving marks at **roughly 8–12 frames per second** with no motion blur and no sub-pixel interpolation, so the result reads as successive plates rather than as video. Only dust and page-edges may move; every architectural line stays fixed frame to frame.
@@ -240,7 +240,7 @@ The thirteen selections interact. These requirements follow from *combinations* 
   Engraving (V-10) plus held-in-tension framing (V-11) converge on Piranesi's *Carceri d'invenzione* — line-medium plates holding oppressive architecture against impossible vertical depth. Treat these as the primary reference for composition and hatch handling, with one correction: Piranesi's spaces are vaulted and grand, whereas D-20 caps the ceiling at bookcase height. Take the vertical logic and the mark-making; reject the monumentality.
 
 - **E-11 · One crimson, not two.**
-  V-01 arrives carrying `#96202E` as its bundled accent while V-09 specifies `#9E1B32`. **`#9E1B32` governs; `#96202E` is superseded and must not appear.** Two near-identical crimsons in a work whose entire colour argument rests on a single unrepeatable event would be a straightforward defect.
+  V-01 arrives carrying `#96202E` as its bundled accent while V-09 specifies `#9E1B32`. **`#9E1B32` governs; `#96202E` is superseded and must not appear.** Two near-identical crimsons in a work whose entire color argument rests on a single unrepeatable event would be a straightforward defect.
 
 ### 7.3 Risk requiring a number
 
@@ -256,7 +256,7 @@ The thirteen selections interact. These requirements follow from *combinations* 
   | Overall surface luminance | Unconstrained — go as dark as the direction wants |
   | *Depicted* text — letters shown inside the image, on pages and spines | **Exempt.** May fall to the threshold of legibility and below, per T-10 |
 
-  This preserves the immersion V-03 was chosen for while keeping the artefact operable. It does not reintroduce the bright-chrome option V-03 rejected: the whole surface stays dark: only the *ratios* within that darkness are held. The one place I would push back is if functional text is pushed under the floor for atmosphere's sake; that trades a real cost for an effect the depicted text can deliver for free.
+  This preserves the immersion V-03 was chosen for while keeping the artifact operable. It does not reintroduce the bright-chrome option V-03 rejected: the whole surface stays dark: only the *ratios* within that darkness are held. The one place I would push back is if functional text is pushed under the floor for atmosphere's sake; that trades a real cost for an effect the depicted text can deliver for free.
 
 ---
 
@@ -277,7 +277,7 @@ The thirteen selections interact. These requirements follow from *combinations* 
 | Illuminated, motionless, incorruptible, secret | D-40, D-41 |
 | Purifiers; scrawled covers; broken stair; dice cup | D-42 |
 | "The distribution of the galleries is invariable" | D-50, D-51 |
-| Sphere whose centre is any hexagon | D-52 |
+| Sphere whose center is any hexagon | D-52 |
 | The mirror duplicates faithfully | D-53 |
 | Wind generated by the fall | D-60 |
 | Epigraph: *The Anatomy of Melancholy* | §4.1 |
@@ -317,8 +317,8 @@ overturned.
 ### 9.1 Rendering
 
 **V-05 and V-10 are superseded.** Engraved hatch is gone; the image is
-quantised to a short tone ramp with a dither. Three consequences of the line
-medium go with it: **E-03** (falloff quantised into hatch registers),
+quantized to a short tone ramp with a dither. Three consequences of the line
+medium go with it: **E-03** (falloff quantized into hatch registers),
 **E-04** (hatch angle following the lamp) and **E-05** (burin lettering
 against free etched line) no longer apply, since nothing is drawn in line.
 
@@ -330,14 +330,14 @@ visible weave on any flat wall; a hash scatters at the same cost.
 **E-09 survives in spirit.** Burnish is still reserved white — the top tone
 step rather than unhatched ground.
 
-Two artefacts had to be handled and are worth recording, because they look
+Two artifacts had to be handled and are worth recording, because they look
 alike and are not:
 
 - *Dither moiré*: an 8×8 pattern resampled by a non-integer factor beats
   against the output grid. Fixed by rendering at integer divisions of the
-  canvas with nearest-neighbour upscaling.
+  canvas with nearest-neighbor upscaling.
 - *Geometric aliasing*: 35 spines across a 1.82 m wall fall below one pixel
-  at a few metres, and their per-volume colours beat. Fixed by converging
+  at a few meters, and their per-volume colors beat. Fixed by converging
   per-volume detail on its mean with distance — the procedural equivalent
   of a mip level. Supersampling also fixed it and was withdrawn: four times
   the pixels was not worth it.
@@ -352,7 +352,7 @@ The verdigris still survives only in the falloff (**E-02** holds).
 joints staggered board to board, and tone between them. Seams in both axes
 read as tile, which is the wrong material entirely.
 
-**Spines** are one flat colour per volume, keyed to the volume's own hash
+**Spines** are one flat color per volume, keyed to the volume's own hash
 rather than to hit position — keying it to height striped every spine in
 register. Wear is what a spine actually gets: darkening at head and tail,
 and a paler label band on some books. Random blotching reads as camouflage

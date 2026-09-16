@@ -121,7 +121,7 @@ function drainGL(gl){
  * gate -- that blank is 21's symptom, so reading the pixels would catch 21
  * anywhere, including on the machine that wrote it. **That was measured and
  * it is false.** With the vertex count put back to 21's value, SwiftShader
- * reports NO_ERROR and still draws nine distinct colours at the centre: it
+ * reports NO_ERROR and still draws nine distinct colors at the center: it
  * serves the over-read as zeroes, which adds degenerate triangles at the
  * origin and leaves the rest of the lattice looking entirely correct. 29 of
  * 29 green on a page carrying the bug.
@@ -143,10 +143,10 @@ function drainGL(gl){
  * same task as the draw, which is why each caller drives a frame and reads
  * immediately rather than reusing an earlier one.
  *
- * The test is "more than one colour in a patch at the centre", not a
+ * The test is "more than one color in a patch at the center", not a
  * checksum. A render this gate pins to an exact image is a gate that fails
  * every time the lighting is touched, and this project changes the lighting
- * constantly. One colour means nothing was drawn; sixteen means something
+ * constantly. One color means nothing was drawn; sixteen means something
  * was. */
 function drawnColours(gl, cv, w = 16, h = 4){
   const x = Math.max(0, Math.floor(cv.width / 2) - w / 2);
@@ -274,7 +274,7 @@ section("THE PROTOTYPE -- it has to start, and say where it is");
     /* ---- the mouse mode, read rather than looked at ------------------
        Roadmap item 6. The page used to hide the cursor whether or not it held
        the lock, which meant the only way to know which mode you were in was
-       to judge by feel -- and the reporter's judgement, "doesn't feel totally
+       to judge by feel -- and the reporter's judgment, "doesn't feel totally
        legit", was the bug report. It is a fact now, and this reads it.
 
        This frame is not sandboxed, so the lock may or may not be granted here
@@ -302,7 +302,7 @@ section("THE PROTOTYPE -- it has to start, and say where it is");
     w.__render.frame(performance.now());
     const seen = drawnColours(w.__render.gl, w.__render.cv);
     ok("the canvas has something on it", seen.size > 1,
-       `${seen.size} colours at the centre` +
+       `${seen.size} colors at the center` +
        (seen.size > 1 ? "" : ` -- all ${[...seen][0]}`));
 
     /* and nothing was rejected, which is a different question. Drained after
@@ -344,7 +344,7 @@ section("THE ATLAS -- it has to draw the lattice, and answer about it");
     ok("a click in the middle reads a cell", hit !== null,
        hit ? `${hit.q},${hit.r} floor ${hit.fl}` : "nothing there");
     ok("reachability was computed and is not everything", A.REACH.size > 100,
-       A.REACH.size + " rooms reachable from the centre");
+       A.REACH.size + " rooms reachable from the center");
     ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
 
     /* This is the page 21 was on, and this is the assertion that would have
@@ -356,7 +356,7 @@ section("THE ATLAS -- it has to draw the lattice, and answer about it");
     A.frame(performance.now());
     const seen = drawnColours(A.gl, A.gl.canvas);
     ok("the lattice is on the canvas", seen.size > 1,
-       `${seen.size} colours at the centre` +
+       `${seen.size} colors at the center` +
        (seen.size > 1 ? "" : ` -- all ${[...seen][0]}, which is what 21 looked` +
                              ` like on Metal and did not look like anywhere else`));
 

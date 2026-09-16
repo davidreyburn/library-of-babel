@@ -60,7 +60,7 @@ const vec3 C_LAMP   = vec3(1.000, 0.769, 0.431);
 
 float gMat;    // 0 stone . 1 volume . 2 crimson . 3 structure . 5 wood . 8 mirror . 9 void
 float gTgt;    // 1 on the one volume the reticule is resting on
-float gTint;   // per-volume colour draw
+float gTint;   // per-volume color draw
 float gSpineY; // 0 at the tail of the spine, 1 at the head
 uint  gKey;    // per-volume hash
 
@@ -263,10 +263,10 @@ int studyKit(uint key){
   return 7;
 }
 /* Every doorway axis runs through the middle of the room, so keeping a
-   0.55 m corridor clear along each one guarantees the centre is open and
+   0.55 m corridor clear along each one guarantees the center is open and
    any door reaches any other. A piece that would stand in one is dropped
    -- anchoring to a blank wall alone still let a recliner reach across a
-   neighbouring doorway.                                                 */
+   neighboring doorway.                                                 */
 bool clearOfDoors(vec2 pos, float rad, int desc){
   for (int i = 0; i < 6; i++){
     if (((desc >> (i * 2)) & 3) == 0) continue;
@@ -415,7 +415,7 @@ float alcoveFixtures(vec2 lp, float fy, int desc, float dBest){
   float u = dot(lp, ax), v = dot(lp, vec2(-ax.y, ax.x));
   /* The same exact bound the furniture gets, and it bites harder here: a
      corridor is long in u and every fixture sits within 0.30 of the alcove
-     centre, so most of its length culls on the first compare. |u| <= 0.30,
+     center, so most of its length culls on the first compare. |u| <= 0.30,
      |v| <= CORR_HW + ALC_D = 1.24, fy in [0, 1.82], padded outward. A box
      containing the fixtures is never further than the fixtures, so exceeding
      the caller's best distance means none of them can win. */
@@ -499,8 +499,8 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     float stepY   = ceil(t * 14.0) * (H_FLOOR / 14.0);
     /* The overhang belongs to a doorway, not to the flight. STAIR_RUN is
        exactly the cell radius, so the run ends on the boundary and EXT
-       carries it 0.75 m into the neighbour to meet that neighbour's opening.
-       Carrying it into a neighbour there is no opening to meet drives the
+       carries it 0.75 m into the neighbor to meet that neighbor's opening.
+       Carrying it into a neighbor there is no opening to meet drives the
        cut straight through the rock: from the gallery it reads as a stair
        climbing into a black hole, and a walker who followed it came out
        inside the next cell, across an edge gapAt calls WALL (BUG-LOG 19).
@@ -524,14 +524,14 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
   /* THE REVEAL: the wall you see INSIDE a gap. A distinct architectural
      surface that was being shaded as if it were open wall -- obliquely lit,
-     self-occluded, and so green and dark against its warm bright neighbours a
-     few centimetres away, which is the patch reported four times over.
+     self-occluded, and so green and dark against its warm bright neighbors a
+     few centimeters away, which is the patch reported four times over.
 
      Named POSITIONALLY, not by asking which primitive won. The obvious test,
      "is the doorway box nearer than the room", fails: at a hit point both are
      ~0 and the march stops a fraction short, so the comparison is decided by
      noise and the tag spread over 43-98% of a frame. The wall between two
-     cells spans |u| < HALF_D - APO_ROOM = 0.600 m about the gap centre, and
+     cells spans |u| < HALF_D - APO_ROOM = 0.600 m about the gap center, and
      inside that slab the only surfaces there are belong to the hole. No SDF
      comparison, no epsilon, nothing to go wrong at a grazing angle.
 
@@ -544,7 +544,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
   /* A stair and a corridor cut their own way out past the cell boundary,
      so they must not also punch a doorway box: they meet the opening the
-     neighbouring gallery draws on its side. */
+     neighboring gallery draws on its side. */
   if (ctype != 2 && ctype != 4) for (int i = 0; i < 6; i++){
     int g = (desc >> (i * 2)) & 3;
     if (g == 0) continue;
@@ -564,7 +564,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     else {
       /* A guardrail at the shaft's own lip. Anchoring it to the ray's cell
          put it in two different places depending on which side you looked
-         from; the lip is at APO_SHAFT from the shaft's centre, so the offset
+         from; the lip is at APO_SHAFT from the shaft's center, so the offset
          flips sign according to which of the pair is the well.   D-23     */
       dv = min(dv, sdBox3(vec3(u, fy - 1.02, v), vec3(0.78, 1.02, 0.62)));
       float lip = (ctype == 1) ? -(HALF_D - APO_SHAFT) : (HALF_D - APO_SHAFT);
@@ -651,7 +651,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
   float base = fy - SHELF_BASE;
   /* THE NEAREST OF THE FIVE REAL SHELVES, not the containing one modulo the
      pitch. mod(base, SHELF_P) - 0.167 repeats the shelf up the wall for
-     ever and is not centred on the volume, so above the top shelf it
+     ever and is not centered on the volume, so above the top shelf it
      measured to a book that is not there, and in the upper part of each gap
      it measured to the farther of the two books rather than the nearer.
      Both over-report the distance, and an SDF that over-reports lets the
@@ -671,7 +671,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
      quoting it.                                                           */
   float shelfIdx = clamp(floor((base - 0.167) / SHELF_P + 0.5), 0.0, 4.0);
   float ys = base - (shelfIdx * SHELF_P + 0.167);
-  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centred
+  float yb = mod(base + SHELF_P*0.5, SHELF_P) - SHELF_P*0.5;   // already centered
   float cx = APO_ROOM - CARC_D * 0.5;
 
   /* Two iterations, not six over a six-way test. The selection loop above
@@ -731,12 +731,12 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
 
     if (abs(w.y) - RUN_HALF > d) continue;
     /* and the nearest of the thirty-five real slots, clamped rather than
-       dropped, for the same reason -- AND its two neighbours.
+       dropped, for the same reason -- AND its two neighbors.
 
        Sampling one cell of a repeating structure is conservative only if the
        contents fill the cell, and they do not. A book is BOOK_W*0.90 wide in
        a BOOK_W pitch; it stands proud by BOOK_D*(0.80 + 0.20*hh), so a
-       neighbour can be up to 0.04 m nearer in depth than this slot; and 3.5%
+       neighbor can be up to 0.04 m nearer in depth than this slot; and 3.5%
        of slots are empty and contribute nothing at all. The single-slot
        distance therefore OVER-reports, and `t += d * 1.00` steps a ray past
        the surface.
@@ -754,7 +754,7 @@ float mapAt(vec3 p, ivec2 c, int desc, int ctype, int fl){
     float bi0 = clamp(floor((w.y + RUN_HALF) / BOOK_W), 0.0, 34.0);
     for (int bo = -1; bo <= 1; bo++){
     float bi = clamp(bi0 + float(bo), 0.0, 34.0);
-    if (bo != 0 && bi == bi0) continue;         // clamped onto the centre slot
+    if (bo != 0 && bi == bi0) continue;         // clamped onto the center slot
     /* All four are generated from core/babel-glsl.mjs and checked against
        the CPU slot by slot by core/conformance.html. They used to be typed
        out here, which made them the last un-mirrored twin in the system. */
@@ -802,7 +802,7 @@ int cellDesc(ivec2 c, int fl){
     packed |= a << 12;
     packed |= (up ? 1 : 0) << 14;
     /* bits 15-16: does each end of the flight open? The overhang that meets
-       a neighbour doorway must not be cut where there is no doorway, or it
+       a neighbor doorway must not be cut where there is no doorway, or it
        runs through the rock (BUG-LOG 19). Resolved here rather than in
        mapAt, which is inlined at eight call sites -- doing it there cost 94
        seconds of link time. Spelled out per axis so every shift is a
@@ -922,8 +922,8 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
         int flf = fl0 + f;
         /* Reject on the room before working out where its lamp is. Whatever
            wall the lamp is anchored to it sits 1.646 m from the room's
-           centre, so beyond 7 + 1.646 it cannot reach us. Without this the
-           anchor scan ran three times per neighbouring room -- once per
+           center, so beyond 7 + 1.646 it cannot reach us. Without this the
+           anchor scan ran three times per neighboring room -- once per
            storey -- and the dl > 7.0 test below then threw two of them away.
            That scan is the most expensive thing in this function.
            Distance first, then whether the room is furnished at all: the
@@ -965,7 +965,7 @@ vec3 lighting(vec3 p, vec3 n, out float lit){
 
 /* Ordered dither to a short tone ramp: an early indexed display. The
    buffer is an integer fraction of the canvas and upscaled by nearest
-   neighbour, so the pattern stays on whole pixels.                     */
+   neighbor, so the pattern stays on whole pixels.                     */
 float bayer8(ivec2 c){
   int x = c.x & 7, y = c.y & 7, v = 0;
   for (int i = 0; i < 3; i++){
@@ -1005,7 +1005,7 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        It used to read 0.0018 * t + 0.0012 -- about 5.5 mm at 2.4 m, 12 mm at
        6 m. The residual offset it leaves at the hit point is what corrupts
        normalCtx's gradient, and because the step count that first satisfies
-       it is an integer, the error came out as CONCENTRIC RINGS centred on
+       it is an integer, the error came out as CONCENTRIC RINGS centered on
        wherever the view is perpendicular to a surface. Rendered as a
        normal-error map it is a bullseye, which is what finally identified it
        (bug log §13).
@@ -1022,7 +1022,7 @@ float marchRay(vec3 ro, vec3 rd, int steps){
        A factor of 135 on that surface, and 0.36% on a plain stone wall.
        Frame cost is NEUTRAL -- within +/-2% across three views at a matched
        775x445 buffer. An earlier draft of this comment claimed -30%, and that
-       was an artefact of the probe rather than the shader: bug log §13 records
+       was an artifact of the probe rather than the shader: bug log §13 records
        the two harness faults behind it. Do not restate this as free speed.
        The step scale went back to 0.80 with it. */
     /* DO NOT "refine" this by returning t + d. It was tried, it measured well
@@ -1071,14 +1071,14 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     mapAt(hp, c, d2, ct2, fl);
     float mat = gMat, tint0 = gTint, spy = gSpineY, tgt = gTgt;
     uint  key0 = gKey;   // captured now: normalCtx and aoCtx overwrite these
-    /* 35 spines across a 1.82 m wall fall below a pixel at a few metres, and
-       their per-volume colours then beat into moire. Converge the detail on
+    /* 35 spines across a 1.82 m wall fall below a pixel at a few meters, and
+       their per-volume colors then beat into moire. Converge the detail on
        its mean with distance -- the procedural equivalent of a mip level. */
     float detail = clamp(1.0 - (hit - 2.5) / 7.0, 0.0, 1.0);
     tint0 = mix(0.5, tint0, detail);
 
     /* THE REVEAL, named here and deliberately NOT in mapAt. The wall between
-       two cells spans |u| < HALF_D - APO_ROOM = 0.600 m about a gap centre,
+       two cells spans |u| < HALF_D - APO_ROOM = 0.600 m about a gap center,
        and inside that slab the only surfaces are the ones the hole was cut
        through -- so the test is positional and needs no SDF comparison. The
        obvious alternative, asking which primitive the field says is nearest,
@@ -1136,7 +1136,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        every opening. Without this the well is unreadably black.        */
     if (ct2 == 1) lightSum += vec3(0.155, 0.130, 0.092) * (0.40 + 0.60 * max(n.y, 0.0));
     /* A stairwell needs the same courtesy, biased the other way. The shaft's
-       term favours UP-facing surfaces because a well is lit from the openings
+       term favors UP-facing surfaces because a well is lit from the openings
        around it; a stairwell's problem is the opposite, and specific: every
        one of its lamps sits above the flight, so the soffit -- the underside
        of the ascending flight, which is most of what you see through the
@@ -1151,7 +1151,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        with no height test at all, so every up-facing stone surface in the
        Library got the board pattern -- including ledges inside a doorway.
        Reported twice as "gap walls with wood texture", and measured: up-facing
-       stone at 0.83 m and 1.20 m above the floor, three metres away, framed by
+       stone at 0.83 m and 1.20 m above the floor, three meters away, framed by
        the reveal on both sides. The pattern is keyed on hp.x/hp.z, so it tiles
        horizontally at any height and reads as a wooden shelf let into the
        stone. The floor of a storey is fy = 0 exactly; fract() handles negative
@@ -1161,7 +1161,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     vec3 base;
     if (mat > 1.5 && mat < 2.5) base = C_CRIM;
     else if (mat > 0.5 && mat < 1.5){
-      /* One flat colour per volume, keyed to the volume. Wear is what a
+      /* One flat color per volume, keyed to the volume. Wear is what a
          spine really gets: darkening at head and tail, and on some books
          a paler label band -- no random blotching.                      */
       vec3 sp = mix(C_PAPER2, C_PAPER, 0.15 + 0.85 * tint0);
@@ -1211,7 +1211,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        in BRIGHTNESS -- measured luma 18.9 against 21.1, a contrast of 1.12 --
        they differed in HUE: this ramp tints stone green when lit is low and
        warm when it is high, the reveal sits at lit 0.17 and the wall beside it
-       at 0.90, so a green panel sat inside a warm-grey wall. Dominant colours
+       at 0.90, so a green panel sat inside a warm-gray wall. Dominant colors
        16,21,12 against 24,23,15.
 
        0.82 -> 0.94 on red halves the R/G gap between them, 0.250 -> 0.143,
@@ -1225,7 +1225,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     lum = clamp(dot(shaded, vec3(0.299, 0.587, 0.114)) * 1.60, 0.0, 1.0);
     /* The targeted volume, picked out. Deliberately small: enough to find
        the spine you are pointing at along a run of thirty-five, not enough
-       to light the room. The dither quantises luminance to a short ramp, so
+       to light the room. The dither quantizes luminance to a short ramp, so
        a lift this size lands on the next step and reads cleanly. */
     if (tgt > 0.5){
       sub = mix(sub, vec3(0.86, 0.88, 0.74), 0.30);
@@ -1249,10 +1249,10 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        measures lit ~0.135 where the wall on either side of the opening
        measures 1.0. The old gate was smoothstep(0.18, 0.38, lit): the wall
        in the gap fell BELOW the knee and got none of the lift, its
-       neighbours sat far above it and got all of it. Since this lift is, by
+       neighbors sat far above it and got all of it. Since this lift is, by
        its own comment, most of what makes stone visible, that is a cliff
-       between two surfaces a few centimetres apart -- and main()'s six-level
-       quantiser then rounds the unlit side down to step 0, which is black.
+       between two surfaces a few centimeters apart -- and main()'s six-level
+       quantizer then rounds the unlit side down to step 0, which is black.
        Hence a dark rectangle in the doorway with clean bright wall around it.
 
        0.35 + 0.65 * gate keeps bright walls exactly as they were and gives
@@ -1272,7 +1272,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
 
        It matters far more than a ceiling normally would, because the
        underside of a flight FILLS the opening when a stairwell is seen from
-       a gallery, and because the six-level quantiser in main() has no dim
+       a gallery, and because the six-level quantizer in main() has no dim
        setting: under lum ~0.1 it floors to step 0, and step 0 is sub*0.05.
        A surface is legible or it is a black rectangle; there is no between.
 
@@ -1291,7 +1291,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
        through this. UP-FACING stone that is not a floor -- the treads of a
        flight, where they run past the stairwell's own cell and shade as
        stone rather than wood -- escaped through neither, and measured RGB
-       (2,2,1) against a jamb at (20,20,13) three metres away.
+       (2,2,1) against a jamb at (20,20,13) three meters away.
 
        So the rule is: whatever the vertical lift excludes, this catches.
        floorish is excluded because the floor already has an answer, and
@@ -1303,7 +1303,7 @@ void shadeHit(vec3 ro, vec3 rd, float hit,
     /* And the reveal gets a FLOOR rather than a lift. Everything above is a
        lighting model, and the reveal is the one surface where the lighting
        model has nothing useful to say: it is the inside of a hole, so every
-       lamp is oblique to it and the six-level quantiser has no step between
+       lamp is oblique to it and the six-level quantizer has no step between
        "lit" and "black". Pin it to a step instead. That is what makes it read
        as a flat plane of dressed stone at any range -- which is the whole
        point of naming it a material, and is what the reporter asked for when

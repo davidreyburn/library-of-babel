@@ -238,7 +238,7 @@ simulator never read it. The specifications cite short fragments for traceabilit
 and [`SOURCE.md`](SOURCE.md) explains the arrangement and where to put your own
 copy if you want it beside the notes.
 
-## Licence
+## License
 
 MIT — see [`LICENSE`](LICENSE). It covers this repository's work, not the story.
 

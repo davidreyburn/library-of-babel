@@ -118,7 +118,7 @@ route number is the same journey, and step 400 can be checked without replaying 
 first 399. Every stop carries a room address, and every volume handed back is asserted
 to be a shelf that really exists.
 
-Whether a page *relates* to anything is the reader's judgement, not the core's. What
+Whether a page *relates* to anything is the reader's judgment, not the core's. What
 the core guarantees is that the trail can be followed:
 
 ```
@@ -234,7 +234,7 @@ Build, then test. The drift test compares the inlined text byte for byte, so a h
 edit there fails immediately rather than silently shipping stale code.
 
 Regenerating `vectors.json` changes the shared ground truth for every consumer. Do it
-when behaviour changed on purpose; never to make a failing test pass.
+when behavior changed on purpose; never to make a failing test pass.
 
 Departures from the specification are recorded in §17 of
 `spec/technical-specification.md` — 29 symbols rather than 25 (§17.5),

@@ -33,7 +33,7 @@ in [`../spec/technical-specification.md`](../spec/technical-specification.md) §
 | 3 | A reading room cost 2.4× a bare gallery | stubbing the suspect, after two wrong guesses | closed · §17.4 |
 | 4 | An aliased import that survived a byte-identical test | evaluating the inlined copy instead of comparing it | closed · §17.10 |
 | 5 | A room address that could not be parsed | only reproducible in a browser | closed · §17.8 |
-| 6 | The reticule drifting off target | arithmetic, then a centre-pixel probe | closed · §17.9 |
+| 6 | The reticule drifting off target | arithmetic, then a center-pixel probe | closed · §17.9 |
 | 7 | 32 of 40 journeys dead | driving 40 complete journeys headlessly | closed · §17.11 |
 | 8 | The stairs were fine; the harness was walking on air | a value sitting at exactly 0.00 in the log | closed · §17.11 |
 | 9 | The walkable Library was 32 bits wide | being asked a question from outside | closed · §17.12 |
@@ -78,7 +78,7 @@ cross-origin-ness, it's a missing token.
 
 I also checked and discarded a second line of evidence that looked convincing:
 `featurePolicy.allowsFeature("pointer-lock")` returned `false`, but
-`features()` shows Chrome does not recognise `pointer-lock` as a policy feature
+`features()` shows Chrome does not recognize `pointer-lock` as a policy feature
 at all, so that `false` meant nothing.
 
 **Outcome:** the failure is now *visible* — a `mouse: captured / free` row with
@@ -154,7 +154,7 @@ them. Comparing text is not the same as running it.
 `?read=<address>` silently failed to open. Two causes, stacked:
 
 - The startup handler ran before the input section's `const` declarations were
-  initialised, so `openBook` hit a temporal-dead-zone error. `?at=` worked and
+  initialized, so `openBook` hit a temporal-dead-zone error. `?at=` worked and
   `?read=` did not, because only one of them touched a later binding. Both parse
   identically outside a browser, so nothing in 144 assertions could have caught
   it.
@@ -188,7 +188,7 @@ plane intersections, measured at 0.0035 ms, or 0.05% of a frame. Exhaustive
 rather than clever, because there is no candidate window to get wrong.
 
 Verified by probing the renderer rather than by eye: for 49 angles from −76° to
-+76° across three pitches, render, read the **centre pixel**, switch the
++76° across three pitches, render, read the **center pixel**, switch the
 highlight off, read it again. If the pixel changes, the highlighted spine is the
 one under the crosshair. **49 / 49 on target**, and the old ray disagreed with the
 new one at 24 of 44 of those angles.
@@ -209,14 +209,14 @@ waypoint, and the wall between it and that waypoint had no doorway in it.
 
 The walker was in the wrong room. The cause is a number that had been in the
 constants the whole time and that I had never put together: a gallery is 3.64 m
-across, but cell centres are **4.84 m** apart. **Adjacent rooms do not touch.**
-They are joined by a corridor about a metre wide. Steering from wherever you
-happen to be straight at the next centre therefore does not go through the
+across, but cell centers are **4.84 m** apart. **Adjacent rooms do not touch.**
+They are joined by a corridor about a meter wide. Steering from wherever you
+happen to be straight at the next center therefore does not go through the
 doorway — it clips the wall, or threads a *different* doorway and strands you one
 wall away from a waypoint you can no longer reach.
 
 Every opening is now a waypoint of its own, which took arrivals to 23%. The rest
-came from giving up on precision entirely: steering through a one-metre gap is
+came from giving up on precision entirely: steering through a one-meter gap is
 approximate, so instead of tuning it, the walker notices it is in a room its
 route never mentioned and asks the lattice for a new one from where it actually
 is. 17 of 400 journeys re-plan once and arrive anyway.
@@ -260,7 +260,7 @@ The measured result, once it worked:
 
 The last row of that table cost one more fix. At 196 arrivals the reticule
 disagreed with the opened book *once* — the walker was stopping up to 0.55 m off
-the middle of the room, and from there the aim line could catch a neighbouring
+the middle of the room, and from there the aim line could catch a neighboring
 spine. Tightening the final waypoint to 0.20 m closed it: 400 for 400. A
 one-in-two-hundred defect is exactly the kind that ships.
 
@@ -360,7 +360,7 @@ link     127362.9 ms   ->  false, and getProgramInfoLog() returned ""
 An empty log after two minutes is an inlining blow-up, and I had an obvious
 suspect. The corridor picked its axis by preferring one with a flight of stairs
 at the end *whose own axis agreed*, so `corridorAxis` called `axisOf` on a
-neighbour — and `gapAt` calls `corridorAxis`, `cellDesc` calls `gapAt` six
+neighbor — and `gapAt` calls `corridorAxis`, `cellDesc` calls `gapAt` six
 times, and the shader calls `cellDesc` for every cell every ray enters. That is
 a genuinely bad thing to put on that path, so I replaced it with a flat pass of
 type comparisons that buys the same arrangement from the other side: the
@@ -417,9 +417,9 @@ made the shader paint step-exhausted pixels red, near-exhausted green. The
 marked pixels lay in thin lines along silhouette edges and nowhere near the
 blotches. Dead.
 
-**Theory two: the tone ramp.** The renderer quantises luminance to six levels,
+**Theory two: the tone ramp.** The renderer quantizes luminance to six levels,
 which can turn a tiny discontinuity into a hard visible edge. Turning the
-quantiser off left the blotches in place, softer. Dead.
+quantizer off left the blotches in place, softer. Dead.
 
 **Theory three: a hard threshold in the shading.** There is a line that lifts
 luminance by 0.30 on near-vertical surfaces when `lit > 0.28` — a step function
@@ -455,7 +455,7 @@ nowhere near the wall. Dropping the march step from 0.80 to 0.30 made them go
 away — which is the signature of *overshoot*, a field that over-reports the
 distance so the ray lands past the surface where the gradient is nonsense.
 Three places in the shelving were doing it: a `mod()` that repeated the shelf
-for ever and was not centred on the volume, and two hard culls that dropped a
+for ever and was not centered on the volume, and two hard culls that dropped a
 wall's casework and its books out of the field rather than measuring them.
 8.5% of surface pixels carried a bad normal at step 0.80, 6.1% at 0.30 for
 6.7× the frame cost — and making the field conservative got the same result at
@@ -631,7 +631,7 @@ and still calls a genuinely wrong claim wrong.
 > - *"The darkness is the AO collapse from `badrefine` again."* `?ablate=occ`
 >   forces `occ = 1.0` and the region stays dark, and `whatis` reports zero
 >   misses and no `lit == 0`. It is neither AO nor a lost ray: lamp attenuation
->   is `1/(1+(d/1.35)²)` and the stairwell interior is metres past the doorway.
+>   is `1/(1+(d/1.35)²)` and the stairwell interior is meters past the doorway.
 >
 > **What actually got the answer**, after four sessions of image-differencing:
 > asking the topology what the camera was pointed at. Every earlier attempt
@@ -664,7 +664,7 @@ and still calls a genuinely wrong claim wrong.
 > never measured was **whether anything went black** -- and a black region is
 > the specific failure mode of moving a hit point forward, so it was the one
 > check the change itself called for. Worse, the black rectangle was visible
-> in my own verification screenshot and I labelled it "the hall doorway,"
+> in my own verification screenshot and I labeled it "the hall doorway,"
 > because a clean fix was the answer I wanted. There *is* a hall on wall 0 of
 > that cell, which is exactly what made the rationalisation easy.
 >
@@ -847,7 +847,7 @@ and still calls a genuinely wrong claim wrong.
 > | `lift` — drop the near-vertical stone lift | **gone**, and the wall goes black |
 > | `softlift` — lift ∝ `lit`, cannot band | still there |
 > | `lampramp` — ramp the hard lamp radius cutoffs | still there |
-> | tone quantiser off (`grain=3`) | still there |
+> | tone quantizer off (`grain=3`) | still there |
 > | `occ` — force AO to 1 | still there |
 > | **`march` — step scale 0.80 → 0.25** | **gone** |
 >
@@ -900,7 +900,7 @@ did not fix it here.
 | Suspect | Ablation | Result |
 |---|---|---|
 | Hard lamp radius cutoffs (`if (dl > 11.0) continue`) | ramp each lamp's attenuation to zero before its cull radius | **0.02% of pixels change.** Not it. |
-| Ambient occlusion | force `occ = 1.0`, diff against a stored baseline | 5–7% of pixels change, and the difference image is **thin lines at shelf edges and corners** — contact darkening, correct AO behaviour. No blobs. Not it. |
+| Ambient occlusion | force `occ = 1.0`, diff against a stored baseline | 5–7% of pixels change, and the difference image is **thin lines at shelf edges and corners** — contact darkening, correct AO behavior. No blobs. Not it. |
 
 The AO test is worth keeping even though it was negative, because AO had never
 actually been cleared for *stone*. §11 convicted it, then exonerated it on the
@@ -1013,7 +1013,7 @@ reports arrived in the same message and are one location.
 And the stairwells in those two views are **two-ended and crossable** (`climbs`
 +1), so the blackness there is not the one-ended pocket above: it is that a
 stairwell interior receives almost nothing. Lamp attenuation is
-`1/(1+(d/1.35)²)` and the visible surfaces sit metres past the doorway; the
+`1/(1+(d/1.35)²)` and the visible surfaces sit meters past the doorway; the
 `ct == 2` spill is `vec3(0.055, 0.047, 0.033)`, against `vec3(0.155, 0.130,
 0.092)` for a shaft, which was raised precisely because *"without this the well
 is unreadably black."* Ruled out by measurement, so nobody repeats them:
@@ -1050,7 +1050,7 @@ reporter will see first.
 > 2. The near-vertical stone lift, which its comment calls *"most of what makes
 >    a wall visible at all"*, is gated on `horiz > 0.80`. An underside's `horiz`
 >    is ~0.01.
-> 3. **`main()` quantises luminance to six levels.** This is the one that turns a
+> 3. **`main()` quantizes luminance to six levels.** This is the one that turns a
 >    dim surface into a black one: `q = floor(lum*5 + 0.5 + dither)/5`, and
 >    `final = sub * (0.050 + 1.35*q)`. Below `lum ≈ 0.1` everything floors to
 >    step 0, and step 0 is `sub * 0.05`. **There is no dim.** A surface is
@@ -1058,7 +1058,7 @@ reporter will see first.
 >
 > Gate 3 is why this reads as a defect rather than as atmosphere, and it is worth
 > carrying forward to anything else in this renderer that looks "too dark": the
-> quantiser has no low end, so *any* surface that falls off the bottom of the
+> quantizer has no low end, so *any* surface that falls off the bottom of the
 > lighting model renders as a hole rather than as shadow.
 >
 > **Two changes, both measured:**
@@ -1070,7 +1070,7 @@ reporter will see first.
 >   gallery's ceiling. `?ablate=nobounce`.
 > - the stairwell spill raised to the shaft's magnitude and biased the other way:
 >   `vec3(0.155, 0.130, 0.092) * (0.40 + 0.60 * max(-n.y, 0.0))`, from a flat
->   `vec3(0.055, 0.047, 0.033)`. The shaft's term favours up-facing surfaces
+>   `vec3(0.055, 0.047, 0.033)`. The shaft's term favors up-facing surfaces
 >   because a well is lit from the openings around it; a stairwell's problem is
 >   exactly inverted. `?ablate=dimstair`.
 >
@@ -1100,12 +1100,12 @@ reporter will see first.
 > what a dark region *was*; this answers it in one load. **Reach for it first.**
 >
 > **The cause, and it is a third instance of the same shape.** Over the patch
-> `lit` measures **0.135**; the wall a few centimetres away on either side of
+> `lit` measures **0.135**; the wall a few centimeters away on either side of
 > the opening measures **1.000**. The near-vertical stone lift is gated
 > `smoothstep(0.18, 0.38, lit)`, so the wall in the gap falls *below* the knee
-> and receives none of the lift while its neighbours sit far above it and
+> and receives none of the lift while its neighbors sit far above it and
 > receive all of it. Since that lift is, by its own comment, most of what makes
-> stone visible, and since the six-level quantiser then rounds the unlit side to
+> stone visible, and since the six-level quantizer then rounds the unlit side to
 > step 0, the result is a hard-edged dark rectangle inside a bright wall.
 >
 > That is the same defect §17.14 already recorded once — *"a step function on a
@@ -1132,11 +1132,11 @@ reporter will see first.
 >
 > Second, and the actual answer: the reveal and the wall were never far apart in
 > brightness. Measured luma **18.9 against 21.1 -- a contrast of 1.12**. What
-> separated them was colour.
+> separated them was color.
 > `tint = mix(vec3(0.82,1.04,0.78), vec3(1.06,0.94,0.78), lit)` tints stone
 > GREEN where `lit` is low and WARM where it is high; the reveal sits at `lit`
-> 0.17 and the wall beside it at 0.90. Dominant colours
-> **16,21,12 against 24,23,15** — a green panel inside a warm-grey wall, which
+> 0.17 and the wall beside it at 0.90. Dominant colors
+> **16,21,12 against 24,23,15** — a green panel inside a warm-gray wall, which
 > is exactly what a "patch" looks like when the levels already match.
 >
 > Pulling the cold end to `vec3(0.94, 1.00, 0.80)` halves the R/G gap, **0.250 →
@@ -1149,7 +1149,7 @@ reporter will see first.
 > **The generalisable part.** Three sessions of this hunt assumed a region that
 > reads as a patch must be a region that is DARKER. Two of the three mechanisms
 > found here were not brightness at all: one was a normal error drawing rings,
-> and one was a hue ramp. Measure the colour, not just the luminance, before
+> and one was a hue ramp. Measure the color, not just the luminance, before
 > concluding that something is unlit.
 >
 > **Option A — the reveal as its own material — SHIPPED, after I wrongly
@@ -1169,7 +1169,7 @@ reporter will see first.
 >
 > **So the lesson is not "measure".** I measured — badly, and then reasoned
 > confidently on top of the bad number. **A cost is a measurement and worth is a
-> judgement**, and neither was mine to settle from a screenshot when the person
+> judgment**, and neither was mine to settle from a screenshot when the person
 > who had actually walked the build was one question away. I had written exactly
 > that a message earlier — *"you've walked it and I haven't"* — and decided
 > anyway.
@@ -1201,7 +1201,7 @@ reporter will see first.
 > nearest fails: at a hit point both are ~0 and the march stops a fraction
 > short of the surface, so noise decides and the tag spread over **43–98% of a
 > frame**. The wall between two cells spans `|u| < HALF_D - APO_ROOM` = 0.600 m
-> about a gap centre, and that test has nothing to go wrong at any angle.
+> about a gap center, and that test has nothing to go wrong at any angle.
 >
 > *Hoisting work out of `mapAt` made it dearer, not cheaper.* `mapAt` runs 30–70
 > times a pixel and `shadeHit` once, so moving the six-way test should have been
@@ -1294,7 +1294,7 @@ recover the surface normal. World height is `floor × 2.60 m`, and float32 has
 | **12,604** | 32,770 m | **3.91 mm** | **no — the offset vanishes** |
 | 65,535 | 170,391 m | 15.6 mm | no |
 
-Above 2¹⁵ metres the ULP exceeds twice the epsilon, so `p.y + eps == p.y` bit
+Above 2¹⁵ meters the ULP exceeds twice the epsilon, so `p.y + eps == p.y` bit
 for bit, the y-component of the gradient is identically zero, and
 `floorish = (mat < 0.5 && n.y > 0.62)` can never be true. The floor stops
 taking the floorboard material and falls through to the generic stone branch.
@@ -1304,7 +1304,7 @@ precise, because horizontal coordinates near the origin are small — and off
 material ids, which do not involve y at all. The one surface identified by its
 *vertical* normal is the one surface that disappears. Degradation actually
 begins at floor 6,302, where the epsilon first drops below one ULP and normals
-start quantising; 12,604 is where it reaches zero.
+start quantizing; 12,604 is where it reaches zero.
 
 **No floor limit should be enforced, and enforcing one would breach the
 specification.** LIB-A-013 and LIB-A-020 require floors unbounded and no
@@ -1348,7 +1348,7 @@ on the far side of a wall.
 pocket — is fixed. The topology half was filed as "the seam and the renderer
 disagree about where you can go", which sounds abstract; this report is what
 that abstraction feels like from inside, and it is worse than a rendering
-artefact because it moves you somewhere you did not walk.
+artifact because it moves you somewhere you did not walk.
 
 **What would close it** is unchanged from §14: in `gapAt`'s stairwell branch,
 do not open an axis end unless the opposite end is open. What this report adds
@@ -1456,7 +1456,7 @@ the cell boundary — stayed walkable. A corridor's slab runs `CORR_EXT` past it
 own cell, which puts a walker in exactly that corner. **One flight in 38 could
 still be entered, around the side**, and a single hand-picked test site said the
 fix worked. `HALF_D` is the cell's own apothem, so the whole cell is solid and
-the field meets its neighbours' at the shared edge.
+the field meets its neighbors' at the shared edge.
 
 Verified by sweep rather than by a site: **77 dead ends, approached from three
 lateral offsets each — 231 walks, 8 of them from a corridor. None entered, none
@@ -1490,13 +1490,13 @@ never the defect.
 ends, unconditionally**, in the shader and in `voidDist2D` identically. It
 exists for a real reason, recorded where it is defined: ending the cut exactly
 on the boundary caps it with a face, and the flight has to reach the doorway box
-its neighbour draws. But `STAIR_RUN` is *exactly* the cell radius, so at a
+its neighbor draws. But `STAIR_RUN` is *exactly* the cell radius, so at a
 **walled** end the overhang runs straight through the rock into the next cell.
 
 Worked out on the flight the report was looking at, `-10,-8`, axis 1, rising
 toward its walled end:
 
-| u from centre | cell | old | new |
+| u from center | cell | old | new |
 |---|---|---|---|
 | 2.35 m | `-10,-8` | void | void |
 | 2.45 m | `-9,-9` | **void** | rock |
@@ -1505,7 +1505,7 @@ toward its walled end:
 
 The cut reached `u = 3.17`, which is 0.75 m inside `-9,-9` — a cell `gapAt`
 says is behind a WALL. That is the black rectangle: the flight does not stop, it
-continues into a neighbour with no lamp in it. **And it is §17's warp.** Walking
+continues into a neighbor with no lamp in it. **And it is §17's warp.** Walking
 that staircase put a body in `-9,-9`:
 
 ```
@@ -1525,7 +1525,7 @@ flight and a study — and `mapAt` reads one constant bit each. `voidDist2D` use
 the same rule from `stairExtends`. The lattice does not change: `gapAt`,
 `vectors.json` and the agent's Library are untouched.
 
-**Measured over 684 approaches, both behaviours in one page load:**
+**Measured over 684 approaches, both behaviors in one page load:**
 
 | | as it was | with the fix |
 |---|---|---|
@@ -1643,7 +1643,7 @@ Two things the measurement caught that reasoning would not have:
   is above every warm load measured and far below the case worth explaining.
 - A deferred script leaves a window — 0.7 s warm, 90 s cold — where the veil
   is up and its click handler is not attached. A click in it used to vanish.
-  It is now remembered and honoured when the door works.
+  It is now remembered and honored when the door works.
 
 **The lever that pointed at was tried next, and it is not one.** The plan was
 to give `aoCtx` a coarser field, on the reasoning that ambient occlusion is
@@ -1729,13 +1729,13 @@ it learned to show you what you cannot reach.
 **And an over-read is not portably an error, which is the transferable part.**
 The two ANGLE backends disagree about what to do with it:
 
-| backend | behaviour on the overrun | what you see |
+| backend | behavior on the overrun | what you see |
 |---|---|---|
 | D3D11 (Windows) | robust buffer access: reads past the end return zero | the model, plus some degenerate triangles collapsed at the origin that nobody would notice |
 | Metal (macOS) | the bounds check rejects the call | nothing at all — the *whole* draw is dropped, not the overrun |
 
 *The D3D11 half of that table is not measured here.* It is the documented
-behaviour of the backend and it is consistent with the report — the page was
+behavior of the backend and it is consistent with the report — the page was
 being used on Windows daily — but this session had no Windows machine to run it
 on, and the standard of this document is that a number nobody took says so.
 
@@ -1785,15 +1785,15 @@ boot is empty on every backend there is. **The first version of this gate was
 vacuous for that reason and passed.**
 
 **The check that seemed obvious was measured and it does not work.** Blank was
-the symptom, so a read of the centre of the canvas ought to catch this class on
+the symptom, so a read of the center of the canvas ought to catch this class on
 any machine — including, unlike the error queue, the one that wrote the bug.
 The vertex count was put back to `verts.length / 8` and both pages run under
 two backends:
 
-| | `getError()` | pixels at the centre | verdict |
+| | `getError()` | pixels at the center | verdict |
 |---|---|---|---|
-| ANGLE Metal (Apple M4) | `INVALID_OPERATION` | 1 colour, the sky | **2 of 29 fail** |
-| ANGLE SwiftShader (Vulkan) | `NO_ERROR` | 9 colours | **29 of 29 pass** |
+| ANGLE Metal (Apple M4) | `INVALID_OPERATION` | 1 color, the sky | **2 of 29 fail** |
+| ANGLE SwiftShader (Vulkan) | `NO_ERROR` | 9 colors | **29 of 29 pass** |
 
 SwiftShader is the D3D11 case. It serves the over-read as zeroes, which adds
 degenerate triangles at the origin and leaves the rest of the lattice looking
@@ -1837,10 +1837,10 @@ fill the cell. **These do not, in three separate ways:**
 
 1. a book is `BOOK_W*0.90` wide in a `BOOK_W` pitch, so there is a gap between
    every pair;
-2. depth varies, `BOOK_D * (0.80 + 0.20 * hh)`, so a neighbour can stand up to
+2. depth varies, `BOOK_D * (0.80 + 0.20 * hh)`, so a neighbor can stand up to
    **0.04 m prouder** than the indexed slot and be nearer in 3D;
 3. **3.5% of slots are empty** and `continue` outright, so `d` falls back to the
-   casework while the neighbouring spines are much closer.
+   casework while the neighboring spines are much closer.
 
 So the distance **over-reports**, and `t += d * 1.00` on an over-reporting field
 is a ray that steps past a surface. The shader's own comment two hundred lines
@@ -1854,7 +1854,7 @@ grazing angle the ray runs almost parallel to the spines, so the same 0.04 m
 sweeps a long way **along the wall**, and what it sweeps past is a chunk of
 cover.
 
-**The fix is to evaluate the neighbours too**: slot `bi`, `bi-1` and `bi+1`,
+**The fix is to evaluate the neighbors too**: slot `bi`, `bi-1` and `bi+1`,
 min'd. Three is enough and four is unnecessary — two pitches of lateral
 separation is 0.104 m, which already exceeds the largest depth step, so no
 slot further out can ever be the nearest.
@@ -1986,7 +1986,7 @@ twin. It cannot catch a subtly different one, and a subtly different one is
 exactly what the GLSL/JS split produced twice before (§4, §12).
 
 **The tint had no twin at all.** The shader read bits 16–31 of the same hash for
-a spine's colour. `babel-core.mjs` did not know that field existed, so nothing
+a spine's color. `babel-core.mjs` did not know that field existed, so nothing
 could have checked it even in principle.
 
 **What shipped.** One `VOLUME_GLSL` block in `core/babel-glsl.mjs` holding
