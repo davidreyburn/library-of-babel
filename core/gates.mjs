@@ -21,6 +21,6 @@ console.log(`
   backend -- Chrome takes --use-angle=<metal|gl|swiftshader>, each with its
   own --user-data-dir. This is not belt-and-braces. Bug log 21a put the bug
   back and measured it: on a permissive driver the error queue is empty, the
-  canvas is not blank, and all 33 assertions pass on a page that is broken
+  canvas is not blank, and all 38 assertions pass on a page that is broken
   everywhere else. One machine cannot see this class.
 `);

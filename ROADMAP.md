@@ -32,7 +32,7 @@ the missing piece — it is [R1](#r1-the-page-gate-reads-geterror-on-two-backend
 and it is the last thing between here and a release. Nothing else in this
 document is portability work, which is itself the reason it went unnoticed.
 
-Green: **179 core assertions**, **57 gates**, **33 in the browser on two named
+Green: **191 core assertions**, **57 gates**, **38 in the browser on two named
 backends**, 704 GPU integers, build current
 against `core/`. `CORE_VERSION` is **0.6.0**. Walking somewhere on purpose
 arrives 197 times in 200 and says why when it does not.
@@ -965,7 +965,7 @@ records context exhaustion as an ending with a named cause rather than throwing.
 named a wall with no doorway four times — the `adversary` path, walked into by
 a real reader that had the ways-out list in front of it and did not read it.
 
-### 6. Mouse capture done properly — **unblocked: it has a home**
+### 6. Mouse capture done properly — **closed**
 
 What ships today is an imitation — hidden cursor and edge-turning — and the
 user was right that it *"doesn't feel totally legit"*. Real pointer lock is
@@ -978,14 +978,22 @@ answer.** The pages are published at
 served top level and not in a frame, so pointer lock is available there today
 without any change to the renderer.
 
-**What remains is the deletion, not the feature.** The imitation is still in the
-build and still runs when the real thing is available. The lever was always
-*"delete the imitation rather than build on it"*, and that is now a change
-somebody can make rather than a thing to wait for.
+**Deleted, not improved**, which is what the lever asked for: `EDGE_M`, `EDGE_R`,
+the edge accumulator and its term in `frame()`, and free look on an uncaptured
+pointer. What remains is drag-to-look, and one rule — **the cursor disappears if
+and only if the lock is really held.**
 
-**Done when:** the edge-turning path is gone, the page asks for pointer lock and
-says plainly when it cannot have it, and `pagecheck` asserts which of the two is
-in use rather than leaving it to whoever happens to be looking.
+**The new gate failed on first run and was right to.** In a frame the page had
+asked for the lock, shown "drag to look", and given no reason: `requestPointerLock()`
+returns a promise that **resolves without the lock engaging** where a frame may
+ask but not keep it, and the `.then` branch was treating resolution as success.
+Believe `pointerLockElement`, not the promise. Silence is now unreachable.
+
+Verified with trusted events, which a page cannot fake: framed → not captured,
+cursor visible; top level → captured, cursor hidden. **Nine assertions hold it
+there**, four of them in `npm test` without a browser, because a deleted feature
+grows back the moment somebody restores a fallback that looks helpful — and
+edge-turning looked extremely helpful. Bug log [§26](docs/BUG-LOG.md).
 
 ### 7. The last hand-written mirror — **closed**
 

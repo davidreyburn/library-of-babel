@@ -2083,6 +2083,91 @@ checked that what it said was *so*. The defect survived a release, a tag, and tw
 sessions of work on the very file it lived in, and was found because somebody
 asked for a picture of a chair.
 
+### 26. The mouse capture that was pretending, and the silence underneath it
+
+*Roadmap item 6, closed. It had been blocked for the life of the project on
+"where this lives", and publishing the pages answered that.*
+
+**What was there.** Real capture is the Pointer Lock API, and inside a sandboxed
+artifact frame it cannot be granted at all. So the page imitated it: the cursor
+was hidden **whether or not the lock was held**, plain pointer movement turned
+the view, and holding the pointer near the left or right edge kept it turning.
+The reporter's verdict was *"doesn't feel totally legit"*, which was exactly
+right and, as a bug report, unanswerable — because **which mode you were in
+could only be judged by feel.**
+
+**What was wrong with it, stated plainly.** A hidden cursor that is not captured
+is the page lying about its own state. Edge-turning was a second control scheme
+that ran only in the mode where the first had failed, so the mode where things
+were worst was also the mode nobody was looking at.
+
+**Deleted rather than improved**, which is what the item asked for: `EDGE_M`,
+`EDGE_R`, the edge accumulator, its term in `frame()`, and free look on an
+uncaptured pointer. What remains is drag-to-look, which is honest — your hand is
+doing something the page is not pretending about — and one rule: **the cursor
+disappears if and only if the lock is really held.** One `classList.toggle
+("blind", lockOK)`, in one place.
+
+**Then the new gate immediately failed, and it was right to.** Inside
+`pagecheck`'s frame the page reported `entered: true, lockOK: false, note: ""` —
+it had asked for the lock, shown "drag to look", and given **no reason at all**.
+The cause: `requestPointerLock()` returns a promise that **resolves without the
+lock engaging** in a frame permitted to ask but not to keep it. The `.then`
+branch treated resolution as success and cleared the note.
+
+So: believe `pointerLockElement`, not the promise. A resolved request that left
+no lock now calls `refuse()`, and `modeLine()` makes silence unreachable —
+having entered without the lock there is always a stated mode.
+
+**Verified in both directions, with trusted events.** A synthetic click cannot
+request pointer lock, so this cannot be faked from inside the page; CDP's `Input`
+domain dispatches real ones:
+
+| | framed | locked | cursor hidden | shown |
+|---|---|---|---|---|
+| in `pagecheck`'s iframe | **true** | false | **false** | "drag to look" |
+| top level, after a trusted click | false | **true** | **true** | "captured" |
+
+**Four source assertions and five browser ones**, because a deleted feature grows
+back the moment somebody restores a fallback that looks helpful — and
+edge-turning looked extremely helpful. `npm test` alone now fails if `EDGE_M`
+returns, if `blind` is set anywhere but the one conditional, or if the page stops
+publishing which mode it is in. 187 core → 191, 33 browser → 38.
+
+### 27. Two first readings that pointed at a plausible, wrong culprit
+
+*Not a defect in the Library. A methods note, recorded because it happened twice
+in one session on the same class of check, and both times the wrong answer was
+the more interesting one.*
+
+**Deploying to GitHub Pages turned on the question of whether it serves `.mjs`
+as JavaScript.** If it does not, `<script type="module">` is refused by strict
+MIME checking and the atlas renders **blank** — §21's symptom exactly, and
+unfixable on Pages, which has no header configuration.
+
+*First reading.* Four probes at plausible `.mjs` URLs on Pages hosts all returned
+`content-type: text/html`. That reads precisely like "Pages serves `.mjs` as
+HTML" and would have justified restructuring the build to inline the atlas.
+
+**They were 404s.** I had guessed the paths. A missing file returns the 404
+page's content type, so **any MIME conclusion drawn from a non-200 is
+meaningless** — which is also the real cause behind at least one widely-cited
+report of this "bug". Listing a Pages-hosted repository's tree through the API,
+then fetching a file known to exist, gave `text/javascript; charset=utf-8`.
+
+*Second reading, twenty minutes later.* With Pages enabled, a sweep of ten paths
+came back green except `.claude/skills/library-of-babel/SKILL.md`, which 404'd.
+That reads precisely like "`.nojekyll` does not publish dot-directories", and I
+was one sentence from writing it up as such.
+
+**It was propagation.** The identical URL returned 200 ninety seconds later.
+
+**The rule both of these want:** on any check that reads a *property* of a
+response, assert the status code first and separately. A 404 has a content type,
+a redirect has a content type, and an unfinished deploy has a whole site. The
+first reading of a remote check is a reading of the network as much as of the
+thing.
+
 ## The performance review, Aug 2026
 
 *Not a defect: a measurement of where the frame goes, kept here because every

@@ -271,6 +271,28 @@ section("THE PROTOTYPE -- it has to start, and say where it is");
          want.every(pc => note.includes(pc)), want.join(", ") || "an empty room");
     }
 
+    /* ---- the mouse mode, read rather than looked at ------------------
+       Roadmap item 6. The page used to hide the cursor whether or not it held
+       the lock, which meant the only way to know which mode you were in was
+       to judge by feel -- and the reporter's judgement, "doesn't feel totally
+       legit", was the bug report. It is a fact now, and this reads it.
+
+       This frame is not sandboxed, so the lock may or may not be granted here
+       and the gate does not care which. What it requires is that the page
+       never claim a hidden cursor it has not earned. */
+    const m = w.__mouse ? w.__mouse() : null;
+    ok("the page publishes its mouse mode", m !== null, m ? JSON.stringify(m) : "no __mouse");
+    if (m){
+      ok("and knows it is running inside a frame", m.framed === true, String(m.framed));
+      ok("and hides the cursor only while the lock is actually held",
+         m.blinded === m.lockOK, `blinded ${m.blinded}, lock ${m.lockOK}`);
+      /* what the reader actually sees, not an internal field behind it */
+      ok("and says which mode it is in rather than leaving it to be felt",
+         m.shown.length > 0 && m.shown !== "--", `"${m.shown}"`);
+      ok("and having entered without the lock, gives a reason",
+         m.lockOK || (m.shown !== "captured" && m.shown.length > 2), `"${m.shown}"`);
+    }
+
     ok("the render scale is a real number", st.div >= 1 && st.div <= 4, `1:${st.div}`);
     ok("nothing threw", w.__errs.length === 0, w.__errs.join(" | ") || "clean");
 

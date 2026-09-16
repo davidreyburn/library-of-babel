@@ -1103,6 +1103,33 @@ section("SEAM AND RENDERER -- no cut may run past a wall");
    on a public front page is worse than a dead link anywhere else, because it is
    the first thing a reader meets. Held to the kit for the same reason the atlas
    is: the moment a second page grew its own palette, the kit stopped being one. */
+/* Item 6's imitation, asserted gone. A deleted feature grows back the moment
+   somebody "restores" a fallback that looks helpful, and edge-turning looked
+   extremely helpful -- it was a second control scheme that ran only in the
+   mode where the first one had failed, which is exactly why nobody noticed it
+   was lying about the page's state. Source assertions, so they cost nothing
+   and run in `npm test` rather than needing a browser. */
+section("MOUSE CAPTURE -- the imitation stays deleted");
+{
+  const proto = readFileSync(new URL("../app/babel-phase1.html", import.meta.url), "utf8");
+
+  ok("no edge-turning constants survive",
+     !/EDGE_M|EDGE_R/.test(proto), "EDGE_M / EDGE_R");
+
+  /* The tell that matters: the cursor may be hidden only where the lock is
+     actually held. `blind` set anywhere but showMode() is the imitation. */
+  const blinds = [...proto.matchAll(/classList\.(?:add|toggle)\("blind"[^)]*\)/g)].map(m => m[0]);
+  ok("the cursor is hidden in exactly one place, and it is conditional",
+     blinds.length === 1 && /toggle\("blind", lockOK\)/.test(blinds[0]),
+     blinds.join(" | ") || "nowhere");
+
+  ok("and the page publishes which mode it is in, for a gate to read",
+     /window\.__mouse\s*=/.test(proto), "window.__mouse");
+
+  ok("pointer lock is still actually requested",
+     /requestPointerLock/.test(proto), "requestPointerLock");
+}
+
 section("THE LANDING PAGE -- every link it makes must resolve");
 {
   const idx = readFileSync(new URL("../index.html", import.meta.url), "utf8");

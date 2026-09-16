@@ -4393,14 +4393,13 @@ function openBook(a, page = 0){
   reading = { address: a, page: Math.max(0, Math.min(PAGES - 1, page)) };
   bk.warn.textContent = "";
   bk.pane.classList.add("open");
-  cv.classList.remove("blind");             // you need the cursor to read
-  if (locked()) document.exitPointerLock();
+  if (locked()) document.exitPointerLock();  // and showMode returns the cursor
   showPage();
 }
 function closeBook(){
   reading = null;
   bk.pane.classList.remove("open");
-  if (entered){ cv.classList.add("blind"); requestLock(); }
+  if (entered) requestLock();
 }
 function turnPage(d){
   if (!reading) return;
@@ -4735,32 +4734,42 @@ function autoStep(dt){
 }
 
 /* ---- input ---------------------------------------------------------- */
-/* True mouse capture is the Pointer Lock API, and it cannot be had inside the
-   artifact frame: that frame is sandboxed "allow-scripts allow-same-origin
-   allow-forms" with no allow-pointer-lock, which by spec makes every
-   requestPointerLock fail there no matter how it is asked for. Served from a
-   local server in an ordinary tab it works, and then it is used.
+/* True mouse capture is the Pointer Lock API, and this page now has a home
+   where it works: served at top level -- locally, or at the published site --
+   an ordinary tab grants it. Inside a sandboxed artifact frame it cannot be
+   granted at all, because that frame carries no allow-pointer-lock and the
+   spec makes every requestPointerLock fail there however it is asked for.
 
-   So looking never depends on it. Once you have entered: plain movement turns
-   the view, drag turns the view, and holding the pointer near the left or
-   right edge keeps it turning, so an uncaptured mouse can still sweep right
-   round instead of stopping dead at the window edge. Which mode you are in is
-   printed in the corner -- this failing silently is what made the whole thing
-   look broken for a session. */
+   WHAT WAS DELETED, AND WHY (roadmap item 6). This used to imitate capture
+   when it could not have it: the cursor was hidden whether or not the lock
+   was held, plain pointer movement turned the view, and holding the pointer
+   near the left or right edge kept it turning so an uncaptured mouse could
+   still sweep round. The reporter's verdict was that it "doesn't feel totally
+   legit", and it was right -- a hidden cursor that is not captured is a lie
+   told by the page about its own state, and edge-turning is a second control
+   scheme nobody asked for, live only in the mode where the first one failed.
+
+   The rule now is that the cursor disappears if and only if it is really
+   captured, and the corner says which mode you are in. Where capture is
+   refused you drag to look, which is an honest fallback rather than an
+   impression of a fallback: your hand is doing something the page is not
+   pretending about. Failing SILENTLY is what made this look broken for a
+   session, and that is the part worth keeping -- say the mode, always. */
 const veil    = document.getElementById("veil");
 const mouseEl = document.getElementById("mouse");
 const noteEl  = document.getElementById("mousenote");
 const framed  = window.top !== window.self;
-const EDGE_M  = 56;     // px from the left or right edge where turning begins
-const EDGE_R  = 1.9;    // rad/s at the very edge
 let dragging = false, entered = false, lockOK = false;
-let edge = 0, useRaw = true, lockBlocked = false, note = "";
+let useRaw = true, lockBlocked = false, note = "";
 const locked = () => document.pointerLockElement === cv;
 
 function showMode(){
-  mouseEl.textContent = lockOK ? "captured" : entered ? "free" : "--";
+  mouseEl.textContent = modeLine();
   noteEl.textContent  = lockOK ? "" : note;
   mouseEl.classList.toggle("warn", entered && !lockOK);
+  /* The cursor goes only where the lock really is. Hiding it otherwise is
+     the imitation this item existed to delete. */
+  cv.classList.toggle("blind", lockOK);
 }
 function requestLock(){
   /* Once the frame has refused, keep saying so -- never fall back to a
@@ -4775,7 +4784,14 @@ function requestLock(){
                : cv.requestPointerLock();
   } catch(_){ p = null; }
   if (p && p.then){
-    p.then(() => { note = ""; showMode(); })
+    /* A resolved promise is not a held lock. In a frame that is permitted to
+       ask but not to keep it, this resolves and `pointerLockElement` stays
+       null -- which used to leave the corner saying nothing at all about why
+       the mouse was not captured. Believe the element, not the promise. */
+    p.then(() => {
+        if (!locked()){ refuse("not granted here"); return; }
+        note = ""; showMode();
+      })
      .catch(e => {
        const name = (e && e.name) || "refused";
        if (name === "NotSupportedError" && useRaw){ useRaw = false; requestLock(); return; }
@@ -4794,6 +4810,12 @@ function refuse(name){
   else note = name === "refused" ? "click to capture" : name;
   showMode();
 }
+/* The invariant item 6 leaves behind: having entered without the lock, there
+   is always a stated reason. Silence is what this looked like when it was
+   broken, and silence is the one state that must not be reachable. */
+function modeLine(){
+  return lockOK ? "captured" : entered ? (note || "drag to look") : "--";
+}
 function look(e){
   st.yaw  -= e.movementX * 0.0022;
   st.pitch = Math.max(-1.45, Math.min(1.45, st.pitch - e.movementY * 0.0022));
@@ -4801,16 +4823,14 @@ function look(e){
 function enter(){
   entered = true;
   veil.classList.add("gone");
-  cv.classList.add("blind");
-  requestLock();
+  requestLock();              // showMode() blinds the cursor if, and only if, it lands
   showMode();
 }
 /* Q hands the mouse back deliberately: cursor returns and the view stops
    following it. Esc, which the browser owns, only drops the lock -- looking
    carries on, because that is the one thing that must never die silently. */
 function release(){
-  entered = false; dragging = false; edge = 0;
-  cv.classList.remove("blind");
+  entered = false; dragging = false;
   if (locked()) document.exitPointerLock();
   note = "click to look";     // true whether or not capture is available
   showMode();
@@ -4824,8 +4844,8 @@ cv.addEventListener("mousedown", e => {
   if (!locked()){ requestLock(); dragging = true; e.preventDefault(); }
 });
 addEventListener("mouseup",   () => { dragging = false; });
-addEventListener("mouseleave",() => { dragging = false; edge = 0; });
-addEventListener("blur",      () => { dragging = false; edge = 0; });
+addEventListener("mouseleave",() => { dragging = false; });
+addEventListener("blur",      () => { dragging = false; });
 document.addEventListener("pointerlockchange", () => {
   lockOK = locked();
   if (lockOK){ note = ""; veil.classList.add("gone"); }
@@ -4836,20 +4856,12 @@ document.addEventListener("pointerlockerror", () => refuse("refused"));
 document.addEventListener("mousemove", e => {
   if (reading) return;                        // the cursor belongs to the page
   /* A mouseup released over the browser's own chrome never reaches us, which
-     would leave this stuck in a drag and quietly kill edge turning. */
+     would otherwise leave this stuck in a drag. */
   if (dragging && e.buttons === 0) dragging = false;
-  if (locked() || dragging){ edge = 0; look(e); return; }
-  if (!entered) return;
-  const t = e.target;
-  if (t && t.closest && t.closest(".panel")){ edge = 0; return; }  // reaching for a control
-  look(e);
-  /* Signed so that positive keeps turning the way the right edge does. All
-     four panels sit in corners and are skipped above, so approaching one
-     never sets this. */
-  const w = innerWidth;
-  edge = e.clientX < EDGE_M         ? -(EDGE_M - e.clientX) / EDGE_M
-       : e.clientX > w - EDGE_M     ?  (EDGE_M - (w - e.clientX)) / EDGE_M
-       : 0;
+  /* Captured, or a button is down. Nothing else turns the view: a visible
+     cursor that steers the camera by drifting over the page is the imitation
+     of capture, which is the thing item 6 asked to be deleted. */
+  if (locked() || dragging) look(e);
 });
 showMode();
 addEventListener("keydown", e => {
@@ -5116,7 +5128,7 @@ function frame(now){
   /* Edge turning, for when the mouse is not captured: the pointer stops at the
      window edge and no more movement events arrive, so hold it there and the
      view keeps going. Moving back inwards clears it. */
-  if (edge && !locked() && !reading) st.yaw -= edge * EDGE_R * dt;
+
 
   /* Being walked somewhere. A hand on the keys always wins: taking over is
      how you stop trusting it, and it should not have to be a decision. */
@@ -5185,6 +5197,13 @@ hudPerf();
  *
  * Three references, no behaviour. The alternative is instruments that only
  * work if the tab happens to be in front. */
+/* The mouse mode, readable rather than looked at. Item 6's whole failure was
+   that which mode you were in could only be judged by eye, so core/pagecheck
+   asserts it instead: the page must know whether it holds the lock, and must
+   never report a hidden cursor it has not earned. */
+window.__mouse = () => ({ entered, locked: locked(), lockOK, framed,
+                          blinded: cv.classList.contains("blind"), note,
+                          shown: mouseEl.textContent });
 window.__render = { frame, gl, cv, st };
 
 requestAnimationFrame(frame);
