@@ -16,7 +16,7 @@
  *   MEANING    diffusion, invertibility, and the format rules from §4.
  * ==================================================================== */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { stripModuleSyntax } from "./inline.mjs";
 import * as core from "./babel-core.mjs";
 import * as text from "./babel-text.mjs";
@@ -1098,6 +1098,44 @@ section("SEAM AND RENDERER -- no cut may run past a wall");
 /* A kit with one page is a stylesheet. The rules below are the same three the
    prototype is held to, applied to the atlas, because the moment they were not
    the atlas grew its own palette and the kit quietly stopped being one. */
+/* The landing page is the one file here whose whole job is to point at other
+   files, which makes a dead link its only real failure mode -- and a dead link
+   on a public front page is worse than a dead link anywhere else, because it is
+   the first thing a reader meets. Held to the kit for the same reason the atlas
+   is: the moment a second page grew its own palette, the kit stopped being one. */
+section("THE LANDING PAGE -- every link it makes must resolve");
+{
+  const idx = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+
+  ok("it links the kit rather than copying it",
+     idx.includes('href="core/ui-kit.css"'), "core/ui-kit.css");
+
+  const kit = readFileSync(new URL("./ui-kit.css", import.meta.url), "utf8");
+  const tokens = [...kit.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map(m => m[1]);
+  const style = (idx.match(/<style>([\s\S]*?)<\/style>/) ?? ["", ""])[1];
+  const redeclared = tokens.filter(t => new RegExp("^\\s*" + t + "\\s*:", "m").test(style));
+  ok("and does not redeclare a token the kit already names",
+     redeclared.length === 0, redeclared.join(", ") || "none");
+
+  /* Every local href, resolved against the repository root -- which is what a
+     static host serves, so a path that resolves here resolves there. */
+  const hrefs = [...idx.matchAll(/(?:href|src)="([^"]+)"/g)].map(m => m[1])
+                  .filter(h => !/^(https?:|#|mailto:|data:)/.test(h));
+  const missing = hrefs.filter(h => !existsSync(new URL("../" + h, import.meta.url)));
+  ok("and every local link points at a file that exists",
+     missing.length === 0, missing.join(", ") || `${hrefs.length} links, all resolve`);
+
+  /* The pages it exists to send people to. If one is renamed, this fails here
+     rather than on the public site. */
+  for (const must of ["app/babel-phase1.html", "app/babel-atlas.html",
+                      "core/conformance.html", "docs/conformance-report.html"])
+    ok(`it offers ${must}`, hrefs.includes(must), must);
+
+  ok("and .nojekyll exists, or half of this is never published",
+     existsSync(new URL("../.nojekyll", import.meta.url)),
+     "GitHub Pages skips dot-prefixed paths without it");
+}
+
 section("THE ATLAS -- held to the kit, like everything else");
 {
   const atlas = readFileSync(new URL("../app/babel-atlas.html", import.meta.url), "utf8");

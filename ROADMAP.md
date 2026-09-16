@@ -965,16 +965,27 @@ records context exhaustion as an ending with a named cause rather than throwing.
 named a wall with no doorway four times — the `adversary` path, walked into by
 a real reader that had the ways-out list in front of it and did not read it.
 
-### 6. Mouse capture done properly
+### 6. Mouse capture done properly — **unblocked: it has a home**
 
 What ships today is an imitation — hidden cursor and edge-turning — and the
 user was right that it *"doesn't feel totally legit"*. Real pointer lock is
 impossible inside an artifact frame, which is sandboxed without
 `allow-pointer-lock`; served at top level it already works.
 
-**Lever:** once this has a durable home outside the artifact frame, delete the
-imitation rather than build on it.
-**Blocked on:** where this lives.
+**This item was blocked on "where this lives" and that question now has an
+answer.** The pages are published at
+[davidreyburn.github.io/library-of-babel](https://davidreyburn.github.io/library-of-babel/),
+served top level and not in a frame, so pointer lock is available there today
+without any change to the renderer.
+
+**What remains is the deletion, not the feature.** The imitation is still in the
+build and still runs when the real thing is available. The lever was always
+*"delete the imitation rather than build on it"*, and that is now a change
+somebody can make rather than a thing to wait for.
+
+**Done when:** the edge-turning path is gone, the page asks for pointer lock and
+says plainly when it cannot have it, and `pagecheck` asserts which of the two is
+in use rather than leaving it to whoever happens to be looking.
 
 ### 7. The last hand-written mirror — **closed**
 

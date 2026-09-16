@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Library of Babel</title>
+<meta name="description" content="A world an agent can be tested against, where a claim about it is true or false as arithmetic.">
+<link rel="stylesheet" href="core/ui-kit.css">
+<style>
+  /* The kit owns the palette. This page declares layout and nothing else --
+     the same rule app/babel-atlas.html is held to by test-core, and the
+     reason the kit is a kit rather than a stylesheet somebody copied. */
+  body{background:var(--ink);color:var(--pale);font:15px/1.65 var(--mono);
+       margin:0;padding:3rem 1.5rem 4rem;}
+  main{max-width:46rem;margin:0 auto;}
+  h1{font:400 2rem/1.2 var(--serif);color:var(--title);margin:0 0 .6rem;}
+  h2{font:400 1.05rem/1.4 var(--serif);color:var(--title);
+     margin:2.6rem 0 .7rem;border-top:1px solid var(--panel-line);padding-top:1.3rem;}
+  p{margin:0 0 1rem;}
+  .lede{color:var(--title);font-size:1.05rem;}
+  .sub{color:var(--faint);}
+  a{color:var(--focus-lit);text-decoration:none;border-bottom:1px solid var(--panel-line);}
+  a:hover{border-bottom-color:var(--focus-lit);}
+  ul{list-style:none;padding:0;margin:0;}
+  li{margin:0 0 1.4rem;}
+  li a.t{font-size:1.05rem;border:0;}
+  li p{margin:.15rem 0 0;color:var(--faint);font-size:.9rem;}
+  pre{background:#0D0F0B;border:1px solid var(--panel-line);padding:.9rem 1.1rem;
+      overflow-x:auto;font-size:.85rem;margin:.6rem 0 1rem;}
+  code{color:var(--title);}
+  .note{color:var(--mute);font-size:.85rem;}
+  img{display:block;width:100%;height:auto;margin:1.8rem 0 0;
+      border:1px solid var(--panel-line);}
+  footer{margin-top:3rem;border-top:1px solid var(--panel-line);padding-top:1.2rem;
+         color:var(--mute);font-size:.85rem;}
+</style>
+<main>
+
+<h1>The Library of Babel</h1>
+<p class="lede">A world an agent can be tested against, where a claim about it
+is true or false as arithmetic.</p>
+
+<p class="sub">Borges's Library, built and walkable. Nothing is stored: every
+room and every symbol is a pure function of its address, so the renderer, the
+command line, the test suite and an agent all compute the same Library from the
+same coordinates &mdash; and a citation into it can be checked exactly, by
+nobody's opinion.</p>
+
+<img src="docs/images/08-reticule-and-panel.jpg"
+     alt="the reticule on a spine, its name in the address panel">
+
+<h2>Walk it</h2>
+<ul>
+  <li>
+    <a class="t" href="app/babel-phase1.html">The Library, from inside &rarr;</a>
+    <p>WASD to walk, mouse to look, <b>E</b> to read the volume you are facing,
+       <b>?</b> for the keys. Every book on every shelf can be pulled and read.</p>
+  </li>
+  <li>
+    <a class="t" href="app/babel-atlas.html">The Library, from outside &rarr;</a>
+    <p>The cluster around a cell as low-poly solids &mdash; six cells in every
+       direction, six storeys either way. It draws the void rather than the rock,
+       so what you see is the shape of the network.</p>
+  </li>
+</ul>
+
+<p class="note"><b>The first load takes about a minute and a half on some
+machines.</b> The fragment shader is large and the driver has to compile it; the
+browser caches the result, so every load after the first opens at once. The page
+says so while it waits, and stays responsive.</p>
+
+<h2>Check it</h2>
+<ul>
+  <li>
+    <a class="t" href="docs/conformance-report.html">A recorded conformance run &rarr;</a>
+    <p>The lattice is written twice &mdash; once in JavaScript, once in GLSL &mdash;
+       and the GLSL is a port, not a copy. This is the two being compared, 704
+       integers at a time, under two different GPU backends.</p>
+  </li>
+  <li>
+    <a class="t" href="core/conformance.html">&hellip; or run it yourself &rarr;</a>
+    <p>The same harness, live, on whatever GPU you are reading this with.</p>
+  </li>
+</ul>
+
+<h2>Use it without the renderer</h2>
+<pre>git clone https://github.com/davidreyburn/library-of-babel
+cd library-of-babel
+node tools/babel.mjs here -3,0         # if this prints a gallery, you are ready</pre>
+<p class="sub">Node 18 or newer, no dependencies at all. The one rule the
+environment cares about:</p>
+<pre>node tools/babel.mjs verify &lt;address&gt; &lt;page&gt; &lt;line&gt; &lt;col&gt; "&lt;quote&gt;"
+# exits 0 if those symbols really are at that coordinate, 2 if they are not</pre>
+<p class="sub">There is no judge model in that loop, and nothing in it to trust.
+A reader that invents a quotation is caught by arithmetic.</p>
+
+<h2>Read about it</h2>
+<ul>
+  <li><a class="t" href="https://github.com/davidreyburn/library-of-babel">The repository &rarr;</a>
+      <p>Specifications, a bug log weighted toward what went wrong, a case study,
+         and a roadmap that says what is still open.</p></li>
+</ul>
+
+<footer>
+  Derived from Borges's story treated as a requirements document. The story
+  itself is not in the repository &mdash; it is under copyright and not ours to
+  redistribute; nothing here needs it at runtime.
+  <a href="https://github.com/davidreyburn/library-of-babel/blob/main/LICENSE">MIT</a>,
+  for this work and not the story.
+</footer>
+
+</main>

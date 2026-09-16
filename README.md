@@ -23,6 +23,10 @@ bit, and a bug log mostly about the times they did not.
 
 ![the reticule on a spine, its name in the panel](docs/images/08-reticule-and-panel.jpg)
 
+**It is published and walkable in a browser:
+[davidreyburn.github.io/library-of-babel](https://davidreyburn.github.io/library-of-babel/)**
+— the simulator, the atlas, and the conformance harness running on your own GPU.
+
 ## Three commands, no install, nothing to build
 
 ```sh
@@ -50,7 +54,10 @@ inspected by eye.
 
 That is a recorded run of [`core/conformance.html`](core/conformance.html) under
 two different GPU backends on one machine, captured in
-[`docs/conformance-report.html`](docs/conformance-report.html). **Two backends,
+[`docs/conformance-report.html`](docs/conformance-report.html) — which
+[renders as a page](https://davidreyburn.github.io/library-of-babel/docs/conformance-report.html)
+on the published site, and as markup here, because GitHub serves a committed
+`.html` as source. **Two backends,
 because one is not evidence** — this project has already shipped a page that was
 whole on Windows and blank on every Mac for four days, and no single machine
 could have seen it ([bug log §21 and §21a](docs/BUG-LOG.md)).
@@ -125,9 +132,10 @@ npm start                 # serves the repo; opens at app/babel-phase1.html
 or double-click `app/play.cmd` (Windows) / `app/play.sh` (macOS, Linux).
 
 **WASD** to walk, mouse to look, **E** to read the volume you are facing, **Q** to
-hand the mouse back, **R** if you get stuck. Served at top level like this you get
-real mouse capture; the published artifact cannot have it, because artifact frames
-are sandboxed without `allow-pointer-lock`.
+hand the mouse back, **R** if you get stuck. Served at top level — locally, or at
+the link above — real mouse capture is available; inside an artifact frame it
+cannot be, because those are sandboxed without `allow-pointer-lock`, and what
+ships there is an imitation ([item 6](ROADMAP.md)).
 
 **Z** opens a floor-and-cell box with a **Random** button — it refuses anywhere you
 could not stand and says why. **X** picks a shelved gallery six to fifteen rooms
